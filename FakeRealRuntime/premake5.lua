@@ -15,7 +15,8 @@ project "FakeRealRuntime"
 
     includedirs --附加包含目录
     {
-        "Source"
+        "Source",
+        "%{wks.location}/3rdparty/spdlog/include",
     }
 
     filter "system:windows" --平台配置

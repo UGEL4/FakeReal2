@@ -1,0 +1,61 @@
+#pragma once
+
+#include <cstdint>
+#include <spdlog/spdlog.h>
+#include <stdexcept>
+
+namespace FakeReal
+{
+	class LogSystem
+	{
+	public:
+		LogSystem();
+		~LogSystem();
+
+		enum class LogLevel : uint8_t
+		{
+			debug,
+			info,
+			warning,
+			error,
+			fatal
+		};
+
+	public:
+		template<typename ... Args>
+		void Log(LogLevel level, Args&&... args)
+		{
+			switch (level)
+			{
+			case FakeReal::LogSystem::LogLevel::debug:
+				m_pLogger->debug(std::forward<Args>(args)...);
+				break;
+			case FakeReal::LogSystem::LogLevel::info:
+				m_pLogger->info(std::forward<Args>(args)...);
+				break;
+			case FakeReal::LogSystem::LogLevel::warning:
+				m_pLogger->warn(std::forward<Args>(args)...);
+				break;
+			case FakeReal::LogSystem::LogLevel::error:
+				m_pLogger->error(std::forward<Args>(args)...);
+				break;
+			case LogLevel::fatal:
+				m_pLogger->critical(std::forward<Args>(args)...);
+				FatalCallback(std::forward<Args>(args)...);
+				break;
+			default:
+				break;
+			}
+		}
+
+		template<typename... Args>
+		void FatalCallback(Args&&... args)
+		{
+			const std::string format_str = fmt::format(std::forward<Args>(args)...);
+			throw std::runtime_error(format_str);
+		}
+
+	private:
+		std::shared_ptr<spdlog::logger> m_pLogger;
+	};
+}

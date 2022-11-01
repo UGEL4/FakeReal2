@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Base/Macro.h"
 
 namespace FakeReal
 {
@@ -13,5 +14,7 @@ namespace FakeReal
 		void Run();
 		void Tick();
 		void Shutdown();
+
+	private:
 	};
 }

@@ -15,6 +15,7 @@ project "FakeRealEditor"
     includedirs --附加包含目录
     {
         "%{wks.location}/FakeRealRuntime/Source",
+        "%{wks.location}/3rdparty/spdlog/include",
     }
 
     links
