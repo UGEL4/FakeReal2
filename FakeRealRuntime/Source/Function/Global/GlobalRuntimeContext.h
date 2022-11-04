@@ -5,6 +5,7 @@
 namespace FakeReal
 {
 	class LogSystem;
+	class WindowSystem;
 
 	class GlobalRuntimeContext
 	{
@@ -17,6 +18,7 @@ namespace FakeReal
 
 	public:
 		std::shared_ptr<LogSystem> m_pLogSystem;
+		std::shared_ptr<WindowSystem> m_pWindowSystem;
 	};
 
 	extern GlobalRuntimeContext g_global_runtime_context;

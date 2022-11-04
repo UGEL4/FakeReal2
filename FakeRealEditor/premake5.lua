@@ -16,6 +16,8 @@ project "FakeRealEditor"
     {
         "%{wks.location}/FakeRealRuntime/Source",
         "%{wks.location}/3rdparty/spdlog/include",
+        "%{wks.location}/3rdparty/GLFW/include",
+        "%{IncludeDir.VulkanSdkDir}",
     }
 
     links
@@ -26,6 +28,8 @@ project "FakeRealEditor"
     libdirs
     {
         "%{LibraryDir.FakeRealRuntimeLibDir}",
+        "%{LibraryDir.GLFWLibDir}",
+        "%{LibraryDir.VulkanSdkDir}",
     }
 
     filter "system:windows" --平台配置

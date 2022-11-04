@@ -21,16 +21,19 @@ project "FakeRealRuntime"
         "Source",
         "%{wks.location}/3rdparty/spdlog/include",
         "%{wks.location}/3rdparty/GLFW/include",
+        "%{IncludeDir.VulkanSdkDir}",
     }
 
     links
     {
         "GLFW",
+        "vulkan-1",
     }
 
     libdirs
     {
         "%{LibraryDir.GLFWLibDir}",
+        "%{LibraryDir.VulkanSdkDir}",
     }
 
     filter "system:windows" --平台配置
@@ -39,6 +42,11 @@ project "FakeRealRuntime"
         defines --预编译宏
         {
 
+        }
+
+        prebuildcommands --编译前自定义命令
+        {
+            ("{COPY} %{LibraryDir.GLFWLibOutputDir}/GLFW.lib %{cfg.targetdir}") --拷贝lib库到引擎的输出目录下去
         }
 
         postbuildcommands --编译后自定义命令

@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Base/Macro.h"
+
 #include <chrono>
 
 namespace FakeReal
@@ -17,7 +17,6 @@ namespace FakeReal
 		void Shutdown();
 
 	private:
-		bool ShouldBeClosed() const;
 		double CalculateDeltaTime();
 
 	private:

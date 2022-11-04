@@ -1,5 +1,7 @@
 #include "FRPch.h"
 #include "Engine.h"
+#include "Core/Base/Macro.h"
+#include "Function/Render/WindowSystem.h"
 
 namespace FakeReal
 {
@@ -27,8 +29,11 @@ namespace FakeReal
 
 	void Engine::Run()
 	{
-		LOG_ERROR("Engine::Run");
-		while (!ShouldBeClosed())
+		LOG_INFO("Engine::Run");
+
+		std::shared_ptr<WindowSystem> pWindow = g_global_runtime_context.m_pWindowSystem;
+		ASSERT(pWindow);
+		while (!pWindow->ShouldClose())
 		{
 			double deltaTime = CalculateDeltaTime();
 			Tick(deltaTime);
@@ -44,11 +49,6 @@ namespace FakeReal
 	{
 		g_global_runtime_context.ShutdownSystems();
 		LOG_ERROR("Engine::Shutdown");
-	}
-
-	bool Engine::ShouldBeClosed() const
-	{
-		return false;
 	}
 
 	double Engine::CalculateDeltaTime()

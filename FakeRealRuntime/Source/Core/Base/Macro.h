@@ -10,3 +10,9 @@
 #define LOG_WARNING(...)	LOG_HELPER(LogSystem::LogLevel::warning, __VA_ARGS__);
 #define LOG_ERROR(...)		LOG_HELPER(LogSystem::LogLevel::error, __VA_ARGS__);
 #define LOG_FATAL(...)		LOG_HELPER(LogSystem::LogLevel::fatal, __VA_ARGS__);
+
+#ifdef NDEBUG
+#define ASSERT(statement)
+#else
+#define ASSERT(statement) assert(statement)
+#endif
