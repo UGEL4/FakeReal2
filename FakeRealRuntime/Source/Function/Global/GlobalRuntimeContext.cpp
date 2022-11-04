@@ -15,12 +15,12 @@ namespace FakeReal
 
 	}
 
-	void GlobalRuntimeContext::InitializeSystem()
+	void GlobalRuntimeContext::InitializeSystems()
 	{
 		m_pLogSystem = std::make_shared<LogSystem>();
 	}
 
-	void GlobalRuntimeContext::ShutdownSystem()
+	void GlobalRuntimeContext::ShutdownSystems()
 	{
 		m_pLogSystem.reset();
 	}

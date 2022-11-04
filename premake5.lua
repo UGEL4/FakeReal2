@@ -1,3 +1,5 @@
+outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
+
 include "./premake/premake_customization/solution_items.lua"
 include "dependencies.lua"
 
@@ -20,8 +22,6 @@ workspace "FakeReal2" --解决方案
     {
 
     }
-
-outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 group "dependences"
     include "premake"

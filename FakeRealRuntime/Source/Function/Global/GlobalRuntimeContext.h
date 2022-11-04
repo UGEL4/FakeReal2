@@ -12,8 +12,8 @@ namespace FakeReal
 		GlobalRuntimeContext();
 		~GlobalRuntimeContext();
 
-		void InitializeSystem();
-		void ShutdownSystem();
+		void InitializeSystems();
+		void ShutdownSystems();
 
 	public:
 		std::shared_ptr<LogSystem> m_pLogSystem;

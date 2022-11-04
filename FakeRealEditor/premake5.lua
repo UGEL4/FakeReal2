@@ -20,7 +20,12 @@ project "FakeRealEditor"
 
     links
     {
-        "FakeRealRuntime"
+        "FakeRealRuntime",
+    }
+
+    libdirs
+    {
+        "%{LibraryDir.FakeRealRuntimeLibDir}",
     }
 
     filter "system:windows" --平台配置
