@@ -1,5 +1,5 @@
+#include "FRPch.h"
 #include "GlobalRuntimeContext.h"
-#include "Core/Log/LogSystem.h"
 
 namespace FakeReal
 {

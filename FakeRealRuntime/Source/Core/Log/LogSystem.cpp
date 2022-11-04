@@ -1,3 +1,4 @@
+#include "FRPch.h"
 #include "LogSystem.h"
 #include <spdlog/async.h>
 #include <spdlog/async_logger.h>

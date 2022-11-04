@@ -7,6 +7,9 @@ project "FakeRealRuntime"
     targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}") --输出目录
     objdir ("%{wks.location}/bin-int/" .. outputdir .. "/%{prj.name}") --中间临时文件
 
+    pchheader "FRPch.h"
+    pchsource "Source/FRPch.cpp"
+
     files --该项目的文件
     {
         "Source/**.h",
@@ -17,6 +20,17 @@ project "FakeRealRuntime"
     {
         "Source",
         "%{wks.location}/3rdparty/spdlog/include",
+        "%{wks.location}/3rdparty/GLFW/include",
+    }
+
+    links
+    {
+        "GLFW",
+    }
+
+    libdirs
+    {
+        "%{LibraryDir.GLFWLibDir}",
     }
 
     filter "system:windows" --平台配置

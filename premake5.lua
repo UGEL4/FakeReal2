@@ -25,10 +25,12 @@ workspace "FakeReal2" --解决方案
 
 group "dependences"
     include "premake"
+    include "3rdparty/GLFW"
 group ""
 
 include "FakeRealRuntime"
 include "FakeRealEditor"
+include "3rdparty/GLFW"
 
 -- project "FakeRealRuntime"
 --     location "FakeRealRuntime" --相对路径
