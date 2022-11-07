@@ -19,17 +19,18 @@ project "FakeRealEditor"
         "%{wks.location}/3rdparty/GLFW/include",
         "%{IncludeDir.VulkanSdkDir}",
     }
-
+printf("%s", IncludeDir.VulkanSdkDir)
     links
     {
         "FakeRealRuntime",
+        "vulkan-1",
     }
 
     libdirs
     {
         "%{LibraryDir.FakeRealRuntimeLibDir}",
         "%{LibraryDir.GLFWLibDir}",
-        "%{LibraryDir.VulkanSdkDir}",
+        "%{LibraryDir.VulkanSdkLibDir}",
     }
 
     filter "system:windows" --平台配置

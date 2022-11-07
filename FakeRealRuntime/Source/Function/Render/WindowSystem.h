@@ -22,6 +22,8 @@ namespace FakeReal
 		void Initialize(WindowCreateInfo info);
 		void Shutdown();
 		bool ShouldClose() const { return glfwWindowShouldClose(m_pWindow); }
+		void PollEvents() { glfwPollEvents(); }
+		void SetTitle(const char* title) { glfwSetWindowTitle(m_pWindow, title); }
 
 	private:
 		GLFWwindow* m_pWindow;

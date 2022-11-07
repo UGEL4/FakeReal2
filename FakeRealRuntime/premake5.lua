@@ -33,7 +33,7 @@ project "FakeRealRuntime"
     libdirs
     {
         "%{LibraryDir.GLFWLibDir}",
-        "%{LibraryDir.VulkanSdkDir}",
+        "%{LibraryDir.VulkanSdkLibDir}",
     }
 
     filter "system:windows" --平台配置
