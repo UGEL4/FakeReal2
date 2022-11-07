@@ -2,7 +2,7 @@
 #include "LogSystem.h"
 #include <spdlog/async.h>
 #include <spdlog/async_logger.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
 namespace FakeReal

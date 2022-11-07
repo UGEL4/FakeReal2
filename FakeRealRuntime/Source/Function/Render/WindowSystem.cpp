@@ -6,6 +6,7 @@ namespace FakeReal
 {
 
 	WindowSystem::WindowSystem()
+		: m_pWindow(nullptr), mWidth(1280), mHeight(720), mFocusMode(false)
 	{
 
 	}
@@ -35,11 +36,32 @@ namespace FakeReal
 			glfwTerminate();
 			return;
 		}
+
+		// Setup input callbacks
+		glfwSetWindowUserPointer(m_pWindow, this);
+		glfwSetKeyCallback(m_pWindow, KeyCallback);
+		glfwSetCharCallback(m_pWindow, CharCallback);
+		glfwSetCharModsCallback(m_pWindow, CharModsCallback);
+		glfwSetMouseButtonCallback(m_pWindow, MouseButtonCallback);
+		glfwSetCursorPosCallback(m_pWindow, CursorPosCallback);
+		glfwSetCursorEnterCallback(m_pWindow, CursorEnterCallback);
+		glfwSetScrollCallback(m_pWindow, ScrollCallback);
+		glfwSetDropCallback(m_pWindow, DropCallback);
+		glfwSetWindowSizeCallback(m_pWindow, WindowSizeCallback);
+		glfwSetWindowCloseCallback(m_pWindow, WindowCloseCallback);
+
+		glfwSetInputMode(m_pWindow, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
 	}
 
 	void WindowSystem::Shutdown()
 	{
 
+	}
+
+	void WindowSystem::SetFocusMode(bool mode)
+	{
+		mFocusMode = mode;
+		glfwSetInputMode(m_pWindow, GLFW_CURSOR, mFocusMode ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 	}
 
 }
