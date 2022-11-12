@@ -64,4 +64,9 @@ namespace FakeReal
 		glfwSetInputMode(m_pWindow, GLFW_CURSOR, mFocusMode ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 	}
 
+	std::array<int, 2> WindowSystem::GetWindowSize() const
+	{
+		return std::array<int, 2>({ mWidth, mHeight });
+	}
+
 }

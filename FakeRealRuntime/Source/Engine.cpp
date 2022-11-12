@@ -46,7 +46,7 @@ namespace FakeReal
 		CalculateFPS(deltaTime);
 
 		g_global_runtime_context.m_pWindowSystem->PollEvents();
-		g_global_runtime_context.m_pWindowSystem->SetTitle(("FR Engine - " + std::to_string(mFPS) + "FPS").c_str());
+		//g_global_runtime_context.m_pWindowSystem->SetTitle(std::string("FR Engine - " + std::to_string(mFPS) + "FPS").c_str());
 	}
 
 	void Engine::Shutdown()

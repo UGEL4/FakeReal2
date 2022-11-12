@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 #include <functional>
 #include <vector>
+#include <array>
 
 namespace FakeReal
 {
@@ -28,19 +29,30 @@ namespace FakeReal
 		void SetTitle(const char* title) { glfwSetWindowTitle(m_pWindow, title); }
 		void SetFocusMode(bool mode);
 		GLFWwindow* GetWindow() const { return m_pWindow; }
+		std::array<int, 2> GetWindowSize() const;
 
 	public:
-		using OnKeyCallback = std::function<void(GLFWwindow*, int, int, int, int)>;
-		using OnCharCallback = std::function<void(GLFWwindow*, unsigned int)>;
-		using OnCharModsCallback = std::function<void(GLFWwindow*, unsigned int, int)>;
-		using OnMouseButtonCallback = std::function<void(GLFWwindow*, int, int, int)>;
-		using OnCursorPosCallback = std::function<void(GLFWwindow*, double, double)>;
-		using OnCursorEnterCallback = std::function<void(GLFWwindow*, int)>;
-		using OnScrollCallback = std::function<void(GLFWwindow*, double, double)>;
-		using OnDropCallback = std::function<void(GLFWwindow*, int, const char**)>;
-		using OnWindowSizeCallback = std::function<void(GLFWwindow*, int, int)>;
-		using OnWindowCloseCallback = std::function<void(GLFWwindow*)>;
+		using OnKeyCallback			= std::function<void(int, int, int, int)>;
+		using OnCharCallback		= std::function<void(unsigned int)>;
+		using OnCharModsCallback	= std::function<void(unsigned int, int)>;
+		using OnMouseButtonCallback = std::function<void(int, int, int)>;
+		using OnCursorPosCallback	= std::function<void(double, double)>;
+		using OnCursorEnterCallback = std::function<void(int)>;
+		using OnScrollCallback		= std::function<void(double, double)>;
+		using OnDropCallback		= std::function<void(int, const char**)>;
+		using OnWindowSizeCallback	= std::function<void(int, int)>;
+		using OnWindowCloseCallback = std::function<void()>;
 
+		void RegisterKeyCallback(OnKeyCallback& func)					{ mOnKeyCallbacks.emplace_back(func); }
+		void RegisterCharCallback(OnCharCallback& func)					{ mOnCharCallbacks.emplace_back(func); }
+		void RegisterCharModsCallback(OnCharModsCallback& func)			{ mOnCharModsCallbacks.emplace_back(func); }
+		void RegisterMouseButtonCallback(OnMouseButtonCallback& func)	{ mOnMouseButtonCallbacks.emplace_back(func); }
+		void RegisterCursorPosCallback(OnCursorPosCallback& func)		{ mOnCursorPosCallbacks.emplace_back(func); }
+		void RegisterCursorEnterCallback(OnCursorEnterCallback& func)	{ mOnCursorEnterCallbacks.emplace_back(func); }
+		void RegisterScrollCallback(OnScrollCallback& func)				{ mOnScrollCallbacks.emplace_back(func); }
+		void RegisterDropCallback(OnDropCallback& func)					{ mOnDropCallbacks.emplace_back(func); }
+		void RegisterWindowSizeCallback(OnWindowSizeCallback& func)		{ mOnWindowSizeCallbacks.emplace_back(func); }
+		void RegisterWindowCloseCallback(OnWindowCloseCallback& func)	{ mOnWindowCloseCallbacks.emplace_back(func); }
 	private:
 		static void KeyCallback(GLFWwindow* pWindow, int key, int scancode, int action, int mods)
 		{
@@ -119,7 +131,9 @@ namespace FakeReal
 			WindowSystem* pApp = (WindowSystem*)glfwGetWindowUserPointer(pWindow);
 			if (pApp)
 			{
-				pApp->OnWindowResize(width, height);
+				pApp->mWidth	= width;
+				pApp->mHeight	= height;
+				pApp->OnWindowSize(width, height);
 			}
 		}
 
@@ -134,52 +148,82 @@ namespace FakeReal
 
 		void OnKey(int key, int scancode, int action, int mods)
 		{
-
+			for (auto& f : mOnKeyCallbacks)
+			{
+				f(key, scancode, action, mods);
+			}
 		}
 
 		void OnChar(unsigned int codepoint)
 		{
-
+			for (auto& f : mOnCharCallbacks)
+			{
+				f(codepoint);
+			}
 		}
 
 		void OnCharMods(unsigned int codepoint, int mods)
 		{
-
+			for (auto& f : mOnCharModsCallbacks)
+			{
+				f(codepoint, mods);
+			}
 		}
 
 		void OnMouseButton(int button, int action, int mods)
 		{
-
+			for (auto& f : mOnMouseButtonCallbacks)
+			{
+				f(button, action, mods);
+			}
 		}
 
 		void OnCursePos(double xpos, double ypos)
 		{
-
+			for (auto& f : mOnCursorPosCallbacks)
+			{
+				f(xpos, ypos);
+			}
 		}
 
 		void OnCurseEnter(int entered)
 		{
-
+			for (auto& f : mOnCursorEnterCallbacks)
+			{
+				f(entered);
+			}
 		}
 
 		void OnScroll(double xoffset, double yoffset)
 		{
-
+			for (auto& f : mOnScrollCallbacks)
+			{
+				f(xoffset, yoffset);
+			}
 		}
 
 		void OnDrop(int path_count, const char** paths)
 		{
-
+			for (auto& f : mOnDropCallbacks)
+			{
+				f(path_count, paths);
+			}
 		}
 
-		void OnWindowResize(int width, int height)
+		void OnWindowSize(int width, int height)
 		{
-
+			for (auto& f : mOnWindowSizeCallbacks)
+			{
+				f(width, height);
+			}
 		}
 
 		void OnWindowClose()
 		{
-
+			for (auto& f : mOnWindowCloseCallbacks)
+			{
+				f();
+			}
 		}
 	private:
 		GLFWwindow* m_pWindow;

@@ -14,5 +14,6 @@
 #include <array>
 #include <unordered_map>
 #include <unordered_set>
+#include <set>
 
 #include "Core/Log/LogSystem.h"
