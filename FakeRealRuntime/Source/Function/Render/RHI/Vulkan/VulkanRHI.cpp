@@ -1,5 +1,6 @@
 #include "FRPch.h"
 #include "VulkanRHI.h"
+#include "VulkanUtils.h"
 #include "Core/Base/Macro.h"
 #include "Function/Render/WindowSystem.h"
 
@@ -8,6 +9,11 @@ namespace FakeReal
 	const std::vector<const char*> validationLayers =
 	{
 		"VK_LAYER_KHRONOS_validation"
+	};
+
+	const std::vector<const char*> deviceExtenstion =
+	{
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
 
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
@@ -30,6 +36,45 @@ namespace FakeReal
 	{
 		m_pWindow = info.pWindowSystem->GetWindow();
 		CreateVKInstance();
+		SetupDebugCallback();
+		CreateSurface();
+		PickPhysicalDevice();
+		CreateLogicDevice();
+		CreateSwapChain();
+		CreateSwapChainImageView();
+		CreateCommandPool();
+		CreateCommandBuffers();
+		CreateDescriptorPool();
+		CreateSyncPrimitives();
+		CreateAssetAllocator();
+	}
+
+	void VulkanRHI::Clear()
+	{
+		for (uint8_t i = 0; i < S_MAX_FRAME_IN_FLIGHT; i++)
+		{
+			vkDestroySemaphore(m_pDevice, mAvailableSemaphores[i], nullptr);
+			vkDestroySemaphore(m_pDevice, mFinishedSemaphores[i], nullptr);
+			vkDestroyFence(m_pDevice, mInFlightFences[i], nullptr);
+		}
+
+		vkDestroyDescriptorPool(m_pDevice, m_pDescriptorPool, nullptr);
+		vkDestroyCommandPool(m_pDevice, m_pDefaultGraphicCommandPool, nullptr);
+		for (uint8_t i = 0; i < S_MAX_FRAME_IN_FLIGHT; i++)
+		{
+			vkDestroyCommandPool(m_pDevice, m_pCommandPools[i], nullptr);
+		}
+
+		for (auto& imageView : mSwapchainImageViews)
+		{
+			vkDestroyImageView(m_pDevice, imageView, nullptr);
+		}
+		vkDestroySwapchainKHR(m_pDevice, m_pSwapchain, nullptr);
+
+		vkDestroyDevice(m_pDevice, nullptr);
+		vkDestroySurfaceKHR(m_pVKInstance, m_pSurface, nullptr);
+		DestroyDebugUtilsMessengerEXT();
+		vkDestroyInstance(m_pVKInstance, nullptr);
 	}
 
 	void VulkanRHI::CreateVKInstance()
@@ -259,6 +304,7 @@ namespace FakeReal
 
 		mSwapchainImageFormat = format.format;
 		mSwapchainImageExtent = extent;
+		mScissor = { {0, 0}, {mSwapchainImageExtent.width, mSwapchainImageExtent.height} };
 	}
 
 	void VulkanRHI::CreateSwapChainImageView()
@@ -266,278 +312,126 @@ namespace FakeReal
 		mSwapchainImageViews.resize(mSwapchainImages.size());
 		for (size_t i = 0; i < mSwapchainImageViews.size(); i++)
 		{
-			CreateImageView(mSwapchainImages[i], mSwapchainImageViews[i], mSwapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+			mSwapchainImageViews[i] = VulkanUtils::CreateImageView(
+				m_pDevice,
+				mSwapchainImages[i],
+				mSwapchainImageFormat,
+				VK_IMAGE_VIEW_TYPE_2D,
+				VK_IMAGE_ASPECT_COLOR_BIT,
+				1,
+				1
+			);
 		}
 	}
 
-	void VulkanRHI::CreateImageView(VkImage pImage, VkImageView& pImageView, VkFormat format, VkImageAspectFlags aspectMask, uint32_t mipLevels)
+	void VulkanRHI::CreateCommandPool()
 	{
-		VkImageViewCreateInfo createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		createInfo.image = pImage;
-		createInfo.format = format;
-		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-		createInfo.subresourceRange.aspectMask = aspectMask;
-		createInfo.subresourceRange.baseMipLevel = 0;
-		createInfo.subresourceRange.levelCount = mipLevels;
-		createInfo.subresourceRange.baseArrayLayer = 0;
-		createInfo.subresourceRange.layerCount = 1;
-		if (vkCreateImageView(m_pDevice, &createInfo, nullptr, &pImageView) != VK_SUCCESS)
+		QueueFamilyIndex index = FindQueueFamilies(m_pPhysicalDevice);
+
+		//default graphic command pool
 		{
-			ASSERT(0);
+			VkCommandPoolCreateInfo createInfo = {};
+			createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+			createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+			createInfo.queueFamilyIndex = index.graphicsFamily;
+
+			if (vkCreateCommandPool(m_pDevice, &createInfo, nullptr, &m_pDefaultGraphicCommandPool) != VK_SUCCESS)
+			{
+				LOG_ERROR("Default VkCommandPool create failed!");
+				throw std::runtime_error("Default VkCommandPool create failed!");
+			}
+		}
+
+		//
+		{
+			VkCommandPoolCreateInfo info	= {};
+			info.sType						= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+			info.flags						= VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+			info.queueFamilyIndex			= index.graphicsFamily;
+			
+			for (uint8_t i = 0; i < S_MAX_FRAME_IN_FLIGHT; i++)
+			{
+				if (vkCreateCommandPool(m_pDevice, &info, nullptr, &m_pCommandPools[i]) != VK_SUCCESS)
+				{
+					LOG_ERROR("VkCommandPool create failed!");
+					throw std::runtime_error("VkCommandPool create failed!");
+				}
+			}
 		}
 	}
 
-	void VulkanRHI::CreateRenderPass()
+	void VulkanRHI::CreateCommandBuffers()
 	{
-		VkAttachmentDescription colorAttachment = {};
-		colorAttachment.format = mSwapchainImageFormat;
-		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		VkCommandBufferAllocateInfo info	= {};
+		info.sType							= VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		info.commandBufferCount				= 1U;
+		info.level							= VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
-		VkAttachmentReference colorAttachmentRef = {};
-		colorAttachmentRef.attachment = 0;
-		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentDescription depthAttachment = {};
-		depthAttachment.format = FindDepthFormat();
-		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkAttachmentReference depthAttachmentRef = {};
-		depthAttachmentRef.attachment = 1;
-		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		VkSubpassDescription subpass = {};
-		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.colorAttachmentCount = 1;
-		subpass.pColorAttachments = &colorAttachmentRef;
-		subpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-		VkSubpassDependency dependencyInfo = {};
-		dependencyInfo.srcSubpass = VK_SUBPASS_EXTERNAL;
-		dependencyInfo.dstSubpass = 0;
-		dependencyInfo.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependencyInfo.srcAccessMask = 0;
-		dependencyInfo.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependencyInfo.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-		VkAttachmentDescription attachments[] = { colorAttachment, depthAttachment };
-
-		VkRenderPassCreateInfo renderCreateInfo = {};
-		renderCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderCreateInfo.pAttachments = attachments;
-		renderCreateInfo.attachmentCount = 2;
-		renderCreateInfo.subpassCount = 1;
-		renderCreateInfo.pSubpasses = &subpass;
-		renderCreateInfo.dependencyCount = 1;
-		renderCreateInfo.pDependencies = &dependencyInfo;
-
-		if (vkCreateRenderPass(m_pDevice, &renderCreateInfo, nullptr, &m_pRenderPass) != VK_SUCCESS)
+		for (uint8_t i = 0; i < S_MAX_FRAME_IN_FLIGHT; i++)
 		{
-			LOG_ERROR("VkRenderPass create failed!");
-			throw std::runtime_error("VkRenderPass create failed!");
+			info.commandPool = m_pCommandPools[i];
+			if (vkAllocateCommandBuffers(m_pDevice, &info, &m_pCommandBuffers[i]) != VK_SUCCESS)
+			{
+				LOG_ERROR("VkCommandBuffer create failed!");
+				throw std::runtime_error("VkCommandBuffer create failed!");
+			}
 		}
 	}
 
-	void VulkanRHI::CreateDescriptorSetLayout()
+	void VulkanRHI::CreateDescriptorPool()
 	{
-		VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-		uboLayoutBinding.binding = 0;
-		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uboLayoutBinding.descriptorCount = 1;
-		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS;
+		VkDescriptorPoolSize poolSize[1];
+		poolSize[0].type			= VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSize[0].descriptorCount = mMaxMaterialCount;
 
-		VkDescriptorSetLayoutBinding samplerBinding = {};
-		samplerBinding.binding = 1;
-		samplerBinding.descriptorCount = 1;
-		samplerBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		samplerBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		VkDescriptorPoolCreateInfo info = {};
+		info.sType						= VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		info.poolSizeCount				= sizeof(poolSize) / sizeof(poolSize[0]);
+		info.pPoolSizes					= poolSize;
+		info.maxSets					= mMaxMaterialCount;
+		info.flags						= 0U;
 
-		VkDescriptorSetLayoutBinding bindings[] = { uboLayoutBinding, samplerBinding };
-
-		VkDescriptorSetLayoutCreateInfo info = {};
-		info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		info.bindingCount = 2;
-		info.pBindings = bindings;
-
-		if (vkCreateDescriptorSetLayout(m_pDevice, &info, nullptr, &m_pDescriptorSetLayout) != VK_SUCCESS)
+		if (vkCreateDescriptorPool(m_pDevice, &info, nullptr, &m_pDescriptorPool) != VK_SUCCESS)
 		{
-			ASSERT(0);
+			LOG_ERROR("VkDescriptorPool create failed!");
+			throw std::runtime_error("VkDescriptorPool create failed!");
 		}
 	}
 
-	void VulkanRHI::CreateGraphicsPipeline()
+	void VulkanRHI::CreateSyncPrimitives()
 	{
-		/*std::vector<char> vertexShaderCode = ReadFile("shader/vert.spv");
-		std::vector<char> fragmentShaderCode = ReadFile("shader/frag.spv");
-		VkShaderModule pVertexShaderModule = CreateShaderModule(vertexShaderCode);
-		VkShaderModule pFragmentShaderModule = CreateShaderModule(fragmentShaderCode);
+		VkSemaphoreCreateInfo createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-		VkPipelineShaderStageCreateInfo vertexShaderCreateInfo = {};
-		vertexShaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		vertexShaderCreateInfo.module = pVertexShaderModule;
-		vertexShaderCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-		vertexShaderCreateInfo.pName = "main";
-		vertexShaderCreateInfo.pSpecializationInfo = nullptr;
+		VkFenceCreateInfo fenceInfo = {};
+		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-		VkPipelineShaderStageCreateInfo fragmentShaderCreateInfo = {};
-		fragmentShaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		fragmentShaderCreateInfo.module = pFragmentShaderModule;
-		fragmentShaderCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		fragmentShaderCreateInfo.pName = "main";
-		fragmentShaderCreateInfo.pSpecializationInfo = nullptr;
-		VkPipelineShaderStageCreateInfo shaderStages[] = { vertexShaderCreateInfo, fragmentShaderCreateInfo };*/
-
-		VkPipelineVertexInputStateCreateInfo vertexInputStateInfo = {};
-		vertexInputStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		auto descriptions = VertexData::GetVertexInputAttributeDescriptions();
-		vertexInputStateInfo.vertexAttributeDescriptionCount = (uint32_t)descriptions.size();
-		vertexInputStateInfo.pVertexAttributeDescriptions = descriptions.data();
-		vertexInputStateInfo.vertexBindingDescriptionCount = 1;
-		vertexInputStateInfo.pVertexBindingDescriptions = &VertexData::GetBindingDescription();
-
-		VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateInfo = {};
-		inputAssemblyStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		inputAssemblyStateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		inputAssemblyStateInfo.primitiveRestartEnable = VK_FALSE;
-
-		VkViewport viewPort = {};
-		viewPort.x = 0.f;
-		viewPort.y = 0.f;
-		viewPort.width = (float)mSwapchainImageExtent.width;
-		viewPort.height = (float)mSwapchainImageExtent.height;
-		viewPort.minDepth = 0.f;
-		viewPort.maxDepth = 1.f;
-
-		VkRect2D rect = {};
-		rect.offset = { 0, 0 };
-		rect.extent = mSwapchainImageExtent;
-
-		VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {};
-		viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-		viewportStateCreateInfo.pViewports = &viewPort;
-		viewportStateCreateInfo.viewportCount = 1;
-		viewportStateCreateInfo.pScissors = &rect;
-		viewportStateCreateInfo.scissorCount = 1;
-
-		VkPipelineRasterizationStateCreateInfo rasterizationStateInfo = {};
-		rasterizationStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-		rasterizationStateInfo.rasterizerDiscardEnable = VK_FALSE;
-		rasterizationStateInfo.polygonMode = VK_POLYGON_MODE_FILL;
-		rasterizationStateInfo.lineWidth = 1.f;
-		rasterizationStateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
-		rasterizationStateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizationStateInfo.depthClampEnable = VK_FALSE;
-		rasterizationStateInfo.depthBiasEnable = VK_FALSE;
-		rasterizationStateInfo.depthBiasClamp = 0.f;
-		rasterizationStateInfo.depthBiasConstantFactor = 0.f;
-		rasterizationStateInfo.depthBiasSlopeFactor = 0.f;
-
-		VkPipelineMultisampleStateCreateInfo multisampleStateInfo = {};
-		multisampleStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		multisampleStateInfo.sampleShadingEnable = VK_FALSE;
-		multisampleStateInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-		multisampleStateInfo.minSampleShading = 0.f;
-		multisampleStateInfo.pSampleMask = nullptr;
-		multisampleStateInfo.alphaToCoverageEnable = VK_FALSE;
-		multisampleStateInfo.alphaToOneEnable = VK_FALSE;
-
-		VkPipelineColorBlendAttachmentState colorBlendState = {};
-		colorBlendState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		colorBlendState.blendEnable = VK_FALSE;
-		/*colorBlendState.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-		colorBlendState.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-		colorBlendState.colorBlendOp = VK_BLEND_OP_ADD;
-		colorBlendState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-		colorBlendState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-		colorBlendState.alphaBlendOp = VK_BLEND_OP_ADD;
-	*/
-		VkPipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
-		colorBlendStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-		colorBlendStateCreateInfo.logicOpEnable = VK_FALSE;
-		colorBlendStateCreateInfo.logicOp = VK_LOGIC_OP_COPY;
-		colorBlendStateCreateInfo.attachmentCount = 1;
-		colorBlendStateCreateInfo.pAttachments = &colorBlendState;
-		colorBlendStateCreateInfo.blendConstants[0] = 0.f;
-		colorBlendStateCreateInfo.blendConstants[1] = 0.f;
-		colorBlendStateCreateInfo.blendConstants[2] = 0.f;
-		colorBlendStateCreateInfo.blendConstants[3] = 0.f;
-
-		VkPipelineDepthStencilStateCreateInfo depthInfo = {};
-		depthInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		depthInfo.depthTestEnable = VK_TRUE;
-		depthInfo.depthWriteEnable = VK_TRUE;
-		depthInfo.depthCompareOp = VK_COMPARE_OP_LESS;
-		depthInfo.depthBoundsTestEnable = VK_FALSE;
-		depthInfo.stencilTestEnable = VK_FALSE;
-
-		VkDynamicState dynamicState[] =
+		for (uint8_t i = 0; i < S_MAX_FRAME_IN_FLIGHT; i++)
 		{
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-		};
-		VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
-		dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-		dynamicStateCreateInfo.dynamicStateCount = 2;
-		dynamicStateCreateInfo.pDynamicStates = dynamicState;
-
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
-		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pSetLayouts = &m_pDescriptorSetLayout;
-		pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-		pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
-
-		if (vkCreatePipelineLayout(m_pDevice, &pipelineLayoutCreateInfo, nullptr, &m_pPipelineLayout) != VK_SUCCESS)
-		{
-			LOG_ERROR("VkPipelineLayout create failed!");
-			throw std::runtime_error("VkPipelineLayout create failed!");
-			return;
+			if (vkCreateSemaphore(m_pDevice, &createInfo, nullptr, &mAvailableSemaphores[i]) != VK_SUCCESS ||
+				vkCreateSemaphore(m_pDevice, &createInfo, nullptr, &mFinishedSemaphores[i]) != VK_SUCCESS ||
+				vkCreateFence(m_pDevice, &fenceInfo, nullptr, &mInFlightFences[i]) != VK_SUCCESS)
+			{
+				std::cerr << "VkSemaphore create failed" << std::endl;
+			}
 		}
+	}
 
-		VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
-		graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		graphicsPipelineCreateInfo.stageCount = 2;
-		graphicsPipelineCreateInfo.pStages = shaderStages;
-		graphicsPipelineCreateInfo.pColorBlendState = &colorBlendStateCreateInfo;
-		graphicsPipelineCreateInfo.pDepthStencilState = &depthInfo;
-		//graphicsPipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
-		graphicsPipelineCreateInfo.pInputAssemblyState = &inputAssemblyStateInfo;
-		graphicsPipelineCreateInfo.pMultisampleState = &multisampleStateInfo;
-		graphicsPipelineCreateInfo.pRasterizationState = &rasterizationStateInfo;
-		graphicsPipelineCreateInfo.pTessellationState = nullptr;
-		graphicsPipelineCreateInfo.pVertexInputState = &vertexInputStateInfo;
-		graphicsPipelineCreateInfo.pViewportState = &viewportStateCreateInfo;
-		graphicsPipelineCreateInfo.renderPass = m_pRenderPass;
-		graphicsPipelineCreateInfo.subpass = 0;
-		graphicsPipelineCreateInfo.layout = m_pPipelineLayout;
-		graphicsPipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
-		graphicsPipelineCreateInfo.basePipelineIndex = -1;
+	void VulkanRHI::CreateAssetAllocator()
+	{
+		VmaVulkanFunctions vulkanFunctions = {};
+		vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
+		vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
 
-		if (vkCreateGraphicsPipelines(m_pDevice, nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &m_pPipeline) != VK_SUCCESS)
-		{
-			LOG_ERROR("VkPipeline create failed!");
-			throw std::runtime_error("VkPipeline create failed!");
-			return;
-		}
+		VmaAllocatorCreateInfo allocatorCreateInfo = {};
+		allocatorCreateInfo.vulkanApiVersion = mVulkanApiVersion;
+		allocatorCreateInfo.physicalDevice = m_pPhysicalDevice;
+		allocatorCreateInfo.device = m_pDevice;
+		allocatorCreateInfo.instance = m_pVKInstance;
+		allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
 
-		vkDestroyShaderModule(m_pDevice, pVertexShaderModule, nullptr);
-		vkDestroyShaderModule(m_pDevice, pFragmentShaderModule, nullptr);
+		vmaCreateAllocator(&allocatorCreateInfo, &m_pAssetsAllocator);
 	}
 
 	bool VulkanRHI::CheckValidationLayerSupport() const
@@ -634,11 +528,6 @@ namespace FakeReal
 
 		return index;
 	}
-
-	const std::vector<const char*> deviceExtenstion =
-	{
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME
-	};
 
 	bool VulkanRHI::CheckDeviceExtenstionSupport(VkPhysicalDevice pDevice) const
 	{

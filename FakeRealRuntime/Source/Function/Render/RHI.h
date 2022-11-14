@@ -14,10 +14,12 @@ namespace FakeReal
 	public:
 		virtual ~RHI() = 0;
 		virtual void Initialize(const RHIInitInfo& info) = 0;
+		virtual void Clear() = 0;
 
 	protected:
 		bool mEnableValidationLayers{ true };
 		bool mEnableDebugUtilsLabel{ true };
+		uint32_t mMaxMaterialCount{ 256 };
 	};
 
 	inline RHI::~RHI() = default;

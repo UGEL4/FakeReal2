@@ -1,6 +1,7 @@
 #pragma once
 #include "Function/Render/RHI.h"
 #include <vulkan/vulkan.h>
+#include <vulkan/vk_mem_alloc.h>
 #include <GLFW/glfw3.h>
 #include <vector>
 
@@ -32,6 +33,7 @@ namespace FakeReal
 		virtual ~VulkanRHI() override final;
 
 		virtual void Initialize(const RHIInitInfo& info) override final;
+		virtual void Clear() override final;
 
 	private:
 		void CreateVKInstance();
@@ -49,10 +51,11 @@ namespace FakeReal
 		void CreateLogicDevice();
 		void CreateSwapChain();
 		void CreateSwapChainImageView();
-		void CreateImageView(VkImage pImage, VkImageView& pImageView, VkFormat format, VkImageAspectFlags aspectMask, uint32_t mipLevels);
-		void CreateRenderPass();
-		void CreateDescriptorSetLayout();
-		void CreateGraphicsPipeline();
+		void CreateCommandPool();
+		void CreateCommandBuffers();
+		void CreateDescriptorPool();
+		void CreateSyncPrimitives();
+		void CreateAssetAllocator();
 
 	private:
 		bool CheckValidationLayerSupport() const;
@@ -86,12 +89,20 @@ namespace FakeReal
 		std::vector<VkImageView> mSwapchainImageViews;
 		VkFormat mSwapchainImageFormat;
 		VkExtent2D mSwapchainImageExtent;
+		VkRect2D mScissor;
 
-		VkRenderPass m_pRenderPass;
+		static const uint8_t S_MAX_FRAME_IN_FLIGHT{ 3 };
 
-		VkDescriptorSetLayout m_pDescriptorSetLayout;
+		VkCommandPool m_pDefaultGraphicCommandPool;
+		VkCommandPool m_pCommandPools[S_MAX_FRAME_IN_FLIGHT];
+		VkCommandBuffer m_pCommandBuffers[S_MAX_FRAME_IN_FLIGHT];
 
-		VkPipeline m_pPipeline;
-		VkPipelineLayout m_pPipelineLayout;
+		VkDescriptorPool m_pDescriptorPool;
+
+		VkSemaphore mAvailableSemaphores[S_MAX_FRAME_IN_FLIGHT];
+		VkSemaphore mFinishedSemaphores[S_MAX_FRAME_IN_FLIGHT];
+		VkFence mInFlightFences[S_MAX_FRAME_IN_FLIGHT];
+
+		VmaAllocator m_pAssetsAllocator;
 	};
 }

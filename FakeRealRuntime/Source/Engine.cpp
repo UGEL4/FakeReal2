@@ -20,17 +20,17 @@ namespace FakeReal
 
 	void Engine::Initialize()
 	{
-		LOG_INFO("Engine::Initialize");
+		LOG_DEBUG("Engine::Initialize");
 	}
 
 	void Engine::Start()
 	{
-		LOG_WARNING("Engine::Start");
+		LOG_DEBUG("Engine::Start");
 	}
 
 	void Engine::Run()
 	{
-		LOG_INFO("Engine::Run");
+		LOG_DEBUG("Engine::Run");
 
 		std::shared_ptr<WindowSystem> pWindow = g_global_runtime_context.m_pWindowSystem;
 		ASSERT(pWindow);
@@ -51,7 +51,7 @@ namespace FakeReal
 
 	void Engine::Shutdown()
 	{
-		LOG_ERROR("Engine::Shutdown");
+		LOG_DEBUG("Engine::Shutdown");
 		g_global_runtime_context.ShutdownSystems();
 	}
 
