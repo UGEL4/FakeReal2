@@ -3,6 +3,7 @@
 #include "VulkanUtils.h"
 #include "Core/Base/Macro.h"
 #include "Function/Render/WindowSystem.h"
+#include <array>
 
 namespace FakeReal
 {
@@ -35,6 +36,11 @@ namespace FakeReal
 	void VulkanRHI::Initialize(const RHIInitInfo& info)
 	{
 		m_pWindow = info.pWindowSystem->GetWindow();
+
+		std::array<int, 2> windowSize = info.pWindowSystem->GetWindowSize();
+		mViewport	= { 0.f, 0.f, (float)windowSize[0], (float)windowSize[1], 0.f, 1.f };
+		mScissor	= { {0, 0}, {(uint32_t)windowSize[0], (uint32_t)windowSize[1]} };
+
 		CreateVKInstance();
 		SetupDebugCallback();
 		CreateSurface();
@@ -46,6 +52,7 @@ namespace FakeReal
 		CreateCommandBuffers();
 		CreateDescriptorPool();
 		CreateSyncPrimitives();
+		CreateDepthResource();
 		CreateAssetAllocator();
 	}
 
@@ -416,6 +423,23 @@ namespace FakeReal
 				std::cerr << "VkSemaphore create failed" << std::endl;
 			}
 		}
+	}
+
+	void VulkanRHI::CreateDepthResource()
+	{
+		mDepthImageFormat = FindDepthFormat();
+		VulkanUtils::CreateImage(
+			m_pPhysicalDevice, m_pDevice, 
+			mSwapchainImageExtent.width, mSwapchainImageExtent.height, 1, 1, 1, VK_IMAGE_TYPE_2D,
+			mDepthImageFormat, 
+			VK_IMAGE_TILING_OPTIMAL, 
+			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			m_pDepthImage, m_pDepthImageMemory);
+
+		m_pDepthImageView = VulkanUtils::CreateImageView(m_pDevice, m_pDepthImage, 
+			mDepthImageFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, 1, 1
+		);
 	}
 
 	void VulkanRHI::CreateAssetAllocator()

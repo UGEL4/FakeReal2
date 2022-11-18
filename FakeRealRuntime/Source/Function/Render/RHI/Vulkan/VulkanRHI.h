@@ -29,6 +29,7 @@ namespace FakeReal
 
 	class VulkanRHI : public RHI
 	{
+		friend class MainCameraPass;
 	public:
 		virtual ~VulkanRHI() override final;
 
@@ -55,6 +56,7 @@ namespace FakeReal
 		void CreateCommandBuffers();
 		void CreateDescriptorPool();
 		void CreateSyncPrimitives();
+		void CreateDepthResource();
 		void CreateAssetAllocator();
 
 	private:
@@ -79,6 +81,7 @@ namespace FakeReal
 		VkSurfaceKHR m_pSurface;
 		VkPhysicalDevice m_pPhysicalDevice;
 		VkDevice m_pDevice;
+		VkFormat mDepthImageFormat{ VK_FORMAT_UNDEFINED };
 
 		//¶ÓÁÐ×å
 		VkQueue m_pGraphicQueue;
@@ -90,6 +93,11 @@ namespace FakeReal
 		VkFormat mSwapchainImageFormat;
 		VkExtent2D mSwapchainImageExtent;
 		VkRect2D mScissor;
+		VkViewport mViewport;
+
+		VkImage m_pDepthImage;
+		VkImageView m_pDepthImageView;
+		VkDeviceMemory m_pDepthImageMemory;
 
 		static const uint8_t S_MAX_FRAME_IN_FLIGHT{ 3 };
 
