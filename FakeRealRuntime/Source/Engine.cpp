@@ -2,6 +2,7 @@
 #include "Engine.h"
 #include "Core/Base/Macro.h"
 #include "Function/Render/WindowSystem.h"
+#include "Function/Render/RenderSystem.h"
 
 namespace FakeReal
 {
@@ -44,6 +45,8 @@ namespace FakeReal
 	void Engine::Tick(double deltaTime)
 	{
 		CalculateFPS(deltaTime);
+
+		g_global_runtime_context.m_pRenderSystem->Tick();
 
 		g_global_runtime_context.m_pWindowSystem->PollEvents();
 		//g_global_runtime_context.m_pWindowSystem->SetTitle(std::string("FR Engine - " + std::to_string(mFPS) + "FPS").c_str());

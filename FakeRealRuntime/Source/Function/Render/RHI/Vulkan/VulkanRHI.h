@@ -38,7 +38,6 @@ namespace FakeReal
 
 	private:
 		void CreateVKInstance();
-
 		void SetupDebugCallback();
 		VkResult CreateDebugUtilsMessengerEXT(
 			VkInstance pInstance,
@@ -60,12 +59,12 @@ namespace FakeReal
 		void CreateAssetAllocator();
 
 	private:
-		bool CheckValidationLayerSupport() const;
-		std::vector<const char*> GetRequireExtenstion() const;
-		bool IsDeviceSuitable(VkPhysicalDevice pDevice) const;
-		QueueFamilyIndex FindQueueFamilies(VkPhysicalDevice pDevice) const;
-		bool CheckDeviceExtenstionSupport(VkPhysicalDevice pDevice) const;
-		SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice pDevice) const;
+		bool CheckValidationLayerSupport();
+		std::vector<const char*> GetRequireExtenstion();
+		bool IsDeviceSuitable(VkPhysicalDevice pDevice);
+		QueueFamilyIndex FindQueueFamilies(VkPhysicalDevice pDevice);
+		bool CheckDeviceExtenstionSupport(VkPhysicalDevice pDevice);
+		SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice pDevice);
 		VkSurfaceFormatKHR ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) const;
 		VkPresentModeKHR ChooseSwapChainPresentMode(const std::vector<VkPresentModeKHR>& availabePresentModes) const;
 		VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
@@ -78,12 +77,11 @@ namespace FakeReal
 
 		VkInstance m_pVKInstance;
 		VkDebugUtilsMessengerEXT m_pDebugUtils;
+
 		VkSurfaceKHR m_pSurface;
 		VkPhysicalDevice m_pPhysicalDevice;
 		VkDevice m_pDevice;
-		VkFormat mDepthImageFormat{ VK_FORMAT_UNDEFINED };
 
-		//¶ÓÁÐ×å
 		VkQueue m_pGraphicQueue;
 		VkQueue m_pPresentQueue;
 
@@ -95,22 +93,25 @@ namespace FakeReal
 		VkRect2D mScissor;
 		VkViewport mViewport;
 
+		VkFormat mDepthImageFormat{ VK_FORMAT_UNDEFINED };
 		VkImage m_pDepthImage;
 		VkImageView m_pDepthImageView;
 		VkDeviceMemory m_pDepthImageMemory;
 
 		static const uint8_t S_MAX_FRAME_IN_FLIGHT{ 3 };
-
-		VkCommandPool m_pDefaultGraphicCommandPool;
 		VkCommandPool m_pCommandPools[S_MAX_FRAME_IN_FLIGHT];
 		VkCommandBuffer m_pCommandBuffers[S_MAX_FRAME_IN_FLIGHT];
 
 		VkDescriptorPool m_pDescriptorPool;
 
-		VkSemaphore mAvailableSemaphores[S_MAX_FRAME_IN_FLIGHT];
-		VkSemaphore mFinishedSemaphores[S_MAX_FRAME_IN_FLIGHT];
+		VkSemaphore mImageAvailableSemaphores[S_MAX_FRAME_IN_FLIGHT];
+		VkSemaphore mRenderFinishedSemaphores[S_MAX_FRAME_IN_FLIGHT];
 		VkFence mInFlightFences[S_MAX_FRAME_IN_FLIGHT];
 
 		VmaAllocator m_pAssetsAllocator;
+
+	private:
+		const std::vector<const char*> m_validationLayers = { "VK_LAYER_KHRONOS_validation" };
+		const std::vector<const char*> m_deviceExtenstion = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 	};
 }

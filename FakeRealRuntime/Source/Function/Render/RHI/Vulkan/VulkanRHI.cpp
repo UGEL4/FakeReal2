@@ -7,16 +7,6 @@
 
 namespace FakeReal
 {
-	const std::vector<const char*> validationLayers =
-	{
-		"VK_LAYER_KHRONOS_validation"
-	};
-
-	const std::vector<const char*> deviceExtenstion =
-	{
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME
-	};
-
 	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
 		VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
@@ -24,7 +14,7 @@ namespace FakeReal
 		void*                                            pUserData
 	)
 	{
-		LOG_ERROR("\tValidationLayer: {}", pCallbackData->pMessage)
+		LOG_INFO("\tValidationLayer: {}", pCallbackData->pMessage)
 		return VK_FALSE;
 	}
 
@@ -58,15 +48,18 @@ namespace FakeReal
 
 	void VulkanRHI::Clear()
 	{
+		vkDestroyImageView(m_pDevice, m_pDepthImageView, nullptr);
+		vkDestroyImage(m_pDevice, m_pDepthImage, nullptr);
+		vkFreeMemory(m_pDevice, m_pDepthImageMemory, nullptr);
+
 		for (uint8_t i = 0; i < S_MAX_FRAME_IN_FLIGHT; i++)
 		{
-			vkDestroySemaphore(m_pDevice, mAvailableSemaphores[i], nullptr);
-			vkDestroySemaphore(m_pDevice, mFinishedSemaphores[i], nullptr);
+			vkDestroySemaphore(m_pDevice, mImageAvailableSemaphores[i], nullptr);
+			vkDestroySemaphore(m_pDevice, mRenderFinishedSemaphores[i], nullptr);
 			vkDestroyFence(m_pDevice, mInFlightFences[i], nullptr);
 		}
 
 		vkDestroyDescriptorPool(m_pDevice, m_pDescriptorPool, nullptr);
-		vkDestroyCommandPool(m_pDevice, m_pDefaultGraphicCommandPool, nullptr);
 		for (uint8_t i = 0; i < S_MAX_FRAME_IN_FLIGHT; i++)
 		{
 			vkDestroyCommandPool(m_pDevice, m_pCommandPools[i], nullptr);
@@ -113,8 +106,11 @@ namespace FakeReal
 		createInfo.pApplicationInfo = &info;
 		createInfo.ppEnabledExtensionNames = Extensions.data();
 		createInfo.enabledExtensionCount = static_cast<uint32_t>(Extensions.size());
-		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-		createInfo.ppEnabledLayerNames = validationLayers.data();
+		if (mEnableValidationLayers)
+		{
+			createInfo.enabledLayerCount = static_cast<uint32_t>(m_validationLayers.size());
+			createInfo.ppEnabledLayerNames = m_validationLayers.data();
+		}
 
 		LOG_DEBUG("Extension count:{}", extensionCount);
 		for (const auto& p : ExtensionsProp)
@@ -239,10 +235,13 @@ namespace FakeReal
 		deviceCreateInfo.pQueueCreateInfos = QueueCreateInfos.data();
 		deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(QueueCreateInfos.size());
 		deviceCreateInfo.pEnabledFeatures = &features;
-		deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-		deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
-		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtenstion.size());
-		deviceCreateInfo.ppEnabledExtensionNames = deviceExtenstion.data();
+		if (mEnableValidationLayers)
+		{
+			deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(m_validationLayers.size());
+			deviceCreateInfo.ppEnabledLayerNames = m_validationLayers.data();
+		}
+		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceExtenstion.size());
+		deviceCreateInfo.ppEnabledExtensionNames = m_deviceExtenstion.data();
 
 		if (vkCreateDevice(m_pPhysicalDevice, &deviceCreateInfo, nullptr, &m_pDevice) != VK_SUCCESS)
 		{
@@ -334,22 +333,6 @@ namespace FakeReal
 	void VulkanRHI::CreateCommandPool()
 	{
 		QueueFamilyIndex index = FindQueueFamilies(m_pPhysicalDevice);
-
-		//default graphic command pool
-		{
-			VkCommandPoolCreateInfo createInfo = {};
-			createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-			createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-			createInfo.queueFamilyIndex = index.graphicsFamily;
-
-			if (vkCreateCommandPool(m_pDevice, &createInfo, nullptr, &m_pDefaultGraphicCommandPool) != VK_SUCCESS)
-			{
-				LOG_ERROR("Default VkCommandPool create failed!");
-				throw std::runtime_error("Default VkCommandPool create failed!");
-			}
-		}
-
-		//
 		{
 			VkCommandPoolCreateInfo info	= {};
 			info.sType						= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -416,8 +399,8 @@ namespace FakeReal
 
 		for (uint8_t i = 0; i < S_MAX_FRAME_IN_FLIGHT; i++)
 		{
-			if (vkCreateSemaphore(m_pDevice, &createInfo, nullptr, &mAvailableSemaphores[i]) != VK_SUCCESS ||
-				vkCreateSemaphore(m_pDevice, &createInfo, nullptr, &mFinishedSemaphores[i]) != VK_SUCCESS ||
+			if (vkCreateSemaphore(m_pDevice, &createInfo, nullptr, &mImageAvailableSemaphores[i]) != VK_SUCCESS ||
+				vkCreateSemaphore(m_pDevice, &createInfo, nullptr, &mRenderFinishedSemaphores[i]) != VK_SUCCESS ||
 				vkCreateFence(m_pDevice, &fenceInfo, nullptr, &mInFlightFences[i]) != VK_SUCCESS)
 			{
 				std::cerr << "VkSemaphore create failed" << std::endl;
@@ -455,17 +438,17 @@ namespace FakeReal
 		allocatorCreateInfo.instance = m_pVKInstance;
 		allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
 
-		vmaCreateAllocator(&allocatorCreateInfo, &m_pAssetsAllocator);
+		//vmaCreateAllocator(&allocatorCreateInfo, &m_pAssetsAllocator);
 	}
 
-	bool VulkanRHI::CheckValidationLayerSupport() const
+	bool VulkanRHI::CheckValidationLayerSupport()
 	{
 		uint32_t count = 0;
 		vkEnumerateInstanceLayerProperties(&count, nullptr);
 		std::vector<VkLayerProperties> Layers(count);
 		vkEnumerateInstanceLayerProperties(&count, Layers.data());
 
-		for (const char* layerName : validationLayers)
+		for (const char* layerName : m_validationLayers)
 		{
 			bool found = false;
 			for (const auto& layer : Layers)
@@ -485,7 +468,7 @@ namespace FakeReal
 		return true;
 	}
 
-	std::vector<const char*> VulkanRHI::GetRequireExtenstion() const
+	std::vector<const char*> VulkanRHI::GetRequireExtenstion()
 	{
 		uint32_t glfwExtenstionCount = 0;
 		const char** glfwExtenstions = glfwGetRequiredInstanceExtensions(&glfwExtenstionCount);
@@ -501,7 +484,7 @@ namespace FakeReal
 		return Extenstions;
 	}
 
-	bool VulkanRHI::IsDeviceSuitable(VkPhysicalDevice pDevice) const
+	bool VulkanRHI::IsDeviceSuitable(VkPhysicalDevice pDevice)
 	{
 		QueueFamilyIndex index = FindQueueFamilies(pDevice);
 
@@ -519,7 +502,7 @@ namespace FakeReal
 		return index.IsComplete() && extenstionSupport && swapChainAdequate && featuresSupport.samplerAnisotropy;
 	}
 
-	FakeReal::QueueFamilyIndex VulkanRHI::FindQueueFamilies(VkPhysicalDevice pDevice) const
+	FakeReal::QueueFamilyIndex VulkanRHI::FindQueueFamilies(VkPhysicalDevice pDevice)
 	{
 		uint32_t familiesCount = 0;
 		vkGetPhysicalDeviceQueueFamilyProperties(pDevice, &familiesCount, nullptr);
@@ -553,13 +536,13 @@ namespace FakeReal
 		return index;
 	}
 
-	bool VulkanRHI::CheckDeviceExtenstionSupport(VkPhysicalDevice pDevice) const
+	bool VulkanRHI::CheckDeviceExtenstionSupport(VkPhysicalDevice pDevice)
 	{
 		uint32_t extenstionCount = 0;
 		vkEnumerateDeviceExtensionProperties(pDevice, nullptr, &extenstionCount, nullptr);
 		std::vector<VkExtensionProperties> ExtenstionProps(extenstionCount);
 		vkEnumerateDeviceExtensionProperties(pDevice, nullptr, &extenstionCount, ExtenstionProps.data());
-		std::set<std::string> RequireExtenstion(deviceExtenstion.begin(), deviceExtenstion.end());
+		std::set<std::string> RequireExtenstion(m_deviceExtenstion.begin(), m_deviceExtenstion.end());
 
 		for (const auto& extenstion : ExtenstionProps)
 		{
@@ -568,7 +551,7 @@ namespace FakeReal
 		return RequireExtenstion.empty();
 	}
 
-	FakeReal::SwapChainSupportDetails VulkanRHI::QuerySwapChainSupport(VkPhysicalDevice pDevice) const
+	FakeReal::SwapChainSupportDetails VulkanRHI::QuerySwapChainSupport(VkPhysicalDevice pDevice)
 	{
 		SwapChainSupportDetails details;
 
@@ -637,7 +620,7 @@ namespace FakeReal
 	VkExtent2D VulkanRHI::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const
 	{
 		//一些窗口系统会使用一个特殊值，扵扩扮扴戳戲 扴变量类型的构大值，表示允许我们自己选择对于窗口柣合适的交换范围，
-	//但我们选择的交换范围韴要在minImageExtent与maxImageExtent的范围内
+		//但我们选择的交换范围韴要在minImageExtent与maxImageExtent的范围内
 		if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
 		{
 			return capabilities.currentExtent;
