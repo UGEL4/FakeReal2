@@ -1,6 +1,7 @@
 #include "FRPch.h"
 #include "Engine.h"
 #include "Core/Base/Macro.h"
+#include "Core/Base/BaseDefine.h"
 #include "Function/Render/WindowSystem.h"
 #include "Function/Render/RenderSystem.h"
 
@@ -33,7 +34,7 @@ namespace FakeReal
 	{
 		LOG_DEBUG("Engine::Run");
 
-		std::shared_ptr<WindowSystem> pWindow = g_global_runtime_context.m_pWindowSystem;
+		SharedPtr<WindowSystem> pWindow = g_global_runtime_context.m_pWindowSystem;
 		ASSERT(pWindow);
 		while (!pWindow->ShouldClose())
 		{

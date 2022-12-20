@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
+#include "Core/Base/BaseDefine.h"
 
 namespace FakeReal
 {
@@ -56,6 +57,6 @@ namespace FakeReal
 		}
 
 	private:
-		std::shared_ptr<spdlog::logger> m_pLogger;
+		SharedPtr<spdlog::logger> m_pLogger;
 	};
 }

@@ -1,6 +1,7 @@
 #pragma once
 
-#include <memory>
+#include "Core/Base/BaseDefine.h"
+
 namespace FakeReal
 {
 	class RHI;
@@ -10,15 +11,19 @@ namespace FakeReal
 
 	struct RenderPassCommonInfo
 	{
-		std::shared_ptr<RHI> rhi;
+		SharedPtr<RHI> rhi;
 	};
 
-	class RenderPassBase
+	class RenderPass
 	{
 	public:
+		RenderPass() = default;
+		virtual ~RenderPass() = 0;
 		virtual void Initialize(RenderPassCommonInfo* pInfo) = 0;
 		void SetCommonInfo(RenderPassCommonInfo info);
+
+	public:
 	protected:
-		std::shared_ptr<RHI> m_pRHI;
+		SharedPtr<RHI> m_pRHI;
 	};
 }

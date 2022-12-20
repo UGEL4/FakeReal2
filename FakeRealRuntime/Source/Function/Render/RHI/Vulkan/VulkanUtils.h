@@ -3,8 +3,10 @@
 #include <vulkan/vulkan.h>
 #include <string>
 #include <vector>
+#include "Core/Base/BaseDefine.h"
 namespace FakeReal
 {
+	class VulkanRHI;
 	class VulkanUtils
 	{
 	public:
@@ -12,11 +14,16 @@ namespace FakeReal
 			VkImageType imageType, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
 			VkMemoryPropertyFlags propertie, VkImage& pImage, VkDeviceMemory& pMemory);
 		static VkImageView CreateImageView(VkDevice pDevice, VkImage pImage, VkFormat format, VkImageViewType viewType, VkImageAspectFlags aspectMask, uint32_t layerCount, uint32_t mipLevels);
+		static void TransitionImageLayout(SharedPtr<VulkanRHI> pRhi, VkImage pImage, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels);
+		static bool HasStencilComponent(VkFormat format);
 
 		static uint32_t FindMemoryType(VkPhysicalDevice pPhysicalDevice, uint32_t fliter, VkMemoryPropertyFlags properties);
 
 		static VkShaderModule CreateShader(const std::string& fileName, VkDevice pDevice);
 		static std::vector<char> ReadShaderFile(const std::string& fileName);
+
+		static void CreateBuffer(VkDevice pDevice, VkPhysicalDevice pPhysicalDevice, VkBufferUsageFlags usage, VkDeviceSize size, VkBuffer& pBuffer, VkMemoryPropertyFlags Property, VkDeviceMemory& pMemory);
+		static void CopyBufferToImage(SharedPtr<VulkanRHI> pRhi, VkBuffer pBuffer, VkImage pImage, uint32_t width, uint32_t height);
 	private:
 		VulkanUtils() {}
 	};

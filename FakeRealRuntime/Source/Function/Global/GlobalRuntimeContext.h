@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory>
+#include "Core/Base/BaseDefine.h"
 
 namespace FakeReal
 {
@@ -18,9 +18,9 @@ namespace FakeReal
 		void ShutdownSystems();
 
 	public:
-		std::shared_ptr<LogSystem> m_pLogSystem;
-		std::shared_ptr<WindowSystem> m_pWindowSystem;
-		std::shared_ptr<RenderSystem> m_pRenderSystem;
+		SharedPtr<LogSystem> m_pLogSystem;
+		SharedPtr<WindowSystem> m_pWindowSystem;
+		SharedPtr<RenderSystem> m_pRenderSystem;
 	};
 
 	extern GlobalRuntimeContext g_global_runtime_context;

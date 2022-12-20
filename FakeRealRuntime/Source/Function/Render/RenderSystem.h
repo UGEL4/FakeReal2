@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory>
+#include "Core/Base/BaseDefine.h"
 namespace FakeReal
 {
 	class RHI;
@@ -15,6 +15,6 @@ namespace FakeReal
 		void Tick();
 
 	private:
-		std::shared_ptr<RHI> m_pRhi;
+		SharedPtr<RHI> m_pRhi;
 	};
 }

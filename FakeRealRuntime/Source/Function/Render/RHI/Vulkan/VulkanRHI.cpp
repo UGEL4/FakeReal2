@@ -338,6 +338,18 @@ namespace FakeReal
 			info.sType						= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 			info.flags						= VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 			info.queueFamilyIndex			= index.graphicsFamily;
+
+			if (vkCreateCommandPool(m_pDevice, &info, nullptr, &m_pDefaultCommandPool) != VK_SUCCESS)
+			{
+				LOG_ERROR("Default VkCommandPool create failed!");
+				throw std::runtime_error("VkCommandPool create failed!");
+			}
+		}
+		{
+			VkCommandPoolCreateInfo info	= {};
+			info.sType						= VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+			info.flags						= VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+			info.queueFamilyIndex			= index.graphicsFamily;
 			
 			for (uint8_t i = 0; i < S_MAX_FRAME_IN_FLIGHT; i++)
 			{
@@ -439,6 +451,39 @@ namespace FakeReal
 		allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
 
 		//vmaCreateAllocator(&allocatorCreateInfo, &m_pAssetsAllocator);
+	}
+
+	VkCommandBuffer VulkanRHI::BeginSingleTimeCommands()
+	{
+		VkCommandBufferAllocateInfo info = {};
+		info.sType				= VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		info.level				= VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		info.commandBufferCount = 1;
+		info.commandPool		= m_pDefaultCommandPool;
+
+		VkCommandBuffer pCommandBuffer;
+		vkAllocateCommandBuffers(m_pDevice, &info, &pCommandBuffer);
+
+		VkCommandBufferBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		vkBeginCommandBuffer(pCommandBuffer, &beginInfo);
+
+		return pCommandBuffer;
+	}
+
+	void VulkanRHI::EndSingleTimeCommands(VkCommandBuffer pCommandBuffer)
+	{
+		vkEndCommandBuffer(pCommandBuffer);
+
+		VkSubmitInfo submitInfo			= {};
+		submitInfo.sType				= VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount	= 1;
+		submitInfo.pCommandBuffers		= &pCommandBuffer;
+		vkQueueSubmit(m_pGraphicQueue, 1, &submitInfo, nullptr);
+		vkQueueWaitIdle(m_pGraphicQueue);
+
+		vkFreeCommandBuffers(m_pDevice, m_pDefaultCommandPool, 1, &pCommandBuffer);
 	}
 
 	bool VulkanRHI::CheckValidationLayerSupport()

@@ -17,7 +17,7 @@ namespace FakeReal
 	void RenderSystem::Initialize(const RHIInitInfo& info)
 	{
 		//IF VULKAN
-		m_pRhi = std::make_shared<VulkanRHI>();
+		m_pRhi = MakeShared<VulkanRHI>();
 		m_pRhi->Initialize(info);
 	}
 

@@ -29,7 +29,6 @@ namespace FakeReal
 
 	class VulkanRHI : public RHI
 	{
-		friend class MainCameraPass;
 	public:
 		virtual ~VulkanRHI() override final;
 
@@ -58,6 +57,10 @@ namespace FakeReal
 		void CreateDepthResource();
 		void CreateAssetAllocator();
 
+	public:
+		VkCommandBuffer BeginSingleTimeCommands();
+		void EndSingleTimeCommands(VkCommandBuffer pCommandBuffer);
+
 	private:
 		bool CheckValidationLayerSupport();
 		std::vector<const char*> GetRequireExtenstion();
@@ -71,7 +74,7 @@ namespace FakeReal
 		VkFormat FindDepthFormat();
 		VkFormat FindSupportFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
-	private:
+	public:
 		uint32_t mVulkanApiVersion;
 		GLFWwindow* m_pWindow;
 
@@ -98,6 +101,7 @@ namespace FakeReal
 		VkImageView m_pDepthImageView;
 		VkDeviceMemory m_pDepthImageMemory;
 
+		VkCommandPool m_pDefaultCommandPool;
 		static const uint8_t S_MAX_FRAME_IN_FLIGHT{ 3 };
 		VkCommandPool m_pCommandPools[S_MAX_FRAME_IN_FLIGHT];
 		VkCommandBuffer m_pCommandBuffers[S_MAX_FRAME_IN_FLIGHT];
