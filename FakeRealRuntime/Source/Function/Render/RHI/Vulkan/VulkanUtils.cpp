@@ -232,6 +232,20 @@ namespace FakeReal
 		vkBindBufferMemory(pDevice, pBuffer, pMemory, 0);
 	}
 
+	void VulkanUtils::CopyBuffer(SharedPtr<VulkanRHI> pRhi, VkBuffer pSrcBuffer, VkBuffer pDstBuffer, VkDeviceSize size)
+	{
+		VkCommandBuffer pCommandBuffer = pRhi->BeginSingleTimeCommands();
+		{
+			VkBufferCopy bufferCopy = {};
+			bufferCopy.srcOffset = 0;
+			bufferCopy.dstOffset = 0;
+			bufferCopy.size = size;
+
+			vkCmdCopyBuffer(pCommandBuffer, pSrcBuffer, pDstBuffer, 1, &bufferCopy);
+		}
+		pRhi->EndSingleTimeCommands(pCommandBuffer);
+	}
+
 	void VulkanUtils::CopyBufferToImage(SharedPtr<VulkanRHI> pRhi, VkBuffer pBuffer, VkImage pImage, uint32_t width, uint32_t height)
 	{
 		VkCommandBuffer pCommanndBuffer = pRhi->BeginSingleTimeCommands();

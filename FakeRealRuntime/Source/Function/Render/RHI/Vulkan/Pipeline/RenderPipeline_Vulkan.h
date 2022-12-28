@@ -10,6 +10,9 @@ namespace FakeReal
 		~RenderPipeline_Vulkan();
 
 		virtual void Initialize() override final;
+		virtual void Clear() override final;
 		virtual void DeferredRender() override final;
+
+		void PassUpdateAfterRecreateSwapchain();
 	};
 }

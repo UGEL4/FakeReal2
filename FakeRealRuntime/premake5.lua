@@ -22,6 +22,7 @@ project "FakeRealRuntime"
         "%{wks.location}/3rdparty/spdlog/include",
         "%{wks.location}/3rdparty/GLFW/include",
         "%{IncludeDir.VulkanSdkDir}",
+        "%{wks.location}/3rdparty/glm",
     }
 
     links

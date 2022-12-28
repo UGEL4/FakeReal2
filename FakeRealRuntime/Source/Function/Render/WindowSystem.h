@@ -43,16 +43,16 @@ namespace FakeReal
 		using OnWindowSizeCallback	= std::function<void(int, int)>;
 		using OnWindowCloseCallback = std::function<void()>;
 
-		void RegisterKeyCallback(OnKeyCallback& func)					{ mOnKeyCallbacks.emplace_back(func); }
-		void RegisterCharCallback(OnCharCallback& func)					{ mOnCharCallbacks.emplace_back(func); }
-		void RegisterCharModsCallback(OnCharModsCallback& func)			{ mOnCharModsCallbacks.emplace_back(func); }
-		void RegisterMouseButtonCallback(OnMouseButtonCallback& func)	{ mOnMouseButtonCallbacks.emplace_back(func); }
-		void RegisterCursorPosCallback(OnCursorPosCallback& func)		{ mOnCursorPosCallbacks.emplace_back(func); }
-		void RegisterCursorEnterCallback(OnCursorEnterCallback& func)	{ mOnCursorEnterCallbacks.emplace_back(func); }
-		void RegisterScrollCallback(OnScrollCallback& func)				{ mOnScrollCallbacks.emplace_back(func); }
-		void RegisterDropCallback(OnDropCallback& func)					{ mOnDropCallbacks.emplace_back(func); }
-		void RegisterWindowSizeCallback(OnWindowSizeCallback& func)		{ mOnWindowSizeCallbacks.emplace_back(func); }
-		void RegisterWindowCloseCallback(OnWindowCloseCallback& func)	{ mOnWindowCloseCallbacks.emplace_back(func); }
+		void RegisterKeyCallback(const OnKeyCallback& func)					{ mOnKeyCallbacks.emplace_back(func); }
+		void RegisterCharCallback(const OnCharCallback& func)					{ mOnCharCallbacks.emplace_back(func); }
+		void RegisterCharModsCallback(const OnCharModsCallback& func)			{ mOnCharModsCallbacks.emplace_back(func); }
+		void RegisterMouseButtonCallback(const OnMouseButtonCallback& func)	{ mOnMouseButtonCallbacks.emplace_back(func); }
+		void RegisterCursorPosCallback(const OnCursorPosCallback& func)		{ mOnCursorPosCallbacks.emplace_back(func); }
+		void RegisterCursorEnterCallback(const OnCursorEnterCallback& func)	{ mOnCursorEnterCallbacks.emplace_back(func); }
+		void RegisterScrollCallback(const OnScrollCallback& func)				{ mOnScrollCallbacks.emplace_back(func); }
+		void RegisterDropCallback(const OnDropCallback& func)					{ mOnDropCallbacks.emplace_back(func); }
+		void RegisterWindowSizeCallback(const OnWindowSizeCallback& func)		{ mOnWindowSizeCallbacks.emplace_back(func); }
+		void RegisterWindowCloseCallback(const OnWindowCloseCallback& func)	{ mOnWindowCloseCallbacks.emplace_back(func); }
 	private:
 		static void KeyCallback(GLFWwindow* pWindow, int key, int scancode, int action, int mods)
 		{

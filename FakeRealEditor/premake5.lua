@@ -18,6 +18,7 @@ project "FakeRealEditor"
         "%{wks.location}/3rdparty/spdlog/include",
         "%{wks.location}/3rdparty/GLFW/include",
         "%{IncludeDir.VulkanSdkDir}",
+        "%{wks.location}/3rdparty/glm",
     }
 printf("%s", IncludeDir.VulkanSdkDir)
     links

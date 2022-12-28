@@ -7,8 +7,59 @@
 #include "Function/Render/stb_image.h"
 #include <array>
 
+#include <glm/gtc/matrix_transform.hpp>
+#include <chrono>
+
 namespace FakeReal
 {
+	static std::vector<MeshVertex> g_Vertices =
+	{
+		//前
+		{{-0.5f, -0.5f, 0.5f}, {1.f, 0.f, 0.f}, {0.f, 0.f} },
+		{{ 0.5f, -0.5f, 0.5f}, {0.f, 1.f, 0.f}, {1.f, 0.f} },
+		{{ 0.5f,  0.5f, 0.5f}, {0.f, 0.f, 1.f}, {1.f, 1.f} },
+		{{-0.5f,  0.5f, 0.5f}, {1.f, 1.f, 0.f}, {0.f, 1.f} },
+
+		//后
+		{{ 0.5f, -0.5f, -0.5f}, {0.f, 1.f, 0.f}, {0.f, 0.f} },
+		{{-0.5f, -0.5f, -0.5f}, {1.f, 0.f, 0.f}, {1.f, 0.f} },
+		{{-0.5f,  0.5f, -0.5f}, {1.f, 1.f, 0.f}, {1.f, 1.f} },
+		{{ 0.5f,  0.5f, -0.5f}, {0.f, 0.f, 1.f}, {0.f, 1.f} },
+
+		//左
+		{{-0.5f,  -0.5f,  0.5f}, {1.f, 1.f, 0.f}, {1.f, 0.f} },
+		{{-0.5f,   0.5f,  0.5f}, {1.f, 1.f, 0.f}, {1.f, 1.f} },
+		{{-0.5f,   0.5f, -0.5f}, {1.f, 1.f, 0.f}, {0.f, 1.f} },
+		{{-0.5f,  -0.5f, -0.5f}, {1.f, 1.f, 0.f}, {0.f, 0.f} },
+
+		//右
+		{{0.5f,  -0.5f,  0.5f}, {1.f, 1.f, 0.f}, {0.f, 0.f} },
+		{{0.5f,  -0.5f, -0.5f}, {1.f, 1.f, 0.f}, {1.f, 0.f} },
+		{{0.5f,   0.5f, -0.5f}, {1.f, 1.f, 0.f}, {1.f, 1.f} },
+		{{0.5f,   0.5f,  0.5f}, {1.f, 1.f, 0.f}, {0.f, 1.f} },
+
+		//上
+		{{-0.5f,  -0.5f, -0.5f}, {1.f, 1.f, 0.f}, {0.f, 0.f} },
+		{{ 0.5f,  -0.5f, -0.5f}, {1.f, 1.f, 0.f}, {1.f, 0.f} },
+		{{ 0.5f,  -0.5f,  0.5f}, {1.f, 1.f, 0.f}, {1.f, 1.f} },
+		{{-0.5f,  -0.5f,  0.5f}, {1.f, 1.f, 0.f}, {0.f, 1.f} },
+
+		//下
+		{{-0.5f,   0.5f,  0.5f}, {1.f, 1.f, 0.f}, {0.f, 0.f} },
+		{{ 0.5f,   0.5f,  0.5f}, {1.f, 1.f, 0.f}, {1.f, 0.f} },
+		{{ 0.5f,   0.5f, -0.5f}, {1.f, 1.f, 0.f}, {1.f, 1.f} },
+		{{-0.5f,   0.5f, -0.5f}, {1.f, 1.f, 0.f}, {0.f, 1.f} },
+	};
+
+	static std::vector<uint16_t> g_Indices =
+	{
+		0, 1, 2, 2, 3, 0,
+		4, 5, 6, 6, 7, 4,
+		8, 9, 10, 10, 11, 8,
+		12, 13, 14, 14, 15, 12,
+		16, 17, 18, 18, 19, 16,
+		20, 21, 22, 22, 23, 20
+	};
 	MainCameraPass_Vulkan::MainCameraPass_Vulkan()
 	{
 
@@ -22,17 +73,149 @@ namespace FakeReal
 	void MainCameraPass_Vulkan::Initialize(RenderPassCommonInfo* pInfo)
 	{
 		RenderPass_Vulkan::Initialize(nullptr);
+
+		SetupAttachements();
+		CreateRenderPass();
+		CreateDescriptorSetLayout();
+		CreateRenderPipeline();
+
+		CreateTextureImage();
+		CreateTextureImageView();
+		CreateTextureSampler();
+		CreateVertexBuffer();
+		CreateIndexBuffer();
+
+		CreateDescriptorSets();
+		SetupDescriptorSets();
+		CreateSwapchainFrameBuffer();
+	}
+
+	void MainCameraPass_Vulkan::Clear()
+	{
+		for (size_t i = 0; i < mFrameBuffer.mAttachments.size(); i++)
+		{
+			vkDestroyImage(m_pVulkanRhi->m_pDevice, mFrameBuffer.mAttachments[i].pImage, nullptr);
+			vkDestroyImageView(m_pVulkanRhi->m_pDevice, mFrameBuffer.mAttachments[i].pImageView, nullptr);
+			vkFreeMemory(m_pVulkanRhi->m_pDevice, mFrameBuffer.mAttachments[i].pMemory, nullptr);
+		}
+
+		for (size_t i = 0; i < mSwapchainFramebuffers.size(); i++)
+		{
+			vkDestroyFramebuffer(m_pVulkanRhi->m_pDevice, mSwapchainFramebuffers[i], nullptr);
+		}
+
+		for (size_t i = 0; i < mDescriptorInfos.size(); i++)
+		{
+			vkDestroyDescriptorSetLayout(m_pVulkanRhi->m_pDevice, mDescriptorInfos[i].pLayout, nullptr);
+		}
+
+		for (size_t i = 0; i < mPipelines.size(); i++)
+		{
+			vkDestroyPipeline(m_pVulkanRhi->m_pDevice, mPipelines[i].pPipeline, nullptr);
+			vkDestroyPipelineLayout(m_pVulkanRhi->m_pDevice, mPipelines[i].pLayout, nullptr);
+		}
+
+		vkDestroyRenderPass(m_pVulkanRhi->m_pDevice, mFrameBuffer.pRenderPass, nullptr);
+	}
+
+	void MainCameraPass_Vulkan::PreparePassData()
+	{
+
+	}
+
+	void MainCameraPass_Vulkan::PassUpdateAfterRecreateSwapchain()
+	{
+		for (size_t i = 0; i < mFrameBuffer.mAttachments.size(); i++)
+		{
+			vkDestroyImage(m_pVulkanRhi->m_pDevice, mFrameBuffer.mAttachments[i].pImage, nullptr);
+			vkDestroyImageView(m_pVulkanRhi->m_pDevice, mFrameBuffer.mAttachments[i].pImageView, nullptr);
+			vkFreeMemory(m_pVulkanRhi->m_pDevice, mFrameBuffer.mAttachments[i].pMemory, nullptr);
+		}
+
+		for (size_t i = 0; i < mSwapchainFramebuffers.size(); i++)
+		{
+			vkDestroyFramebuffer(m_pVulkanRhi->m_pDevice, mSwapchainFramebuffers[i], nullptr);
+		}
+
+		SetupAttachements();
+		SetupDescriptorSets();
+		CreateSwapchainFrameBuffer();
+	}
+
+	void MainCameraPass_Vulkan::Draw()
+	{
+		UpdateUniformBuffer();
+
+		{
+
+			VkRenderPassBeginInfo beginInfo = {};
+			beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			beginInfo.renderPass = mFrameBuffer.pRenderPass;
+			beginInfo.framebuffer = mSwapchainFramebuffers[m_pVulkanRhi->mCurSwapchainImageIndex];
+			VkRect2D renderArea = {};
+			renderArea.extent = m_pVulkanRhi->mSwapchainImageExtent;
+			renderArea.offset = { 0, 0 };
+			beginInfo.renderArea = renderArea;
+			std::array<VkClearValue, 5> clearVals = {};
+			clearVals[0].color = { 0.f, 0.f, 0.f, 0.f };
+			clearVals[1].color = { 0.f, 0.f, 0.f, 0.f };
+			clearVals[2].color = { 0.f, 0.f, 0.f, 0.f };
+			clearVals[3].depthStencil = { 1.f, 0 };
+			clearVals[4].color = { 0.f, 0.f, 0.f, 0.f };
+			beginInfo.clearValueCount = 5;
+			beginInfo.pClearValues = clearVals.data();
+
+			VkViewport viewport{};
+			viewport.x = 0.0f;
+			viewport.y = 0.0f;
+			viewport.width = (float)m_pVulkanRhi->mSwapchainImageExtent.width;
+			viewport.height = (float)m_pVulkanRhi->mSwapchainImageExtent.height;
+			viewport.minDepth = 0.0f;
+			viewport.maxDepth = 1.0f;
+
+			VkRect2D scissor{};
+			scissor.offset = { 0, 0 };
+			scissor.extent = m_pVulkanRhi->mSwapchainImageExtent;
+
+			
+
+			vkCmdBeginRenderPass(m_pVulkanRhi->m_pCommandBuffers[m_pVulkanRhi->mCurrFrame], &beginInfo, VK_SUBPASS_CONTENTS_INLINE); //VK_SUBPASS_CONTENTS_INLINE : 所有要执行的指令都在主要指令缓冲中，没有辅助指令缓冲需要执行
+
+			vkCmdSetViewport(m_pVulkanRhi->m_pCommandBuffers[m_pVulkanRhi->mCurrFrame], 0, 1, &viewport);
+
+			vkCmdSetScissor(m_pVulkanRhi->m_pCommandBuffers[m_pVulkanRhi->mCurrFrame], 0, 1, &scissor);
+
+			{
+				vkCmdBindPipeline(m_pVulkanRhi->m_pCommandBuffers[m_pVulkanRhi->mCurrFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[RPT_MESH_GBUFFER].pPipeline);
+
+				VkDeviceSize offset = 0;
+				vkCmdBindVertexBuffers(m_pVulkanRhi->m_pCommandBuffers[m_pVulkanRhi->mCurrFrame], 0, 1, &m_pVertexBuffer, &offset);
+				vkCmdBindIndexBuffer(m_pVulkanRhi->m_pCommandBuffers[m_pVulkanRhi->mCurrFrame], m_pIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
+				vkCmdBindDescriptorSets(m_pVulkanRhi->m_pCommandBuffers[m_pVulkanRhi->mCurrFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[RPT_MESH_GBUFFER].pLayout, 0, 1, &mDescriptorInfos[LT_PER_MESH].pSet, 0, nullptr);
+				vkCmdDrawIndexed(m_pVulkanRhi->m_pCommandBuffers[m_pVulkanRhi->mCurrFrame], g_Indices.size(), 1, 0, 0, 0);
+			}
+
+			//next
+			vkCmdNextSubpass(m_pVulkanRhi->m_pCommandBuffers[m_pVulkanRhi->mCurrFrame], VK_SUBPASS_CONTENTS_INLINE);
+			{
+				vkCmdBindPipeline(m_pVulkanRhi->m_pCommandBuffers[m_pVulkanRhi->mCurrFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[RPT_DEFERRED_LIGHTING].pPipeline);
+				vkCmdBindDescriptorSets(m_pVulkanRhi->m_pCommandBuffers[m_pVulkanRhi->mCurrFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[RPT_DEFERRED_LIGHTING].pLayout, 0, 1, &mDescriptorInfos[LT_DEFERRED_LIGHTING].pSet, 0, nullptr);
+				vkCmdDraw(m_pVulkanRhi->m_pCommandBuffers[m_pVulkanRhi->mCurrFrame], 3, 1, 0, 0);
+			}
+
+			vkCmdEndRenderPass(m_pVulkanRhi->m_pCommandBuffers[m_pVulkanRhi->mCurrFrame]);
+		}
 	}
 
 	void MainCameraPass_Vulkan::SetupAttachements()
 	{
 		mFrameBuffer.width	= m_pVulkanRhi->mSwapchainImageExtent.width;
 		mFrameBuffer.height = m_pVulkanRhi->mSwapchainImageExtent.height;
-		mFrameBuffer.mAttachments.resize(eMainCameraPassDepth + 1);
+		mFrameBuffer.mAttachments.resize(eMainCameraPassCustomCount);
 		mFrameBuffer.mAttachments[eMainCameraPassGBufferA].format = VK_FORMAT_R8G8B8A8_UNORM;
 		mFrameBuffer.mAttachments[eMainCameraPassGBufferB].format = VK_FORMAT_R8G8B8A8_UNORM;
 		mFrameBuffer.mAttachments[eMainCameraPassGBufferC].format = VK_FORMAT_R8G8B8A8_UNORM;
-		for (int i = 0; i < eMainCameraPassDepth; i++)
+		for (int i = 0; i < eMainCameraPassCustomCount; i++)
 		{
 			VulkanUtils::CreateImage(m_pVulkanRhi->m_pPhysicalDevice, m_pVulkanRhi->m_pDevice,
 				mFrameBuffer.width, mFrameBuffer.height, 1, 1, 1,
@@ -41,14 +224,10 @@ namespace FakeReal
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				mFrameBuffer.mAttachments[i].pImage, mFrameBuffer.mAttachments[i].pMemory);
 
-			VulkanUtils::CreateImageView(m_pVulkanRhi->m_pDevice,
+			mFrameBuffer.mAttachments[i].pImageView = VulkanUtils::CreateImageView(m_pVulkanRhi->m_pDevice,
 				mFrameBuffer.mAttachments[i].pImage, mFrameBuffer.mAttachments[i].format,
 				VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, 1, 1);
 		}
-		mFrameBuffer.mAttachments[eMainCameraPassDepth].format		= m_pVulkanRhi->mDepthImageFormat;
-		mFrameBuffer.mAttachments[eMainCameraPassDepth].pImage		= m_pVulkanRhi->m_pDepthImage;
-		mFrameBuffer.mAttachments[eMainCameraPassDepth].pMemory		= m_pVulkanRhi->m_pDepthImageMemory;
-		mFrameBuffer.mAttachments[eMainCameraPassDepth].pImageView	= m_pVulkanRhi->m_pDepthImageView;
 	}
 
 	void MainCameraPass_Vulkan::CreateRenderPass()
@@ -63,7 +242,7 @@ namespace FakeReal
 			posotion.stencilLoadOp		= VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			posotion.stencilStoreOp		= VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			posotion.initialLayout		= VK_IMAGE_LAYOUT_UNDEFINED;
-			posotion.finalLayout		= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			posotion.finalLayout		= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 			VkAttachmentDescription& normal = descriptions[eMainCameraPassGBufferB];
 			normal.format			= mFrameBuffer.mAttachments[eMainCameraPassGBufferB].format;
@@ -73,7 +252,7 @@ namespace FakeReal
 			normal.stencilLoadOp	= VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			normal.stencilStoreOp	= VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			normal.initialLayout	= VK_IMAGE_LAYOUT_UNDEFINED;
-			normal.finalLayout		= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			normal.finalLayout		= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 			VkAttachmentDescription& albedo = descriptions[eMainCameraPassGBufferC];
 			albedo.format			= mFrameBuffer.mAttachments[eMainCameraPassGBufferC].format;
@@ -83,13 +262,13 @@ namespace FakeReal
 			albedo.stencilLoadOp	= VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			albedo.stencilStoreOp	= VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			albedo.initialLayout	= VK_IMAGE_LAYOUT_UNDEFINED;
-			albedo.finalLayout		= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			albedo.finalLayout		= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 			VkAttachmentDescription& depth = descriptions[eMainCameraPassDepth];
-			depth.format			= mFrameBuffer.mAttachments[eMainCameraPassDepth].format;
+			depth.format			= m_pVulkanRhi->mDepthImageFormat;
 			depth.samples			= VK_SAMPLE_COUNT_1_BIT;
 			depth.loadOp			= VK_ATTACHMENT_LOAD_OP_CLEAR;
-			depth.storeOp			= VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			depth.storeOp			= VK_ATTACHMENT_STORE_OP_STORE;
 			depth.stencilLoadOp		= VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			depth.stencilStoreOp	= VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			depth.initialLayout		= VK_IMAGE_LAYOUT_UNDEFINED;
@@ -97,7 +276,7 @@ namespace FakeReal
 		}
 		{
 			VkAttachmentDescription& swapchain = descriptions[eMainCameraPassSwapchainImage];
-			swapchain.format			= mFrameBuffer.mAttachments[eMainCameraPassSwapchainImage].format;
+			swapchain.format			= m_pVulkanRhi->mSwapchainImageFormat;
 			swapchain.samples			= VK_SAMPLE_COUNT_1_BIT;
 			swapchain.loadOp			= VK_ATTACHMENT_LOAD_OP_CLEAR;
 			swapchain.storeOp			= VK_ATTACHMENT_STORE_OP_STORE;
@@ -116,12 +295,12 @@ namespace FakeReal
 		basePassColorAttachmentsRefs[eMainCameraPassGBufferC].layout		= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 		VkAttachmentReference basePassDepthAttachmentsRef = {};
-		basePassDepthAttachmentsRef.attachment = eMainCameraPassDepth;
-		basePassDepthAttachmentsRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		basePassDepthAttachmentsRef.attachment	= eMainCameraPassDepth;
+		basePassDepthAttachmentsRef.layout		= VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 		VkAttachmentReference swapchainColorAttachmentRef = {};
-		swapchainColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		swapchainColorAttachmentRef.attachment = eMainCameraPassSwapchainImage;
+		swapchainColorAttachmentRef.layout		= VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		swapchainColorAttachmentRef.attachment	= eMainCameraPassSwapchainImage;
 
 		std::array<VkAttachmentReference, 4> inputAttachments;
 		inputAttachments[eMainCameraPassGBufferA].layout		= VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -134,27 +313,34 @@ namespace FakeReal
 		inputAttachments[eMainCameraPassDepth].attachment		= eMainCameraPassDepth;
 
 		std::array<VkSubpassDescription, 2> subpassDesc;
-		subpassDesc[0] = {};
-		subpassDesc[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpassDesc[0].colorAttachmentCount = 3;
-		subpassDesc[0].pColorAttachments = basePassColorAttachmentsRefs;
-		subpassDesc[0].pDepthStencilAttachment = &basePassDepthAttachmentsRef;
+		subpassDesc[0]							= {};
+		subpassDesc[0].pipelineBindPoint		= VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpassDesc[0].colorAttachmentCount		= 3;
+		subpassDesc[0].pColorAttachments		= basePassColorAttachmentsRefs;
+		subpassDesc[0].pDepthStencilAttachment	= &basePassDepthAttachmentsRef;
 
-		subpassDesc[1] = {};
-		subpassDesc[1].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpassDesc[1].colorAttachmentCount = 1;
-		subpassDesc[1].pColorAttachments = &swapchainColorAttachmentRef;
-		subpassDesc[1].inputAttachmentCount = (uint32_t)inputAttachments.size();
-		subpassDesc[1].pInputAttachments = inputAttachments.data();
+		subpassDesc[1]							= {};
+		subpassDesc[1].pipelineBindPoint		= VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpassDesc[1].colorAttachmentCount		= 1;
+		subpassDesc[1].pColorAttachments		= &swapchainColorAttachmentRef;
+		subpassDesc[1].inputAttachmentCount		= (uint32_t)inputAttachments.size();
+		subpassDesc[1].pInputAttachments		= inputAttachments.data();
 
-		VkSubpassDependency depens = {};
-		depens.srcSubpass		= 0;
-		depens.dstSubpass		= 1;
-		depens.srcStageMask		= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		depens.srcAccessMask	= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		depens.dstStageMask		= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-		depens.dstAccessMask	= VK_ACCESS_SHADER_READ_BIT;
-		depens.dependencyFlags	= VK_DEPENDENCY_BY_REGION_BIT;
+		VkSubpassDependency depens[2] = {};
+		depens[0].srcSubpass		= VK_SUBPASS_EXTERNAL;
+		depens[0].dstSubpass		= 0;
+		depens[0].srcStageMask		= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		depens[0].srcAccessMask		= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		depens[0].dstStageMask		= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		depens[0].dstAccessMask		= VK_ACCESS_SHADER_READ_BIT;
+		depens[0].dependencyFlags	= 0;
+		depens[1].srcSubpass		= 0;
+		depens[1].dstSubpass		= 1;
+		depens[1].srcStageMask		= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		depens[1].srcAccessMask		= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		depens[1].dstStageMask		= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		depens[1].dstAccessMask		= VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+		depens[1].dependencyFlags	= VK_DEPENDENCY_BY_REGION_BIT;
 
 		VkRenderPassCreateInfo renderCreateInfo = {};
 		renderCreateInfo.sType				= VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -162,8 +348,8 @@ namespace FakeReal
 		renderCreateInfo.attachmentCount	= (uint32_t)descriptions.size();
 		renderCreateInfo.subpassCount		= (uint32_t)subpassDesc.size();
 		renderCreateInfo.pSubpasses			= subpassDesc.data();
-		renderCreateInfo.dependencyCount	= 1;
-		renderCreateInfo.pDependencies		= &depens;
+		renderCreateInfo.dependencyCount	= sizeof(depens) / sizeof(depens[0]);
+		renderCreateInfo.pDependencies		= &depens[0];
 
 		if (vkCreateRenderPass(m_pVulkanRhi->m_pDevice, &renderCreateInfo, nullptr, &mFrameBuffer.pRenderPass) != VK_SUCCESS)
 		{
@@ -398,21 +584,21 @@ namespace FakeReal
 				throw std::runtime_error("VkPipelineLayout create failed : deferred lighting");
 			}
 
-			VkShaderModule pVertexShaderModule		= VulkanUtils::CreateShader("shader/deferred_write.vert.spv", m_pVulkanRhi->m_pDevice);
-			VkShaderModule pFragmentShaderModule	= VulkanUtils::CreateShader("shader/deferred_write.frag.spv", m_pVulkanRhi->m_pDevice);
+			VkShaderModule pVertexShaderModule		= VulkanUtils::CreateShader("shader/deferred_read.vert.spv", m_pVulkanRhi->m_pDevice);
+			VkShaderModule pFragmentShaderModule	= VulkanUtils::CreateShader("shader/deferred_read.frag.spv", m_pVulkanRhi->m_pDevice);
 			VkPipelineShaderStageCreateInfo vertexShaderCreateInfo = {};
-			vertexShaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			vertexShaderCreateInfo.module = pVertexShaderModule;
-			vertexShaderCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-			vertexShaderCreateInfo.pName = "main";
-			vertexShaderCreateInfo.pSpecializationInfo = nullptr;
+			vertexShaderCreateInfo.sType				= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			vertexShaderCreateInfo.module				= pVertexShaderModule;
+			vertexShaderCreateInfo.stage				= VK_SHADER_STAGE_VERTEX_BIT;
+			vertexShaderCreateInfo.pName				= "main";
+			vertexShaderCreateInfo.pSpecializationInfo	= nullptr;
 
 			VkPipelineShaderStageCreateInfo fragmentShaderCreateInfo = {};
-			fragmentShaderCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			fragmentShaderCreateInfo.module = pFragmentShaderModule;
-			fragmentShaderCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-			fragmentShaderCreateInfo.pName = "main";
-			fragmentShaderCreateInfo.pSpecializationInfo = nullptr;
+			fragmentShaderCreateInfo.sType					= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			fragmentShaderCreateInfo.module					= pFragmentShaderModule;
+			fragmentShaderCreateInfo.stage					= VK_SHADER_STAGE_FRAGMENT_BIT;
+			fragmentShaderCreateInfo.pName					= "main";
+			fragmentShaderCreateInfo.pSpecializationInfo	= nullptr;
 			VkPipelineShaderStageCreateInfo shaderStages[] = { vertexShaderCreateInfo, fragmentShaderCreateInfo };
 
 			VkPipelineColorBlendAttachmentState colorBlendState = {};
@@ -420,33 +606,33 @@ namespace FakeReal
 			colorBlendState.blendEnable = VK_FALSE;
 
 			VkPipelineColorBlendStateCreateInfo colorBlendStateCreateInfo = {};
-			colorBlendStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-			colorBlendStateCreateInfo.logicOpEnable = VK_FALSE;
-			colorBlendStateCreateInfo.logicOp = VK_LOGIC_OP_COPY;
-			colorBlendStateCreateInfo.attachmentCount = 1;
-			colorBlendStateCreateInfo.pAttachments = &colorBlendState;
+			colorBlendStateCreateInfo.sType				= VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+			colorBlendStateCreateInfo.logicOpEnable		= VK_FALSE;
+			colorBlendStateCreateInfo.logicOp			= VK_LOGIC_OP_COPY;
+			colorBlendStateCreateInfo.attachmentCount	= 1;
+			colorBlendStateCreateInfo.pAttachments		= &colorBlendState;
 
 			VkPipelineVertexInputStateCreateInfo vertexInputStateInfo = {};
 			vertexInputStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
 			VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo = {};
-			graphicsPipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-			graphicsPipelineCreateInfo.stageCount = 2;
-			graphicsPipelineCreateInfo.pStages = shaderStages;
-			graphicsPipelineCreateInfo.pColorBlendState = &colorBlendStateCreateInfo;
-			graphicsPipelineCreateInfo.pDepthStencilState = &depthInfo;
-			graphicsPipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
-			graphicsPipelineCreateInfo.pInputAssemblyState = &inputAssemblyStateInfo;
-			graphicsPipelineCreateInfo.pVertexInputState = &vertexInputStateInfo;
-			graphicsPipelineCreateInfo.pMultisampleState = &multisampleStateInfo;
-			graphicsPipelineCreateInfo.pRasterizationState = &rasterizationStateInfo;
-			graphicsPipelineCreateInfo.pTessellationState = nullptr;
-			graphicsPipelineCreateInfo.pViewportState = &viewportStateCreateInfo;
-			graphicsPipelineCreateInfo.renderPass = mFrameBuffer.pRenderPass;
-			graphicsPipelineCreateInfo.subpass = 1;
-			graphicsPipelineCreateInfo.layout = mPipelines[RPT_DEFERRED_LIGHTING].pLayout;
-			graphicsPipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
-			graphicsPipelineCreateInfo.basePipelineIndex = -1;
+			graphicsPipelineCreateInfo.sType				= VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+			graphicsPipelineCreateInfo.stageCount			= 2;
+			graphicsPipelineCreateInfo.pStages				= shaderStages;
+			graphicsPipelineCreateInfo.pColorBlendState		= &colorBlendStateCreateInfo;
+			graphicsPipelineCreateInfo.pDepthStencilState	= &depthInfo;
+			graphicsPipelineCreateInfo.pDynamicState		= &dynamicStateCreateInfo;
+			graphicsPipelineCreateInfo.pInputAssemblyState	= &inputAssemblyStateInfo;
+			graphicsPipelineCreateInfo.pVertexInputState	= &vertexInputStateInfo;
+			graphicsPipelineCreateInfo.pMultisampleState	= &multisampleStateInfo;
+			graphicsPipelineCreateInfo.pRasterizationState	= &rasterizationStateInfo;
+			graphicsPipelineCreateInfo.pTessellationState	= nullptr;
+			graphicsPipelineCreateInfo.pViewportState		= &viewportStateCreateInfo;
+			graphicsPipelineCreateInfo.renderPass			= mFrameBuffer.pRenderPass;
+			graphicsPipelineCreateInfo.subpass				= 1;
+			graphicsPipelineCreateInfo.layout				= mPipelines[RPT_DEFERRED_LIGHTING].pLayout;
+			graphicsPipelineCreateInfo.basePipelineHandle	= VK_NULL_HANDLE;
+			graphicsPipelineCreateInfo.basePipelineIndex	= -1;
 
 			if (vkCreateGraphicsPipelines(m_pVulkanRhi->m_pDevice, nullptr, 1, &graphicsPipelineCreateInfo, nullptr, &mPipelines[RPT_DEFERRED_LIGHTING].pPipeline) != VK_SUCCESS)
 			{
@@ -458,23 +644,38 @@ namespace FakeReal
 
 	void MainCameraPass_Vulkan::CreateDescriptorSets()
 	{
+		VkDescriptorSetAllocateInfo info{};
+		info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		info.descriptorSetCount = 1;
+		info.pSetLayouts = &mDescriptorInfos[LT_PER_MESH].pLayout;
+		info.descriptorPool = m_pVulkanRhi->m_pDescriptorPool;
+		if (vkAllocateDescriptorSets(m_pVulkanRhi->m_pDevice, &info, &mDescriptorInfos[LT_PER_MESH].pSet) != VK_SUCCESS)
 		{
-			VkDescriptorSetAllocateInfo info{};
-			info.sType				= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-			info.descriptorSetCount = 1;
-			info.pSetLayouts		= &mDescriptorInfos[LT_PER_MESH].pLayout;
-			info.descriptorPool		= m_pVulkanRhi->m_pDescriptorPool;
-			if (vkAllocateDescriptorSets(m_pVulkanRhi->m_pDevice, &info, &mDescriptorInfos[LT_PER_MESH].pSet) != VK_SUCCESS)
-			{
-				LOG_ERROR("AllocateDescriptorSets failed : per mesh");
-			}
+			LOG_ERROR("AllocateDescriptorSets failed : per mesh");
+			throw std::runtime_error("AllocateDescriptorSets failed : per mesh");
+		}
+		VulkanUtils::CreateBuffer(
+			m_pVulkanRhi->m_pDevice, m_pVulkanRhi->m_pPhysicalDevice,
+			VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(UniformBufferObj),
+			mUniformBuffer.pBuffer,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			mUniformBuffer.pMem);
 
-			VulkanUtils::CreateBuffer(
-				m_pVulkanRhi->m_pDevice, m_pVulkanRhi->m_pPhysicalDevice,
-				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(UniformBufferObj),
-				mUniformBuffer.pBuffer, 
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-				mUniformBuffer.pMem);
+		VkDescriptorSetAllocateInfo infoRead{};
+		infoRead.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		infoRead.descriptorSetCount = 1;
+		infoRead.pSetLayouts = &mDescriptorInfos[LT_DEFERRED_LIGHTING].pLayout;
+		infoRead.descriptorPool = m_pVulkanRhi->m_pDescriptorPool;
+		if (vkAllocateDescriptorSets(m_pVulkanRhi->m_pDevice, &infoRead, &mDescriptorInfos[LT_DEFERRED_LIGHTING].pSet) != VK_SUCCESS)
+		{
+			LOG_ERROR("AllocateDescriptorSets failed : deferred lighting");
+			throw std::runtime_error("AllocateDescriptorSets failed : deferred lighting");
+		}
+	}
+
+	void MainCameraPass_Vulkan::SetupDescriptorSets()
+	{
+		{
 			VkDescriptorBufferInfo modelBufferinfo = {};
 			modelBufferinfo.buffer = mUniformBuffer.pBuffer;
 			modelBufferinfo.offset = 0;
@@ -522,20 +723,11 @@ namespace FakeReal
 			texAlbedo.sampler = VK_NULL_HANDLE;
 			VkDescriptorImageInfo texDepth = {};
 			texDepth.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			texDepth.imageView = mFrameBuffer.mAttachments[3].pImageView;
+			texDepth.imageView = m_pVulkanRhi->m_pDepthImageView;
 			texDepth.sampler = VK_NULL_HANDLE;
 
-			VkDescriptorSetAllocateInfo infoRead{};
-			infoRead.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-			infoRead.descriptorSetCount = 1;
-			infoRead.pSetLayouts = &mDescriptorInfos[LT_DEFERRED_LIGHTING].pLayout;
-			infoRead.descriptorPool = m_pVulkanRhi->m_pDescriptorPool;
-			if (vkAllocateDescriptorSets(m_pVulkanRhi->m_pDevice, &infoRead, &mDescriptorInfos[LT_DEFERRED_LIGHTING].pSet) != VK_SUCCESS)
-			{
-				assert(0);
-			}
 			std::vector<VkWriteDescriptorSet> writeDescSets(4);
-			// Binding 0 : Position texture target
+			// Binding 0
 			VkWriteDescriptorSet& writePosition = writeDescSets[0];
 			writePosition.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			writePosition.dstSet = mDescriptorInfos[LT_DEFERRED_LIGHTING].pSet;
@@ -543,7 +735,7 @@ namespace FakeReal
 			writePosition.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
 			writePosition.descriptorCount = 1;
 			writePosition.pImageInfo = &texPosition;
-			// Binding 1 : Normals texture target
+			// Binding 1
 			VkWriteDescriptorSet& writeNormal = writeDescSets[1];
 			writeNormal.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			writeNormal.dstSet = mDescriptorInfos[LT_DEFERRED_LIGHTING].pSet;
@@ -551,7 +743,7 @@ namespace FakeReal
 			writeNormal.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
 			writeNormal.descriptorCount = 1;
 			writeNormal.pImageInfo = &texNormal;
-			// Binding 2 : Albedo texture target
+			// Binding 2
 			VkWriteDescriptorSet& writeAlbedo = writeDescSets[2];
 			writeAlbedo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			writeAlbedo.dstSet = mDescriptorInfos[LT_DEFERRED_LIGHTING].pSet;
@@ -559,7 +751,7 @@ namespace FakeReal
 			writeAlbedo.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
 			writeAlbedo.descriptorCount = 1;
 			writeAlbedo.pImageInfo = &texAlbedo;
-			// Binding 3 : Depth texture target
+			// Binding 3
 			VkWriteDescriptorSet& writeDepth = writeDescSets[3];
 			writeDepth.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			writeDepth.dstSet = mDescriptorInfos[LT_DEFERRED_LIGHTING].pSet;
@@ -568,6 +760,35 @@ namespace FakeReal
 			writeDepth.descriptorCount = 1;
 			writeDepth.pImageInfo = &texDepth;
 			vkUpdateDescriptorSets(m_pVulkanRhi->m_pDevice, writeDescSets.size(), writeDescSets.data(), 0, nullptr);
+		}
+	}
+
+	void MainCameraPass_Vulkan::CreateSwapchainFrameBuffer()
+	{
+		VkImageView attachments[5] = {
+			mFrameBuffer.mAttachments[0].pImageView,
+			mFrameBuffer.mAttachments[1].pImageView,
+			mFrameBuffer.mAttachments[2].pImageView,
+			m_pVulkanRhi->m_pDepthImageView,
+			m_pVulkanRhi->mSwapchainImageViews[0]
+		};
+		VkFramebufferCreateInfo createInfo = {};
+		createInfo.sType			= VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		createInfo.attachmentCount	= 5;
+		createInfo.pAttachments		= attachments;
+		createInfo.width			= m_pVulkanRhi->mSwapchainImageExtent.width;
+		createInfo.height			= m_pVulkanRhi->mSwapchainImageExtent.height;
+		createInfo.renderPass		= mFrameBuffer.pRenderPass;
+		createInfo.layers			= 1;
+		mSwapchainFramebuffers.resize(m_pVulkanRhi->mSwapchainImageViews.size());
+		for (size_t i = 0; i < mSwapchainFramebuffers.size(); i++)
+		{
+			attachments[4] = m_pVulkanRhi->mSwapchainImageViews[i];
+			if (vkCreateFramebuffer(m_pVulkanRhi->m_pDevice, &createInfo, nullptr, &mSwapchainFramebuffers[i]) != VK_SUCCESS)
+			{
+				LOG_ERROR("Swapchain framebuffer create failed!");
+				throw std::runtime_error("Swapchain framebuffer create failed!");
+			}
 		}
 	}
 
@@ -650,6 +871,72 @@ namespace FakeReal
 		{
 			assert(0);
 		}
+	}
+
+	void MainCameraPass_Vulkan::CreateVertexBuffer()
+	{
+		VkDeviceSize size = sizeof(g_Vertices[0]) * g_Vertices.size();
+		VkBuffer pTempBuffer;
+		VkDeviceMemory pTempMemory;
+		VulkanUtils::CreateBuffer(
+			m_pVulkanRhi->m_pDevice, m_pVulkanRhi->m_pPhysicalDevice,
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT, size, pTempBuffer, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, pTempMemory);
+
+		void* pData;
+		vkMapMemory(m_pVulkanRhi->m_pDevice, pTempMemory, 0, size, 0, &pData);
+		memcpy(pData, g_Vertices.data(), size);
+		vkUnmapMemory(m_pVulkanRhi->m_pDevice, pTempMemory);
+
+		VulkanUtils::CreateBuffer(
+			m_pVulkanRhi->m_pDevice, m_pVulkanRhi->m_pPhysicalDevice, 
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, size, m_pVertexBuffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_pVertexBufferMemory);
+
+		VulkanUtils::CopyBuffer(m_pVulkanRhi, pTempBuffer, m_pVertexBuffer, size);
+
+		vkDestroyBuffer(m_pVulkanRhi->m_pDevice, pTempBuffer, nullptr);
+		vkFreeMemory(m_pVulkanRhi->m_pDevice, pTempMemory, nullptr);
+	}
+
+	void MainCameraPass_Vulkan::CreateIndexBuffer()
+	{
+		VkDeviceSize size = sizeof(g_Indices[0]) * g_Indices.size();
+		VkBuffer pTempBuffer;
+		VkDeviceMemory pTempMemory;
+		VulkanUtils::CreateBuffer(
+			m_pVulkanRhi->m_pDevice, m_pVulkanRhi->m_pPhysicalDevice, 
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT, size, pTempBuffer, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, pTempMemory);
+
+		void* pData;
+		vkMapMemory(m_pVulkanRhi->m_pDevice, pTempMemory, 0, size, 0, &pData);
+		memcpy(pData, g_Indices.data(), size);
+		vkUnmapMemory(m_pVulkanRhi->m_pDevice, pTempMemory);
+
+		VulkanUtils::CreateBuffer(
+			m_pVulkanRhi->m_pDevice, m_pVulkanRhi->m_pPhysicalDevice, 
+			VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, size, m_pIndexBuffer, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_pIndexBufferMemory);
+
+		VulkanUtils::CopyBuffer(m_pVulkanRhi, pTempBuffer, m_pIndexBuffer, size);
+
+		vkDestroyBuffer(m_pVulkanRhi->m_pDevice, pTempBuffer, nullptr);
+		vkFreeMemory(m_pVulkanRhi->m_pDevice, pTempMemory, nullptr);
+	}
+
+	void MainCameraPass_Vulkan::UpdateUniformBuffer()
+	{
+		static auto startTime = std::chrono::high_resolution_clock::now();
+		auto currTime = std::chrono::high_resolution_clock::now();
+		float time = std::chrono::duration<float, std::chrono::seconds::period>(currTime - startTime).count();
+
+		UniformBufferObj ubo = {};
+		ubo.model = glm::rotate(glm::mat4(1.f), glm::radians(10.f) * time, { 1.f, 1.f, 0.f });
+		ubo.view = glm::lookAt(glm::vec3(0.f, 0.f, 2.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+		ubo.proj = glm::perspective(glm::radians(45.f), (float)mFrameBuffer.width / mFrameBuffer.height, 0.1f, 1000.f);
+		//ubo.proj[1][1] *= -1;
+
+		void* pData;
+		vkMapMemory(m_pVulkanRhi->m_pDevice, mUniformBuffer.pMem, 0, sizeof(ubo), 0, &pData);
+		memcpy(pData, &ubo, sizeof(ubo));
+		vkUnmapMemory(m_pVulkanRhi->m_pDevice, mUniformBuffer.pMem);
 	}
 
 }

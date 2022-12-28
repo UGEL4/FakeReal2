@@ -13,8 +13,9 @@ namespace FakeReal
 		eMainCameraPassGBufferA = 0,
 		eMainCameraPassGBufferB,
 		eMainCameraPassGBufferC,
-		eMainCameraPassDepth,
-		eMainCameraPassSwapchainImage,
+		eMainCameraPassCustomCount = 3,
+		eMainCameraPassDepth = 3,
+		eMainCameraPassSwapchainImage = 4,
 		eMainCameraPassCount
 	};
 
@@ -22,9 +23,10 @@ namespace FakeReal
 	{
 	public:
 		RenderPass_Vulkan() = default;
-		virtual ~RenderPass_Vulkan() = 0;
+		virtual ~RenderPass_Vulkan();
 
 		virtual void Initialize(RenderPassCommonInfo* pInfo) override;
+		virtual void Clear() override;
 
 	public:
 		struct Attachment
@@ -38,7 +40,6 @@ namespace FakeReal
 		{
 			uint32_t				width;
 			uint32_t				height;
-			VkFramebuffer			pFrameBuffer;
 			VkRenderPass			pRenderPass;
 			std::vector<Attachment> mAttachments;
 		};
@@ -58,5 +59,6 @@ namespace FakeReal
 		SharedPtr<VulkanRHI> m_pVulkanRhi;
 		std::vector<Descriptor> mDescriptorInfos;
 		std::vector<RenderPipeline> mPipelines;
+		std::vector<VkFramebuffer> mSwapchainFramebuffers;
 	};
 }

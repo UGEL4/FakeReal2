@@ -1,5 +1,6 @@
 #pragma once
 #include "RenderPass_Vulkan.h"
+#include <glm/glm.hpp>
 
 namespace FakeReal
 {
@@ -24,6 +25,9 @@ namespace FakeReal
 		~MainCameraPass_Vulkan();
 
 		virtual void Initialize(RenderPassCommonInfo* pInfo) override final;
+		virtual void Clear() override final;
+		virtual void PreparePassData() override final;
+		virtual void PassUpdateAfterRecreateSwapchain() override final;
 
 	public:
 		struct UniformBuffer
@@ -33,9 +37,9 @@ namespace FakeReal
 		};
 		struct UniformBufferObj
 		{
-			/*glm::mat4 model;
+			glm::mat4 model;
 			glm::mat4 view;
-			glm::mat4 proj;*/
+			glm::mat4 proj;
 		};
 		void Draw();
 
@@ -45,16 +49,24 @@ namespace FakeReal
 		void CreateDescriptorSetLayout();
 		void CreateRenderPipeline();
 		void CreateDescriptorSets();
+		void SetupDescriptorSets();
 		void CreateSwapchainFrameBuffer();
 
 		void CreateTextureImage();
 		void CreateTextureImageView();
 		void CreateTextureSampler();
+		void CreateVertexBuffer();
+		void CreateIndexBuffer();
+		void UpdateUniformBuffer();
 	private:
 		UniformBuffer mUniformBuffer;
 		VkImage m_pTextureImage;
 		VkDeviceMemory m_pTextureImageMemory;
 		VkImageView m_pTextureImageView;
 		VkSampler m_pTextureSampler;
+		VkBuffer m_pVertexBuffer;
+		VkDeviceMemory m_pVertexBufferMemory;
+		VkBuffer m_pIndexBuffer;
+		VkDeviceMemory m_pIndexBufferMemory;
 	};
 }

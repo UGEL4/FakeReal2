@@ -18,18 +18,16 @@ namespace FakeReal
 			float x, y;
 		};
 
+		VertexPosition pos;
+		VertexNormal normal;
+		VertexTexcoord uv;
+
 		static std::vector<VkVertexInputBindingDescription> GetVulkanVertexBindingDescription()
 		{
-			std::vector<VkVertexInputBindingDescription> bindingDesc(3);
+			std::vector<VkVertexInputBindingDescription> bindingDesc(1);
 			bindingDesc[0].binding		= 0;
-			bindingDesc[0].stride		= sizeof(VertexPosition);
+			bindingDesc[0].stride		= sizeof(MeshVertex);
 			bindingDesc[0].inputRate	= VK_VERTEX_INPUT_RATE_VERTEX;
-			bindingDesc[1].binding		= 1;
-			bindingDesc[1].stride		= sizeof(VertexNormal);
-			bindingDesc[1].inputRate	= VK_VERTEX_INPUT_RATE_VERTEX;
-			bindingDesc[2].binding		= 2;
-			bindingDesc[2].stride		= sizeof(VertexTexcoord);
-			bindingDesc[2].inputRate	= VK_VERTEX_INPUT_RATE_VERTEX;
 
 			return bindingDesc;
 		}

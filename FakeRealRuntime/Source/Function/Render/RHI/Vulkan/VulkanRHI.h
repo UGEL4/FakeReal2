@@ -4,6 +4,7 @@
 #include <vulkan/vk_mem_alloc.h>
 #include <GLFW/glfw3.h>
 #include <vector>
+#include <functional>
 
 namespace FakeReal
 {
@@ -35,6 +36,14 @@ namespace FakeReal
 		virtual void Initialize(const RHIInitInfo& info) override final;
 		virtual void Clear() override final;
 
+		virtual void PrepareContext() override;
+
+		void WaitForFences();
+		void ResetCommandPool();
+		bool PrepareFrame(std::function<void()> passUpdateAfterRecreateSwapchain);
+		void SubmitRendering(std::function<void()> passUpdateAfterRecreateSwapchain);
+		void WindowSizeCallback(int w, int h);
+		void FramebufferResize(bool resize) { mFramebufferResized = resize; }
 	private:
 		void CreateVKInstance();
 		void SetupDebugCallback();
@@ -56,6 +65,7 @@ namespace FakeReal
 		void CreateSyncPrimitives();
 		void CreateDepthResource();
 		void CreateAssetAllocator();
+		void RecreateSwapchain();
 
 	public:
 		VkCommandBuffer BeginSingleTimeCommands();
@@ -105,6 +115,9 @@ namespace FakeReal
 		static const uint8_t S_MAX_FRAME_IN_FLIGHT{ 3 };
 		VkCommandPool m_pCommandPools[S_MAX_FRAME_IN_FLIGHT];
 		VkCommandBuffer m_pCommandBuffers[S_MAX_FRAME_IN_FLIGHT];
+		VkCommandBuffer m_pCurCommandBuffer;
+		int mCurrFrame{ 0 };
+		uint32_t mCurSwapchainImageIndex{ 0 };
 
 		VkDescriptorPool m_pDescriptorPool;
 
@@ -113,6 +126,8 @@ namespace FakeReal
 		VkFence mInFlightFences[S_MAX_FRAME_IN_FLIGHT];
 
 		VmaAllocator m_pAssetsAllocator;
+
+		bool mFramebufferResized{ false };
 
 	private:
 		const std::vector<const char*> m_validationLayers = { "VK_LAYER_KHRONOS_validation" };

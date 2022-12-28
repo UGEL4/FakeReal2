@@ -4,6 +4,7 @@
 namespace FakeReal
 {
 	class RHI;
+	class RenderPipeline;
 	class RenderSystem
 	{
 	public:
@@ -16,5 +17,6 @@ namespace FakeReal
 
 	private:
 		SharedPtr<RHI> m_pRhi;
+		SharedPtr<RenderPipeline> m_pPipeline;
 	};
 }

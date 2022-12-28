@@ -20,6 +20,9 @@ namespace FakeReal
 		RenderPass() = default;
 		virtual ~RenderPass() = 0;
 		virtual void Initialize(RenderPassCommonInfo* pInfo) = 0;
+		virtual void Clear() = 0;
+		virtual void PreparePassData() = 0;
+		virtual void PassUpdateAfterRecreateSwapchain() = 0;
 		void SetCommonInfo(RenderPassCommonInfo info);
 
 	public:
