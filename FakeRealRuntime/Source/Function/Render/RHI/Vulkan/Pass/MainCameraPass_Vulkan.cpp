@@ -5,6 +5,7 @@
 #include "Function/Render/RenderMesh.h"
 #include "Core/Base/Macro.h"
 #include "Function/Render/stb_image.h"
+#include "Function/Render/Vulkan/VulkanRenderResource.h"
 #include <array>
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -142,33 +143,34 @@ namespace FakeReal
 		CreateSwapchainFrameBuffer();
 	}
 
-	void MainCameraPass_Vulkan::Draw()
+	void MainCameraPass_Vulkan::Draw(SharedPtr<RenderResource> renderResource)
 	{
 		UpdateUniformBuffer();
 
+		SharedPtr<VulkanRenderResource> vulkanRenderResource = std::static_pointer_cast<VulkanRenderResource>(renderResource);
 		{
 
 			VkRenderPassBeginInfo beginInfo = {};
-			beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			beginInfo.renderPass = mFrameBuffer.pRenderPass;
-			beginInfo.framebuffer = mSwapchainFramebuffers[m_pVulkanRhi->mCurSwapchainImageIndex];
-			VkRect2D renderArea = {};
-			renderArea.extent = m_pVulkanRhi->mSwapchainImageExtent;
-			renderArea.offset = { 0, 0 };
-			beginInfo.renderArea = renderArea;
+			beginInfo.sType			= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			beginInfo.renderPass	= mFrameBuffer.pRenderPass;
+			beginInfo.framebuffer	= mSwapchainFramebuffers[m_pVulkanRhi->mCurSwapchainImageIndex];
+			VkRect2D renderArea		= {};
+			renderArea.extent		= m_pVulkanRhi->mSwapchainImageExtent;
+			renderArea.offset		= { 0, 0 };
+			beginInfo.renderArea	= renderArea;
 			std::array<VkClearValue, 5> clearVals = {};
 			clearVals[0].color = { 0.f, 0.f, 0.f, 0.f };
 			clearVals[1].color = { 0.f, 0.f, 0.f, 0.f };
 			clearVals[2].color = { 0.f, 0.f, 0.f, 0.f };
-			clearVals[3].depthStencil = { 1.f, 0 };
-			clearVals[4].color = { 0.f, 0.f, 0.f, 0.f };
-			beginInfo.clearValueCount = 5;
-			beginInfo.pClearValues = clearVals.data();
+			clearVals[3].depthStencil	= { 1.f, 0 };
+			clearVals[4].color			= { 0.f, 0.f, 0.f, 0.f };
+			beginInfo.clearValueCount	= 5;
+			beginInfo.pClearValues		= clearVals.data();
 
 			VkViewport viewport{};
 			viewport.x = 0.0f;
 			viewport.y = 0.0f;
-			viewport.width = (float)m_pVulkanRhi->mSwapchainImageExtent.width;
+			viewport.width	= (float)m_pVulkanRhi->mSwapchainImageExtent.width;
 			viewport.height = (float)m_pVulkanRhi->mSwapchainImageExtent.height;
 			viewport.minDepth = 0.0f;
 			viewport.maxDepth = 1.0f;
@@ -176,8 +178,6 @@ namespace FakeReal
 			VkRect2D scissor{};
 			scissor.offset = { 0, 0 };
 			scissor.extent = m_pVulkanRhi->mSwapchainImageExtent;
-
-			
 
 			vkCmdBeginRenderPass(m_pVulkanRhi->m_pCommandBuffers[m_pVulkanRhi->mCurrFrame], &beginInfo, VK_SUBPASS_CONTENTS_INLINE); //VK_SUBPASS_CONTENTS_INLINE : 所有要执行的指令都在主要指令缓冲中，没有辅助指令缓冲需要执行
 
@@ -187,6 +187,13 @@ namespace FakeReal
 
 			{
 				vkCmdBindPipeline(m_pVulkanRhi->m_pCommandBuffers[m_pVulkanRhi->mCurrFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[RPT_MESH_GBUFFER].pPipeline);
+
+				//test begin
+				VulkanPBRMaterial& material = vulkanRenderResource->mVulkanPBRMaterials[1];
+				vkCmdBindDescriptorSets(m_pVulkanRhi->m_pCurCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[RPT_MESH_GBUFFER].pLayout, 1, 1,
+					&material.m_pSet, 0, nullptr);
+				VulkanMesh& mesh = vulkanRenderResource->mVulkanMeshes[1];
+				//test end
 
 				VkDeviceSize offset = 0;
 				vkCmdBindVertexBuffers(m_pVulkanRhi->m_pCommandBuffers[m_pVulkanRhi->mCurrFrame], 0, 1, &m_pVertexBuffer, &offset);
@@ -363,7 +370,7 @@ namespace FakeReal
 		mDescriptorInfos.resize(LT_COUNT);
 		{
 			//per mesh
-			std::array<VkDescriptorSetLayoutBinding, 2> writeBinding = {};
+			std::array<VkDescriptorSetLayoutBinding, 1> writeBinding = {};
 			//vertex shader uniform buffer
 			writeBinding[0].binding			= 0;
 			writeBinding[0].descriptorType	= VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -371,10 +378,10 @@ namespace FakeReal
 			writeBinding[0].stageFlags		= VK_SHADER_STAGE_VERTEX_BIT;
 
 			//texture sampler
-			writeBinding[1].binding			= 1;
+			/*writeBinding[1].binding			= 1;
 			writeBinding[1].descriptorType	= VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			writeBinding[1].descriptorCount = 1;
-			writeBinding[1].stageFlags		= VK_SHADER_STAGE_FRAGMENT_BIT;
+			writeBinding[1].stageFlags		= VK_SHADER_STAGE_FRAGMENT_BIT;*/
 
 			VkDescriptorSetLayoutCreateInfo writeLayoutInfo = {};
 			writeLayoutInfo.sType			= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -420,6 +427,26 @@ namespace FakeReal
 			{
 				LOG_ERROR("vkCreateDescriptorSetLayout failed! Deferred lighting!");
 				throw std::runtime_error("vkCreateDescriptorSetLayout failed! Deferred lighting!");
+			}
+		}
+		{
+			//mesh per material
+			std::array<VkDescriptorSetLayoutBinding, 1> binding = {};
+			//texture sampler
+			binding[0].binding			= 1;
+			binding[0].descriptorType	= VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			binding[0].descriptorCount	= 1;
+			binding[0].stageFlags		= VK_SHADER_STAGE_FRAGMENT_BIT;
+
+			VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+			layoutInfo.sType			= VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			layoutInfo.bindingCount		= (uint32_t)binding.size();
+			layoutInfo.pBindings		= binding.data();
+
+			if (vkCreateDescriptorSetLayout(m_pVulkanRhi->m_pDevice, &layoutInfo, nullptr, &mDescriptorInfos[LT_MESH_PER_MATERIAL].pLayout) != VK_SUCCESS)
+			{
+				LOG_ERROR("vkCreateDescriptorSetLayout failed! Mesh per material!");
+				throw std::runtime_error("vkCreateDescriptorSetLayout failed! Mesh per material!");
 			}
 		}
 	}
@@ -689,7 +716,7 @@ namespace FakeReal
 			writeSet.descriptorCount = 1;
 			writeSet.pBufferInfo = &modelBufferinfo;
 
-			VkDescriptorImageInfo imageInfo = {};
+			/*VkDescriptorImageInfo imageInfo = {};
 			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			imageInfo.imageView = m_pTextureImageView;
 			imageInfo.sampler = m_pTextureSampler;
@@ -700,10 +727,10 @@ namespace FakeReal
 			imageWriteSet.dstArrayElement = 0;
 			imageWriteSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			imageWriteSet.descriptorCount = 1;
-			imageWriteSet.pImageInfo = &imageInfo;
+			imageWriteSet.pImageInfo = &imageInfo;*/
 
-			VkWriteDescriptorSet writes[] = { writeSet, imageWriteSet };
-			vkUpdateDescriptorSets(m_pVulkanRhi->m_pDevice, 2, writes, 0, nullptr);
+			std::array<VkWriteDescriptorSet, 1> writes = { writeSet };
+			vkUpdateDescriptorSets(m_pVulkanRhi->m_pDevice, (uint32_t)writes.size(), writes.data(), 0, nullptr);
 		}
 
 		{
@@ -826,10 +853,10 @@ namespace FakeReal
 			这里我们创建的图像对象使用VK_IMAGE_LAYOUT_UNDEFINED布局，所以转换图像布局时应该将VK_IMAGE_LAYOUT_UNDEFINED指定为旧布局.
 			要注意的是我们之所以这样设置是因为我们不需要读取复制操作之前的图像内容。
 		*/
-		VulkanUtils::TransitionImageLayout(m_pVulkanRhi, m_pTextureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1);
+		VulkanUtils::TransitionImageLayout(m_pVulkanRhi, m_pTextureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, VK_IMAGE_ASPECT_COLOR_BIT);
 		VulkanUtils::CopyBufferToImage(m_pVulkanRhi, pTempBuffer, m_pTextureImage, width, height);
 		//为了能够在着色器中采样纹理图像数据，我们还要进行1次图像布局变换
-		VulkanUtils::TransitionImageLayout(m_pVulkanRhi, m_pTextureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1);
+		VulkanUtils::TransitionImageLayout(m_pVulkanRhi, m_pTextureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, VK_IMAGE_ASPECT_COLOR_BIT);
 
 		vkDestroyBuffer(m_pVulkanRhi->m_pDevice, pTempBuffer, nullptr);
 		vkFreeMemory(m_pVulkanRhi->m_pDevice, pTempMemory, nullptr);

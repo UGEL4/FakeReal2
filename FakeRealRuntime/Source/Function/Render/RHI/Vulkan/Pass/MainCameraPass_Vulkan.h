@@ -11,6 +11,7 @@ namespace FakeReal
 		{
 			LT_PER_MESH,
 			LT_DEFERRED_LIGHTING,
+			LT_MESH_PER_MATERIAL,
 			LT_COUNT,
 		};
 
@@ -41,7 +42,7 @@ namespace FakeReal
 			glm::mat4 view;
 			glm::mat4 proj;
 		};
-		void Draw();
+		void Draw(SharedPtr<class RenderResource> renderResource);
 
 	private:
 		void SetupAttachements();

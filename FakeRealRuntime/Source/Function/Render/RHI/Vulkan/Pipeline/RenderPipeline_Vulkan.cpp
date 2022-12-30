@@ -2,6 +2,7 @@
 #include "RenderPipeline_Vulkan.h"
 #include "Function/Render/RHI/Vulkan/Pass/MainCameraPass_Vulkan.h"
 #include "Function/Render/RHI/Vulkan/VulkanRHI.h"
+#include "Function/Render/Vulkan/VulkanRenderResource.h"
 #include <functional>
 
 namespace FakeReal
@@ -31,9 +32,9 @@ namespace FakeReal
 		m_pMainCameraPass.reset();
 	}
 
-	void RenderPipeline_Vulkan::DeferredRender()
+	void RenderPipeline_Vulkan::DeferredRender(SharedPtr<RHI> rhi, SharedPtr<RenderResource> renderResource)
 	{
-		VulkanRHI* pVulkanRhi = static_cast<VulkanRHI*>(m_pRhi.get());
+		VulkanRHI* pVulkanRhi = static_cast<VulkanRHI*>(rhi.get());
 
 		pVulkanRhi->WaitForFences();
 

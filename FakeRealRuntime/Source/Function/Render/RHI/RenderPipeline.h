@@ -4,6 +4,7 @@ namespace FakeReal
 {
 	class RHI;
 	class RenderPass;
+	class RenderResource;
 	class RenderPipeline
 	{
 	public:
@@ -13,9 +14,11 @@ namespace FakeReal
 		virtual void Initialize() = 0;
 		virtual void Clear() = 0;
 		virtual void PreparePassData();
-		virtual void DeferredRender() = 0;
+		virtual void DeferredRender(SharedPtr<RHI> rhi, SharedPtr<RenderResource> renderResource) = 0;
 
 		void SetRHI(SharedPtr<RHI> rhi);
+
+		SharedPtr<RenderPass> GetMainCameraPass() { return m_pMainCameraPass; }
 	protected:
 		SharedPtr<RHI> m_pRhi;
 		SharedPtr<RenderPass> m_pMainCameraPass;

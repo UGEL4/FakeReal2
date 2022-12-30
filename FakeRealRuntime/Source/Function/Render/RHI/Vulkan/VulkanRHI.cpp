@@ -574,18 +574,18 @@ namespace FakeReal
 
 	void VulkanRHI::CreateAssetAllocator()
 	{
-		VmaVulkanFunctions vulkanFunctions = {};
-		vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
-		vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
+		VmaVulkanFunctions vulkanFunctions		= {};
+		vulkanFunctions.vkGetInstanceProcAddr	= &vkGetInstanceProcAddr;
+		vulkanFunctions.vkGetDeviceProcAddr		= &vkGetDeviceProcAddr;
 
 		VmaAllocatorCreateInfo allocatorCreateInfo = {};
-		allocatorCreateInfo.vulkanApiVersion = mVulkanApiVersion;
-		allocatorCreateInfo.physicalDevice = m_pPhysicalDevice;
-		allocatorCreateInfo.device = m_pDevice;
-		allocatorCreateInfo.instance = m_pVKInstance;
-		allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
+		allocatorCreateInfo.vulkanApiVersion	= mVulkanApiVersion;
+		allocatorCreateInfo.physicalDevice		= m_pPhysicalDevice;
+		allocatorCreateInfo.device				= m_pDevice;
+		allocatorCreateInfo.instance			= m_pVKInstance;
+		allocatorCreateInfo.pVulkanFunctions	= &vulkanFunctions;
 
-		//vmaCreateAllocator(&allocatorCreateInfo, &m_pAssetsAllocator);
+		vmaCreateAllocator(&allocatorCreateInfo, &m_pAssetsAllocator);
 	}
 
 	void VulkanRHI::RecreateSwapchain()

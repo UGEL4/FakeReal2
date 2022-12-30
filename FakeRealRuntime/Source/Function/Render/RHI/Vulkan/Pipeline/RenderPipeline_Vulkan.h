@@ -11,7 +11,7 @@ namespace FakeReal
 
 		virtual void Initialize() override final;
 		virtual void Clear() override final;
-		virtual void DeferredRender() override final;
+		virtual void DeferredRender(SharedPtr<RHI> rhi, SharedPtr<RenderResource> renderResource) override final;
 
 		void PassUpdateAfterRecreateSwapchain();
 	};

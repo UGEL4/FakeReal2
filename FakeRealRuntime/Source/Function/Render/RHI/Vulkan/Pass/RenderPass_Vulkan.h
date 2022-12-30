@@ -54,6 +54,7 @@ namespace FakeReal
 			VkPipelineLayout	pLayout;
 		};
 
+		friend class RenderSystem;
 	protected:
 		FrameBuffer mFrameBuffer;
 		SharedPtr<VulkanRHI> m_pVulkanRhi;

@@ -84,7 +84,12 @@ namespace FakeReal
 		return pImageView;
 	}
 
-	void VulkanUtils::TransitionImageLayout(SharedPtr<VulkanRHI> pRhi, VkImage pImage, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels)
+	void VulkanUtils::TransitionImageLayout(
+		SharedPtr<VulkanRHI> pRhi, VkImage pImage, 
+		VkFormat format, VkImageLayout oldLayout, 
+		VkImageLayout newLayout, uint32_t mipLevels, 
+		VkImageAspectFlags aspectFlags
+	)
 	{
 		VkCommandBuffer pCommandBuffer = pRhi->BeginSingleTimeCommands();
 		{
@@ -95,7 +100,7 @@ namespace FakeReal
 			barrier.newLayout						= newLayout;
 			barrier.srcQueueFamilyIndex				= VK_QUEUE_FAMILY_IGNORED;//不需要传输队列所有权，必须设置为VK_QUEUE_FAMILY_IGNORED
 			barrier.dstQueueFamilyIndex				= VK_QUEUE_FAMILY_IGNORED;//不需要传输队列所有权，必须设置为VK_QUEUE_FAMILY_IGNORED
-			barrier.subresourceRange.aspectMask		= VK_IMAGE_ASPECT_COLOR_BIT;
+			barrier.subresourceRange.aspectMask		= aspectFlags;
 			barrier.subresourceRange.levelCount		= mipLevels;
 			barrier.subresourceRange.baseMipLevel	= 0;
 			barrier.subresourceRange.layerCount		= 1;
@@ -265,6 +270,133 @@ namespace FakeReal
 			vkCmdCopyBufferToImage(pCommanndBuffer, pBuffer, pImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &regions);
 		}
 		pRhi->EndSingleTimeCommands(pCommanndBuffer);
+	}
+
+	void VulkanUtils::CreateGlobalImage(SharedPtr<VulkanRHI> pRhi, VkImage& pImage, VkImageView& pImageView, VmaAllocation& pAllocation, uint32_t width, uint32_t height, FR_PIXEL_FORMAT format, const void* pPixels)
+	{
+		if (!pPixels)
+		{
+			return;
+		}
+		
+		VkDeviceSize textureByteSize;
+		VkFormat textureFormat;
+		switch (format)
+		{
+		case FR_PIXEL_FORMAT::FR_PIXEL_FORMAT_R8G8B8_UNORM:
+		{
+			textureByteSize = width * height * 3;
+			textureFormat	= VK_FORMAT_R8G8B8_UNORM;
+		}
+		break;
+		case FR_PIXEL_FORMAT::FR_PIXEL_FORMAT_R8G8B8_SRGB:
+		{
+			textureByteSize = width * height * 3;
+			textureFormat	= VK_FORMAT_R8G8B8_SRGB;
+		}
+		break;
+		case FR_PIXEL_FORMAT::FR_PIXEL_FORMAT_R8G8B8A8_UNORM:
+		{
+			textureByteSize = width * height * 4;
+			textureFormat	= VK_FORMAT_R8G8B8A8_UNORM;
+		}
+		break;
+		case FR_PIXEL_FORMAT::FR_PIXEL_FORMAT_R8G8B8A8_SRGB:
+		{
+			textureByteSize = width * height * 4;
+			textureFormat	= VK_FORMAT_R8G8B8A8_SRGB;
+		}
+		break;
+		}
+
+		VkBuffer pTempBuffer;
+		VkDeviceMemory pTempMemory;
+		VulkanUtils::CreateBuffer(pRhi->m_pDevice, pRhi->m_pPhysicalDevice,
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			textureByteSize, pTempBuffer,
+			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			pTempMemory
+		);
+		void* pData;
+		vkMapMemory(pRhi->m_pDevice, pTempMemory, 0, textureByteSize, 0, &pData);
+		memcpy(pData, pPixels, textureByteSize);
+		vkUnmapMemory(pRhi->m_pDevice, pTempMemory);
+
+		VkImageCreateInfo createInfo = {};
+		createInfo.sType			= VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		createInfo.imageType		= VK_IMAGE_TYPE_2D;
+		createInfo.extent.width		= width;
+		createInfo.extent.height	= height;
+		createInfo.extent.depth		= 1;
+		createInfo.mipLevels		= 1;
+		createInfo.arrayLayers		= 1;
+		createInfo.format			= textureFormat;
+		createInfo.tiling			= VK_IMAGE_TILING_OPTIMAL;
+		createInfo.initialLayout	= VK_IMAGE_LAYOUT_UNDEFINED;
+		createInfo.usage			= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		createInfo.sharingMode		= VK_SHARING_MODE_EXCLUSIVE;
+		createInfo.samples			= VK_SAMPLE_COUNT_1_BIT;
+
+		VmaAllocationCreateInfo allocInfo = {};
+		allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+		vmaCreateImage(
+			pRhi->m_pAssetsAllocator,
+			&createInfo,
+			&allocInfo,
+			&pImage,
+			&pAllocation,
+			nullptr
+		);
+		//变换布局
+		/*
+			这里我们创建的图像对象使用VK_IMAGE_LAYOUT_UNDEFINED布局，所以转换图像布局时应该将VK_IMAGE_LAYOUT_UNDEFINED指定为旧布局.
+			要注意的是我们之所以这样设置是因为我们不需要读取复制操作之前的图像内容。
+		*/
+		TransitionImageLayout(
+			pRhi, pImage, 
+			textureFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, VK_IMAGE_ASPECT_COLOR_BIT);
+		CopyBufferToImage(pRhi, pTempBuffer, pImage, width, height);
+		TransitionImageLayout(pRhi, pImage, textureFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, VK_IMAGE_ASPECT_COLOR_BIT);
+
+		pImageView = CreateImageView(pRhi->m_pDevice, pImage, textureFormat, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, 1, 1);
+
+		vkDestroyBuffer(pRhi->m_pDevice, pTempBuffer, nullptr);
+		vkFreeMemory(pRhi->m_pDevice, pTempMemory, nullptr);
+	}
+
+	VkSampler VulkanUtils::GetOrCreateMipmapSampler(SharedPtr<VulkanRHI> pRhi, uint32_t width, uint32_t height)
+	{
+		{
+			VkPhysicalDeviceProperties props;
+			vkGetPhysicalDeviceProperties(pRhi->m_pPhysicalDevice, &props);
+
+			VkSamplerCreateInfo info		= {};
+			info.sType						= VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+			info.minFilter					= VK_FILTER_LINEAR;
+			info.magFilter					= VK_FILTER_LINEAR;
+			info.addressModeU				= VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			info.addressModeV				= VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			info.addressModeW				= VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			info.anisotropyEnable			= VK_TRUE;
+			info.maxAnisotropy				= props.limits.maxSamplerAnisotropy;
+			info.borderColor				= VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+			info.unnormalizedCoordinates	= VK_FALSE;
+			info.mipmapMode					= VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			info.mipLodBias					= 0.f;
+			info.minLod						= 0.f;
+			info.maxLod						= 0.f;
+			info.compareEnable				= VK_FALSE;
+			info.compareOp					= VK_COMPARE_OP_ALWAYS;
+
+			VkSampler pSampler;
+			if (vkCreateSampler(pRhi->m_pDevice, &info, nullptr, &pSampler) != VK_SUCCESS)
+			{
+				assert(0);
+			}
+
+			return pSampler;
+		}
 	}
 
 }
