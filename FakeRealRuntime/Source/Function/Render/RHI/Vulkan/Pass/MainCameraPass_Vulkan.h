@@ -53,21 +53,8 @@ namespace FakeReal
 		void SetupDescriptorSets();
 		void CreateSwapchainFrameBuffer();
 
-		void CreateTextureImage();
-		void CreateTextureImageView();
-		void CreateTextureSampler();
-		void CreateVertexBuffer();
-		void CreateIndexBuffer();
 		void UpdateUniformBuffer();
 	private:
 		UniformBuffer mUniformBuffer;
-		VkImage m_pTextureImage;
-		VkDeviceMemory m_pTextureImageMemory;
-		VkImageView m_pTextureImageView;
-		VkSampler m_pTextureSampler;
-		VkBuffer m_pVertexBuffer;
-		VkDeviceMemory m_pVertexBufferMemory;
-		VkBuffer m_pIndexBuffer;
-		VkDeviceMemory m_pIndexBufferMemory;
 	};
 }

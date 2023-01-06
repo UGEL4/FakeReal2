@@ -13,6 +13,7 @@ namespace FakeReal
 		virtual void UploadGameobjectRenderResource(SharedPtr<RHI> rhi, size_t asset_id, RenderMeshData& meshData) = 0;
 		virtual void UploadGameobjectRenderResource(SharedPtr<RHI> rhi, size_t asset_id, RenderMaterialData& materialData) = 0;
 		virtual void SetMaterialDescriptorSetLayout(void* pDescriptorSetLayout) = 0;
+		virtual void ReleaseAllResources() = 0;
 	public:
 		RenderMeshData LoadMeshData();
 		StaticMeshData LoadStaticMeshData();

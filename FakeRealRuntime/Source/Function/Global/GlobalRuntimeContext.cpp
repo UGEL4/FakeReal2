@@ -4,6 +4,7 @@
 #include "Function/Render/WindowSystem.h"
 #include "Function/Render/RenderSystem.h"
 #include "Function/Render/RHI.h"
+#include "Framework/World/WorldManager.h"
 
 namespace FakeReal
 {
@@ -23,6 +24,9 @@ namespace FakeReal
 	{
 		m_pLogSystem = MakeShared<LogSystem>();
 
+		m_pWorldManager = MakeShared<WorldManager>();
+		m_pWorldManager->Initialize();
+
 		m_pWindowSystem = MakeShared<WindowSystem>();
 		m_pWindowSystem->Initialize({ 1280, 720, false, "FR Engine" });
 
@@ -38,6 +42,9 @@ namespace FakeReal
 
 		m_pWindowSystem->Shutdown();
 		m_pWindowSystem.reset();
+
+		m_pWorldManager->Clear();
+		m_pWorldManager.reset();
 
 		m_pLogSystem.reset();
 	}

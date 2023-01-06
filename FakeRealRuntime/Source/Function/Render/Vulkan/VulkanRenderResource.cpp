@@ -2,6 +2,8 @@
 #include "VulkanRenderResource.h"
 #include "Function/Render/RHI/Vulkan/VulkanRHI.h"
 #include "Function/Render/RHI/Vulkan/VulkanUtils.h"
+#include "Function/Render/RenderSystem.h"
+#include "Function/Global/GlobalRuntimeContext.h"
 
 namespace FakeReal
 {
@@ -13,7 +15,23 @@ namespace FakeReal
 
 	VulkanRenderResource::~VulkanRenderResource()
 	{
+		
+	}
 
+	void VulkanRenderResource::ReleaseAllResources()
+	{
+		VulkanRHI* pVulkanRhi = static_cast<VulkanRHI*>(g_global_runtime_context.m_pRenderSystem->m_pRhi.get());
+		for (auto itr : mVulkanMeshes)
+		{
+			vmaDestroyBuffer(pVulkanRhi->m_pAssetsAllocator, itr.second.m_pVertexBuffer, itr.second.m_pVertexBufferAllocation);
+			vmaDestroyBuffer(pVulkanRhi->m_pAssetsAllocator, itr.second.m_pIndexBuffer, itr.second.m_pIndexBufferAllocation);
+		}
+
+		for (auto itr : mVulkanPBRMaterials)
+		{
+			vkDestroyImageView(pVulkanRhi->m_pDevice, itr.second.m_pBaseColorImageView, nullptr);
+			vmaDestroyImage(pVulkanRhi->m_pAssetsAllocator, itr.second.m_pBaseColorImage, itr.second.m_pBaseColorImageAllocation);
+		}
 	}
 
 	void VulkanRenderResource::UploadGameobjectRenderResource(SharedPtr<RHI> rhi, size_t asset_id, RenderMeshData& meshData)
@@ -51,13 +69,13 @@ namespace FakeReal
 			assert(result.second);
 
 			VulkanMesh& nowMesh = result.first->second;
-			nowMesh.mVertexCount = meshData.mStaticMeshData.mVertexBuffer->mSize / sizeof(MeshVertexDataDefinition);
+			nowMesh.mVertexCount = (uint32_t)meshData.mStaticMeshData.mVertexBuffer->mSize / sizeof(MeshVertexDataDefinition);
 			UpdateVertexBuffer(pVulkanRhi,
 				(VkDeviceSize)meshData.mStaticMeshData.mVertexBuffer->mSize,
 				(const MeshVertexDataDefinition*)meshData.mStaticMeshData.mVertexBuffer->m_pData,
 				nowMesh
 			);
-			nowMesh.mIndexCount = meshData.mStaticMeshData.mIndexBuffer->mSize / sizeof(uint16_t);
+			nowMesh.mIndexCount = (uint32_t)meshData.mStaticMeshData.mIndexBuffer->mSize / sizeof(uint16_t);
 			UpdateIndexBuffer(pVulkanRhi,
 				(VkDeviceSize)meshData.mStaticMeshData.mIndexBuffer->mSize,
 				meshData.mStaticMeshData.mIndexBuffer->m_pData,

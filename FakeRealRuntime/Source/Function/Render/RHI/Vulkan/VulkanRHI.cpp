@@ -50,6 +50,8 @@ namespace FakeReal
 
 	void VulkanRHI::Clear()
 	{
+		vmaDestroyAllocator(m_pAssetsAllocator);
+
 		vkDestroyImageView(m_pDevice, m_pDepthImageView, nullptr);
 		vkDestroyImage(m_pDevice, m_pDepthImage, nullptr);
 		vkFreeMemory(m_pDevice, m_pDepthImageMemory, nullptr);
@@ -84,6 +86,11 @@ namespace FakeReal
 	void VulkanRHI::PrepareContext()
 	{
 		m_pCurCommandBuffer = m_pCommandBuffers[mCurrFrame];
+	}
+
+	void VulkanRHI::DeviceWaitIdle()
+	{
+		assert(vkDeviceWaitIdle(m_pDevice) == VK_SUCCESS);
 	}
 
 	void VulkanRHI::WaitForFences()

@@ -46,7 +46,7 @@ namespace FakeReal
 			return;
 		}
 
-		((MainCameraPass_Vulkan*)m_pMainCameraPass.get())->Draw();
+		((MainCameraPass_Vulkan*)m_pMainCameraPass.get())->Draw(renderResource);
 
 		pVulkanRhi->SubmitRendering(std::bind(&RenderPipeline_Vulkan::PassUpdateAfterRecreateSwapchain, this));
 	}

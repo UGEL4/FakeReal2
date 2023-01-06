@@ -6,6 +6,8 @@
 #include <iostream>
 #include <utility>
 #include <chrono>
+#include <atomic>
+#include <limits>
 
 #include <string>
 #include <string_view>
@@ -16,5 +18,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <set>
+
+#include <glm/glm.hpp>
 
 #include "Core/Log/LogSystem.h"

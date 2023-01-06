@@ -35,8 +35,8 @@ namespace FakeReal
 
 		virtual void Initialize(const RHIInitInfo& info) override final;
 		virtual void Clear() override final;
-
-		virtual void PrepareContext() override;
+		virtual void PrepareContext() override final;
+		virtual void DeviceWaitIdle() override final;
 
 		void WaitForFences();
 		void ResetCommandPool();

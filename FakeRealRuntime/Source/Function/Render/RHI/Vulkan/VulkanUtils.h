@@ -5,6 +5,8 @@
 #include <vector>
 #include "Core/Base/BaseDefine.h"
 #include "Function/Render/RenderType.h"
+#include <vulkan/vk_mem_alloc.h>
+#include <unordered_map>
 namespace FakeReal
 {
 	class VulkanRHI;
@@ -31,7 +33,11 @@ namespace FakeReal
 			uint32_t width, uint32_t height, FR_PIXEL_FORMAT format, const void* pPixels);
 
 		static VkSampler GetOrCreateMipmapSampler(SharedPtr<VulkanRHI> pRhi, uint32_t width, uint32_t height);
+
+		static void ReleaseCacheResources(SharedPtr<VulkanRHI> pRhi);
 	private:
 		VulkanUtils() {}
+
+		static std::unordered_map<size_t, VkSampler> m_sMipmapSamplers;
 	};
 }

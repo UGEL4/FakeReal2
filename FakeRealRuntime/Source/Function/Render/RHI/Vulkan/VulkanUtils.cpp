@@ -7,6 +7,7 @@
 
 namespace FakeReal
 {
+	std::unordered_map<size_t, VkSampler> VulkanUtils::m_sMipmapSamplers;
 
 	void VulkanUtils::CreateImage(VkPhysicalDevice pPhysicalDevice, VkDevice pDevice,
 		uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevels, uint32_t arrayLayers,
@@ -367,7 +368,15 @@ namespace FakeReal
 
 	VkSampler VulkanUtils::GetOrCreateMipmapSampler(SharedPtr<VulkanRHI> pRhi, uint32_t width, uint32_t height)
 	{
+		size_t mipLevel = 1;
+		auto itr = m_sMipmapSamplers.find(mipLevel);
+		if (itr != m_sMipmapSamplers.end())
 		{
+			return itr->second;
+		}
+		else
+		{
+
 			VkPhysicalDeviceProperties props;
 			vkGetPhysicalDeviceProperties(pRhi->m_pPhysicalDevice, &props);
 
@@ -395,8 +404,19 @@ namespace FakeReal
 				assert(0);
 			}
 
+			m_sMipmapSamplers.insert(std::make_pair(mipLevel, pSampler));
+
 			return pSampler;
 		}
+	}
+
+	void VulkanUtils::ReleaseCacheResources(SharedPtr<VulkanRHI> pRhi)
+	{
+		for (auto itr : m_sMipmapSamplers)
+		{
+			vkDestroySampler(pRhi->m_pDevice, itr.second, nullptr);
+		}
+		m_sMipmapSamplers.clear();
 	}
 
 }

@@ -1,6 +1,7 @@
 #include "FRPch.h"
 #include "RenderSystem.h"
 #include "RHI/Vulkan/VulkanRHI.h"
+#include "RHI/Vulkan/VulkanUtils.h"
 #include "RHI/Vulkan/Pipeline/RenderPipeline_Vulkan.h"
 #include "Function/Render/Vulkan/VulkanRenderResource.h"
 #include "Function/Render/RHI/Vulkan/Pass/MainCameraPass_Vulkan.h"
@@ -30,11 +31,18 @@ namespace FakeReal
 
 		m_pRenderResource = MakeShared<VulkanRenderResource>();
 		VkDescriptorSetLayout pLayout = std::static_pointer_cast<RenderPass_Vulkan>(m_pPipeline->GetMainCameraPass())->mDescriptorInfos[MainCameraPass_Vulkan::LT_MESH_PER_MATERIAL].pLayout;
-		m_pRenderResource->SetMaterialDescriptorSetLayout(pLayout);
+		//m_pRenderResource->SetMaterialDescriptorSetLayout(pLayout);
+		std::static_pointer_cast<VulkanRenderResource>(m_pRenderResource)->m_pMaterialDescriptorSetLayout = &std::static_pointer_cast<RenderPass_Vulkan>(m_pPipeline->GetMainCameraPass())->mDescriptorInfos[MainCameraPass_Vulkan::LT_MESH_PER_MATERIAL].pLayout;
 	}
 
 	void RenderSystem::Shutdown()
 	{
+		m_pRhi->DeviceWaitIdle();
+
+		//must be first call
+		VulkanUtils::ReleaseCacheResources(std::static_pointer_cast<VulkanRHI>(m_pRhi));
+		m_pRenderResource->ReleaseAllResources();
+
 		m_pPipeline->Clear();
 		m_pPipeline.reset();
 

@@ -4,6 +4,7 @@
 #include "Core/Base/BaseDefine.h"
 #include "Function/Render/WindowSystem.h"
 #include "Function/Render/RenderSystem.h"
+#include "Framework/World/WorldManager.h"
 
 namespace FakeReal
 {
@@ -45,6 +46,7 @@ namespace FakeReal
 
 	void Engine::Tick(double deltaTime)
 	{
+		g_global_runtime_context.m_pWorldManager->Update(deltaTime);
 		CalculateFPS(deltaTime);
 
 		g_global_runtime_context.m_pRenderSystem->Tick();

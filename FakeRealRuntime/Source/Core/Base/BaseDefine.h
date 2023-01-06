@@ -12,7 +12,7 @@ constexpr SharedPtr<T> MakeShared(Args&& ... args)
 template <typename T>
 using UniquePtr = std::unique_ptr<T>;
 template <typename T, typename ... Args>
-constexpr SharedPtr<T> MakeUnique(Args&& ... args)
+constexpr UniquePtr<T> MakeUnique(Args&& ... args)
 {
 	return std::make_unique<T>(std::forward<Args>(args)...);
 }
@@ -22,3 +22,6 @@ SharedPtr<T> StaticPointCast(const SharedPtr<U>& sp) noexcept
 {
 	return std::static_pointer_cast<T>(sp);
 }
+
+template <typename T>
+using WeakPtr = std::weak_ptr<T>;

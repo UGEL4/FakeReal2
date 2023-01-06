@@ -6,6 +6,7 @@
 namespace FakeReal
 {
 	struct VulkanMesh;
+	class VulkanRHI;
 	class VulkanRenderResource : public RenderResource
 	{
 	public:
@@ -13,6 +14,7 @@ namespace FakeReal
 		~VulkanRenderResource();
 
 	public:
+		virtual void ReleaseAllResources() override final;
 		virtual void UploadGameobjectRenderResource(SharedPtr<RHI> rhi, size_t asset_id, RenderMeshData& meshData) override final;
 		virtual void UploadGameobjectRenderResource(SharedPtr<RHI> rhi, size_t asset_id, RenderMaterialData& materialData) override final;
 		virtual void SetMaterialDescriptorSetLayout(void* pDescriptorSetLayout) override final;

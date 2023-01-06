@@ -12,11 +12,14 @@ namespace FakeReal
 		RenderSystem();
 		~RenderSystem();
 
+		friend class VulkanRenderResource;
+
 		void Initialize(const struct RHIInitInfo& info);
 		void Shutdown();
 		void Tick();
 		void ProcessSwapData();
 
+		SharedPtr<RHI> GetRHI() { return m_pRhi; }
 	private:
 		SharedPtr<RHI> m_pRhi;
 		SharedPtr<RenderPipeline> m_pPipeline;

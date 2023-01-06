@@ -16,6 +16,7 @@ namespace FakeReal
 		virtual void Initialize(const RHIInitInfo& info) = 0;
 		virtual void Clear() = 0;
 		virtual void PrepareContext() = 0;
+		virtual void DeviceWaitIdle() = 0;
 
 	protected:
 		bool mEnableValidationLayers{ true };

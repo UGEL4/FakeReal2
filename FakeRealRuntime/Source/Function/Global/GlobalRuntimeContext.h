@@ -7,6 +7,7 @@ namespace FakeReal
 	class LogSystem;
 	class WindowSystem;
 	class RenderSystem;
+	class WorldManager;
 
 	class GlobalRuntimeContext
 	{
@@ -21,6 +22,7 @@ namespace FakeReal
 		SharedPtr<LogSystem> m_pLogSystem;
 		SharedPtr<WindowSystem> m_pWindowSystem;
 		SharedPtr<RenderSystem> m_pRenderSystem;
+		SharedPtr<WorldManager> m_pWorldManager;
 	};
 
 	extern GlobalRuntimeContext g_global_runtime_context;
