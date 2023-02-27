@@ -3,6 +3,7 @@
 #include "Function/Render/RHI/Vulkan/VulkanRHI.h"
 #include "Function/Render/RHI/Vulkan/VulkanUtils.h"
 #include "Function/Render/RenderSystem.h"
+#include "Function/Render/RenderEntity.h"
 #include "Function/Global/GlobalRuntimeContext.h"
 
 namespace FakeReal
@@ -34,14 +35,14 @@ namespace FakeReal
 		}
 	}
 
-	void VulkanRenderResource::UploadGameobjectRenderResource(SharedPtr<RHI> rhi, size_t asset_id, RenderMeshData& meshData)
+	void VulkanRenderResource::UploadGameobjectRenderResource(SharedPtr<RHI> rhi, const RenderEntity& renderEntity, RenderMeshData& meshData)
 	{
-		GetOrCreateVulkanMesh(rhi, asset_id, meshData);
+		GetOrCreateVulkanMesh(rhi, renderEntity, meshData);
 	}
 
-	void VulkanRenderResource::UploadGameobjectRenderResource(SharedPtr<RHI> rhi, size_t asset_id, RenderMaterialData& materialData)
+	void VulkanRenderResource::UploadGameobjectRenderResource(SharedPtr<RHI> rhi, const RenderEntity& renderEntity, RenderMaterialData& materialData)
 	{
-		GetOrCreateVulkanPBRMaterial(rhi, asset_id, materialData);
+		GetOrCreateVulkanPBRMaterial(rhi, renderEntity, materialData);
 	}
 
 	void VulkanRenderResource::SetMaterialDescriptorSetLayout(void* pDescriptorSetLayout)
@@ -53,9 +54,38 @@ namespace FakeReal
 		}
 	}
 
-	VulkanMesh& VulkanRenderResource::GetOrCreateVulkanMesh(SharedPtr<RHI> rhi, size_t asset_id, RenderMeshData& meshData)
+	VulkanMesh& VulkanRenderResource::GetEntityMesh(const RenderEntity& entity)
 	{
-		std::unordered_map<size_t, VulkanMesh>::iterator itr = mVulkanMeshes.find(asset_id);
+		size_t assetId = entity.mMeshAssetId;
+		auto itr = mVulkanMeshes.find(assetId);
+		if (itr != mVulkanMeshes.end())
+		{
+			return itr->second;
+		}
+		else
+		{
+			throw std::runtime_error("No vulkan mesh");
+		}
+	}
+
+	VulkanPBRMaterial& VulkanRenderResource::GetEntityMaterial(const RenderEntity& entity)
+	{
+		size_t assetId = entity.mMaterialAssetId;
+		auto itr = mVulkanPBRMaterials.find(assetId);
+		if (itr != mVulkanPBRMaterials.end())
+		{
+			return itr->second;
+		}
+		else
+		{
+			throw std::runtime_error("No vulkan material");
+		}
+	}
+
+	VulkanMesh& VulkanRenderResource::GetOrCreateVulkanMesh(SharedPtr<RHI> rhi, const RenderEntity& renderEntity, RenderMeshData& meshData)
+	{
+		size_t assetId = renderEntity.mMeshAssetId;
+		std::unordered_map<size_t, VulkanMesh>::iterator itr = mVulkanMeshes.find(assetId);
 		if (itr != mVulkanMeshes.end())
 		{
 			return itr->second;
@@ -65,7 +95,7 @@ namespace FakeReal
 			SharedPtr<VulkanRHI> pVulkanRhi = std::static_pointer_cast<VulkanRHI>(rhi);
 
 			VulkanMesh tmp;
-			auto result = mVulkanMeshes.insert(std::make_pair(asset_id, std::move(tmp)));
+			auto result = mVulkanMeshes.insert(std::make_pair(assetId, std::move(tmp)));
 			assert(result.second);
 
 			VulkanMesh& nowMesh = result.first->second;
@@ -75,7 +105,7 @@ namespace FakeReal
 				(const MeshVertexDataDefinition*)meshData.mStaticMeshData.mVertexBuffer->m_pData,
 				nowMesh
 			);
-			nowMesh.mIndexCount = (uint32_t)meshData.mStaticMeshData.mIndexBuffer->mSize / sizeof(uint16_t);
+			nowMesh.mIndexCount = (uint32_t)meshData.mStaticMeshData.mIndexBuffer->mSize / sizeof(uint32_t);
 			UpdateIndexBuffer(pVulkanRhi,
 				(VkDeviceSize)meshData.mStaticMeshData.mIndexBuffer->mSize,
 				meshData.mStaticMeshData.mIndexBuffer->m_pData,
@@ -157,9 +187,10 @@ namespace FakeReal
 		vkFreeMemory(rhi->m_pDevice, pTempMemory, nullptr);
 	}
 
-	FakeReal::VulkanPBRMaterial& VulkanRenderResource::GetOrCreateVulkanPBRMaterial(SharedPtr<RHI> rhi, size_t asset_id, RenderMaterialData& materialData)
+	FakeReal::VulkanPBRMaterial& VulkanRenderResource::GetOrCreateVulkanPBRMaterial(SharedPtr<RHI> rhi, const RenderEntity& renderEntity, RenderMaterialData& materialData)
 	{
-		auto itr = mVulkanPBRMaterials.find(asset_id);
+		size_t assetId = renderEntity.mMaterialAssetId;
+		auto itr = mVulkanPBRMaterials.find(assetId);
 		if (itr != mVulkanPBRMaterials.end())
 		{
 			return itr->second;
@@ -169,7 +200,7 @@ namespace FakeReal
 			SharedPtr<VulkanRHI> pVulkanRhi = std::static_pointer_cast<VulkanRHI>(rhi);
 
 			VulkanPBRMaterial tmp;
-			auto result = mVulkanPBRMaterials.insert(std::make_pair(asset_id, std::move(tmp)));
+			auto result = mVulkanPBRMaterials.insert(std::make_pair(assetId, std::move(tmp)));
 			assert(result.second);
 
 			float emptyImage[]						= { 0.5f, 0.5f, 0.5f, 0.5f };

@@ -2,16 +2,17 @@
 
 #include <string>
 #include "Core/Base/BaseDefine.h"
+#include "Core/Mate/Reflection.h"
 namespace FakeReal
 {
 	class GameObject;
-	class Component
+	class CLASS(Component, WhiteList)
 	{
 	public:
 		Component();
 		virtual ~Component();
 
-		virtual void Update(double deltaTime) = 0;
+		virtual void Update(double deltaTime);
 		virtual void PostLoadResource(WeakPtr<GameObject> parent) { m_pParent = parent; }
 
 		void SetTypeName(const std::string& name) { mTypeName = name; }
@@ -19,9 +20,13 @@ namespace FakeReal
 
 		bool IsDirty() const { return mIsDirty; }
 		void SetDirtyFlag(bool dirty) { mIsDirty = dirty; }
+
+		bool Save();
+
+		PROPERTY()
+		std::string mTypeName;
 	protected:
 		WeakPtr<GameObject> m_pParent;
-		std::string mTypeName;
 		bool mIsDirty{ false };
 	};
 }

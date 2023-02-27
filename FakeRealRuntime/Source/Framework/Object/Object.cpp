@@ -1,12 +1,17 @@
 #include "FRPch.h"
 #include "Framework/Object/Object.h"
-#include "Resource/Common/Object.h"
+#include "Framework/Component/Mesh/MeshComponent.h"
+#include "Resource/ResourceType/Common/ObjectRes.h"
 
 namespace FakeReal
 {
 
 	GameObject::~GameObject()
 	{
+		for (auto& comp : mComponents)
+		{
+			FR_REFLECTION_DELETE(comp);
+		}
 		mComponents.clear();
 	}
 
@@ -23,10 +28,19 @@ namespace FakeReal
 
 	bool GameObject::Load(const ObjectInstanceResource& instanceRes)
 	{
+		//test
+		ObjectInstanceResource no_const_instanceRes = instanceRes;
+		no_const_instanceRes.mName = "defauit_object";
+		no_const_instanceRes.mInstanceComponents.clear();
+		ReflectionPtr<MeshComponent> tmpComponent = FR_REFLECTION_NEW(MeshComponent);
+		tmpComponent->SetTypeName("default_cube_mesh");
+		no_const_instanceRes.mInstanceComponents.emplace_back(tmpComponent);
+		//test end
+
 		mComponents.clear();
-		mName = instanceRes.mName;
+		mName = no_const_instanceRes.mName;
 		//object instanced component
-		mComponents = instanceRes.mInstanceComponents;
+		mComponents = no_const_instanceRes.mInstanceComponents;
 		for (auto& component : mComponents)
 		{
 			if (component)
@@ -35,7 +49,26 @@ namespace FakeReal
 			}
 		}
 		//object definition component
+		ObjectDefinitionResource definitionResource;
+		for (auto component : definitionResource.mDefinitionComponents)
+		{
+			const std::string& name = component->GetTypeName();
+			if (HasComponent(name))
+			{
+				continue;
+			}
+			component->PostLoadResource(weak_from_this());
+			mComponents.emplace_back(component);
+		}
+		return true;
+	}
 
+	bool GameObject::Save(ObjectInstanceResource& instanceRes)
+	{
+		instanceRes.mName				= mName;
+		instanceRes.mDefinitionUrl		= mDefinitionUrl;
+		instanceRes.mInstanceComponents = mComponents;
+		
 		return true;
 	}
 

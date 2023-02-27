@@ -5,6 +5,7 @@
 #include "Framework/Object/GameObjectIdAllocator.h"
 #include "Framework/Component/Component.h"
 #include "Core/Base/BaseDefine.h"
+#include "Core/Mate/Reflection.h"
 
 namespace FakeReal
 {
@@ -17,9 +18,10 @@ namespace FakeReal
 
 		virtual void Update(double deltaTime);
 
-		GObjId GetGameObjId() const { return mId; }
+		GObjId GetGameObjectId() const { return mId; }
 
 		bool Load(const ObjectInstanceResource& instanceRes);
+		bool Save(ObjectInstanceResource& instanceRes);
 
 		bool HasComponent(const std::string& name) const;
 		bool ShouldComponentTick(const std::string& name) const;
@@ -31,7 +33,7 @@ namespace FakeReal
 			{
 				if (name == component->GetTypeName())
 				{
-					return static_cast<T*>(component.get());
+					return static_cast<T*>(component.Get());
 				}
 			}
 			return nullptr;
@@ -44,15 +46,15 @@ namespace FakeReal
 			{
 				if (name == component->GetTypeName())
 				{
-					return static_cast<const T*>(component.get());
+					return static_cast<const T*>(component.Get());
 				}
 			}
 			return nullptr;
 		}
 	protected:
 		GObjId mId { invalid_obj_id };
-		std::string mName;
+		std::string mName {"Object"};
 		std::string mDefinitionUrl;
-		std::vector<SharedPtr<Component>> mComponents;
+		std::vector<ReflectionPtr<Component>> mComponents;
 	};
 }

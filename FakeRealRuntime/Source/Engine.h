@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <string>
 
 namespace FakeReal
 {
@@ -11,8 +12,8 @@ namespace FakeReal
 		Engine();
 		~Engine();
 
+		void Start(const std::string& configFilePath);
 		void Initialize();
-		void Start();
 		void Run();
 		void Tick(double deltaTime);
 		void Shutdown();

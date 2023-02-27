@@ -13,7 +13,7 @@ project "FakeRealRuntime"
     files --该项目的文件
     {
         "Source/**.h",
-        "Source/**.cpp"
+        "Source/**.cpp",
     }
 
     includedirs --附加包含目录
@@ -23,6 +23,7 @@ project "FakeRealRuntime"
         "%{wks.location}/3rdparty/GLFW/include",
         "%{IncludeDir.VulkanSdkDir}",
         "%{wks.location}/3rdparty/glm",
+        "%{wks.location}/3rdparty/rapidjson/include",
     }
 
     links
@@ -47,7 +48,8 @@ project "FakeRealRuntime"
 
         prebuildcommands --编译前自定义命令
         {
-            ("{COPY} %{LibraryDir.GLFWLibOutputDir}/GLFW.lib %{cfg.targetdir}") --拷贝lib库到引擎的输出目录下去
+            ("%{wks.location}bin/Debug-windows-x86_64/MateParser/MateParser.exe %{wks.location}Config/search_paths.json %{wks.location}Config/source_file_path.json %{wks.location}%{prj.name}/Source %{wks.location}%{prj.name}/Source/_generated %{wks.location}MateParser/template %{prj.name}"),
+            ("{COPY} %{LibraryDir.GLFWLibOutputDir}/GLFW.lib %{cfg.targetdir}"), --拷贝lib库到引擎的输出目录下去
         }
 
         postbuildcommands --编译后自定义命令

@@ -12,7 +12,7 @@ namespace FakeReal
 
 	void RenderPass_Vulkan::Initialize(RenderPassCommonInfo* pInfo)
 	{
-		m_pVulkanRhi = StaticPointCast<VulkanRHI>(m_pRHI);
+		m_pVulkanRhi = StaticPointerCast<VulkanRHI>(m_pRHI);
 	}
 
 	void RenderPass_Vulkan::Clear()

@@ -1,9 +1,11 @@
 #pragma once
 #include "RenderPass_Vulkan.h"
-#include <glm/glm.hpp>
+#include "Core/Math/Matrix.h"
 
 namespace FakeReal
 {
+	class RenderResource;
+
 	class MainCameraPass_Vulkan : public RenderPass_Vulkan
 	{
 	public:
@@ -27,7 +29,7 @@ namespace FakeReal
 
 		virtual void Initialize(RenderPassCommonInfo* pInfo) override final;
 		virtual void Clear() override final;
-		virtual void PreparePassData() override final;
+		virtual void PreparePassData(SharedPtr<RenderResource> pRenderResource) override final;
 		virtual void PassUpdateAfterRecreateSwapchain() override final;
 
 	public:
@@ -38,13 +40,14 @@ namespace FakeReal
 		};
 		struct UniformBufferObj
 		{
-			glm::mat4 model;
-			glm::mat4 view;
-			glm::mat4 proj;
+			Matrix4x4 model;
+			Matrix4x4 view;
+			Matrix4x4 proj;
 		};
-		void Draw(SharedPtr<class RenderResource> renderResource);
+		void Draw(uint32_t curSwapchainImageIndex);
 
 	private:
+		void DrawMeshGBuffer();
 		void SetupAttachements();
 		void CreateRenderPass();
 		void CreateDescriptorSetLayout();

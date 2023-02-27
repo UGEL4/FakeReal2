@@ -2,9 +2,9 @@
 #include "RenderPass.h"
 #include "Function/Render/RHI.h"
 
+FakeReal::RenderVisibleNodes FakeReal::RenderPass::mVisibleNodes;
 namespace FakeReal
 {
-
 	RenderPass::~RenderPass()
 	{
 

@@ -31,6 +31,8 @@ group ""
 include "FakeRealRuntime"
 include "FakeRealEditor"
 include "3rdparty/GLFW"
+include "FbxConverter"
+include "MateParser"
 
 -- project "FakeRealRuntime"
 --     location "FakeRealRuntime" --相对路径

@@ -1,14 +1,13 @@
 #include "FRPch.h"
-#include "MainCameraPass_Vulkan.h"
+#include "Function/Render//RHI/Vulkan/Pass/MainCameraPass_Vulkan.h"
 #include "Function/Render/RHI/Vulkan/VulkanRHI.h"
 #include "Function/Render/RHI/Vulkan/VulkanUtils.h"
 #include "Function/Render/RenderMesh.h"
-#include "Core/Base/Macro.h"
 #include "Function/Render/stb_image.h"
 #include "Function/Render/Vulkan/VulkanRenderResource.h"
+#include "Core/Base/Macro.h"
 #include <array>
 
-#include <glm/gtc/matrix_transform.hpp>
 #include <chrono>
 
 namespace FakeReal
@@ -67,7 +66,7 @@ namespace FakeReal
 		vkDestroyRenderPass(m_pVulkanRhi->m_pDevice, mFrameBuffer.pRenderPass, nullptr);
 	}
 
-	void MainCameraPass_Vulkan::PreparePassData()
+	void MainCameraPass_Vulkan::PreparePassData(SharedPtr<RenderResource> pRenderResource)
 	{
 
 	}
@@ -91,17 +90,15 @@ namespace FakeReal
 		CreateSwapchainFrameBuffer();
 	}
 
-	void MainCameraPass_Vulkan::Draw(SharedPtr<RenderResource> renderResource)
+	void MainCameraPass_Vulkan::Draw(uint32_t curSwapchainImageIndex)
 	{
 		UpdateUniformBuffer();
-
-		SharedPtr<VulkanRenderResource> vulkanRenderResource = std::static_pointer_cast<VulkanRenderResource>(renderResource);
 		{
 
 			VkRenderPassBeginInfo beginInfo = {};
 			beginInfo.sType			= VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 			beginInfo.renderPass	= mFrameBuffer.pRenderPass;
-			beginInfo.framebuffer	= mSwapchainFramebuffers[m_pVulkanRhi->mCurSwapchainImageIndex];
+			beginInfo.framebuffer	= mSwapchainFramebuffers[curSwapchainImageIndex];
 			VkRect2D renderArea		= {};
 			renderArea.extent		= m_pVulkanRhi->mSwapchainImageExtent;
 			renderArea.offset		= { 0, 0 };
@@ -134,7 +131,7 @@ namespace FakeReal
 			vkCmdSetScissor(m_pVulkanRhi->m_pCurCommandBuffer, 0, 1, &scissor);
 
 			{
-				vkCmdBindPipeline(m_pVulkanRhi->m_pCurCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[RPT_MESH_GBUFFER].pPipeline);
+				/*vkCmdBindPipeline(m_pVulkanRhi->m_pCurCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[RPT_MESH_GBUFFER].pPipeline);
 
 				//test begin
 				VulkanPBRMaterial& material = vulkanRenderResource->mVulkanPBRMaterials[1];
@@ -148,6 +145,8 @@ namespace FakeReal
 				vkCmdBindIndexBuffer(m_pVulkanRhi->m_pCurCommandBuffer, mesh.m_pIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
 				vkCmdDrawIndexed(m_pVulkanRhi->m_pCurCommandBuffer, mesh.mIndexCount, 1, 0, 0, 0);
 				//test end
+				*/
+				DrawMeshGBuffer();
 			}
 
 			//next
@@ -159,6 +158,57 @@ namespace FakeReal
 			}
 
 			vkCmdEndRenderPass(m_pVulkanRhi->m_pCurCommandBuffer);
+		}
+	}
+
+	void MainCameraPass_Vulkan::DrawMeshGBuffer()
+	{
+		struct MeshNode
+		{
+			const Matrix4x4* pModelMatrix;
+		};
+
+		std::unordered_map<VulkanPBRMaterial*, std::unordered_map<VulkanMesh*, std::vector<MeshNode>>> mainCameraMeshDrawcallBatch;
+		for (RenderMeshNode& node : *(mVisibleNodes.pMainCameraVisibleMeshNodes))
+		{
+			VulkanMesh* pRefMesh			= (VulkanMesh*)node.pMesh;
+			VulkanPBRMaterial* pRefMaterial = (VulkanPBRMaterial*)node.pMaterial;
+			auto& meshInstanced = mainCameraMeshDrawcallBatch[pRefMaterial];
+			auto& meshNodes		= meshInstanced[pRefMesh];
+
+			MeshNode tmpNode		= {};
+			tmpNode.pModelMatrix	= node.modelMatrix;
+
+			meshNodes.emplace_back(tmpNode);
+		}
+
+		vkCmdBindPipeline(m_pVulkanRhi->m_pCurCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[RPT_MESH_GBUFFER].pPipeline);
+		for (auto& materialPair : mainCameraMeshDrawcallBatch)
+		{
+			VulkanPBRMaterial& material	= *(materialPair.first);
+			auto& meshInstanced				= materialPair.second;
+
+			//per material
+			vkCmdBindDescriptorSets(m_pVulkanRhi->m_pCurCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[RPT_MESH_GBUFFER].pLayout, 1, 1,
+				&material.m_pSet, 0, nullptr);
+
+			//per mesh
+			for (auto& instancedPair : meshInstanced)
+			{
+				VulkanMesh& mesh			= *(instancedPair.first);
+				auto& nodes					= instancedPair.second;
+				uint32_t totalInstanceCount = (uint32_t)nodes.size();
+				if (totalInstanceCount > 0)
+				{
+					vkCmdBindDescriptorSets(m_pVulkanRhi->m_pCurCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+						mPipelines[RPT_MESH_GBUFFER].pLayout, 0, 1, &mDescriptorInfos[LT_PER_MESH].pSet, 0, nullptr);
+
+					VkDeviceSize offset = 0;
+					vkCmdBindVertexBuffers(m_pVulkanRhi->m_pCurCommandBuffer, 0, 1, &mesh.m_pVertexBuffer, &offset);
+					vkCmdBindIndexBuffer(m_pVulkanRhi->m_pCurCommandBuffer, mesh.m_pIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+					vkCmdDrawIndexed(m_pVulkanRhi->m_pCurCommandBuffer, mesh.mIndexCount, 1, 0, 0, 0);
+				}
+			}
 		}
 	}
 
@@ -780,8 +830,10 @@ namespace FakeReal
 		auto currTime = std::chrono::high_resolution_clock::now();
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currTime - startTime).count();
 
+		static glm::mat4 m = glm::translate(glm::mat4(1.f), { 0.f, 0.f, -5.f });
+
 		UniformBufferObj ubo = {};
-		ubo.model = glm::rotate(glm::mat4(1.f), glm::radians(10.f) * time, { 1.f, 1.f, 0.f });
+		ubo.model = glm::rotate(m, glm::radians(10.f) * time, { 1.f, 1.f, 0.f });
 		ubo.view = glm::lookAt(glm::vec3(0.f, 0.f, 2.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
 		ubo.proj = glm::perspective(glm::radians(45.f), (float)mFrameBuffer.width / mFrameBuffer.height, 0.1f, 1000.f);
 		//ubo.proj[1][1] *= -1;

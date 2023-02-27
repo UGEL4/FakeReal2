@@ -2,7 +2,7 @@
 #include <unordered_map>
 #include <string>
 #include "Core/Base/BaseDefine.h"
-#include "Resource/Common/World.h"
+#include "Resource/ResourceType/Common/WorldRes.h"
 namespace FakeReal
 {
 	class Level;

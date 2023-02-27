@@ -10,9 +10,9 @@ namespace FakeReal
 	RenderPipeline::~RenderPipeline()
 	{}
 
-	void RenderPipeline::PreparePassData()
+	void RenderPipeline::PreparePassData(SharedPtr<RenderResource> pRenderResource)
 	{
-		m_pMainCameraPass->PreparePassData();
+		m_pMainCameraPass->PreparePassData(pRenderResource);
 	}
 
 	void RenderPipeline::SetRHI(SharedPtr<RHI> rhi)

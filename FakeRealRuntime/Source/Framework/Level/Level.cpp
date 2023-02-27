@@ -2,7 +2,9 @@
 #include "Core/Base/Macro.h"
 #include "Framework/Level/Level.h"
 #include "Framework/Object/Object.h"
-#include "Resource/Common/Level.h"
+#include "Resource/ResourceType/Common/LevelRes.h"
+#include "Resource/AssetManager/AssetManager.h"
+#include "Function/Global/GlobalRuntimeContext.h"
 
 namespace FakeReal
 {
@@ -39,6 +41,11 @@ namespace FakeReal
 		mLevelResourceUrl = url;
 
 		LevelResource res;
+		//test
+		res.mObjects.clear();
+		ObjectInstanceResource instanceRes{};
+		res.mObjects.emplace_back(instanceRes);
+
 		for (const ObjectInstanceResource& go_res : res.mObjects)
 		{
 			CreateObject(go_res);
@@ -53,6 +60,32 @@ namespace FakeReal
 	{
 		Clear();
 		LOG_INFO("Unload level: {}", mLevelResourceUrl);
+	}
+
+	bool Level::Save()
+	{
+		LOG_INFO("Save level: {}", mLevelResourceUrl);
+		LevelResource level_res;
+		size_t count = mGObjectMap.size();
+		level_res.mObjects.resize(count);
+		size_t index = 0;
+		for (auto& pair : mGObjectMap)
+		{
+			if (pair.second)
+			{
+				pair.second->Save(level_res.mObjects[index++]);
+			}
+		}
+		bool saveResult = g_global_runtime_context.m_pAssetManager->SaveAsset(mLevelResourceUrl, level_res);
+		if (saveResult)
+		{
+			LOG_INFO("Save level Success.");
+		}
+		else
+		{
+			LOG_INFO("Save level Failed. {}", mLevelResourceUrl);
+		}
+		return saveResult;
 	}
 
 	GObjId Level::CreateObject(const ObjectInstanceResource& res)

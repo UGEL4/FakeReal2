@@ -18,6 +18,8 @@ namespace FakeReal
 		bool Load(const std::string& url);
 		void Unload();
 
+		bool Save();
+
 		GObjId CreateObject(const ObjectInstanceResource& res);
 
 		WeakPtr<GameObject> GetGameObjectById(GObjId id) const;

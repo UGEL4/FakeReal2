@@ -26,6 +26,7 @@ namespace FakeReal
 		if (!mIsWorldLoaded)
 		{
 			//load
+			LoadWorld(mCurWorldUrl);
 		}
 		SharedPtr<Level> activeLevel = mActiveLevel.lock();
 		if (activeLevel)
@@ -51,8 +52,10 @@ namespace FakeReal
 	{
 		LOG_INFO("Load world: {}", url);
 		WorldResource res;
+		//test
+		res.mDefaultLevelUrl = "default";
 
-		mCurWorldResource = MakeShared<WorldResource>();
+		mCurWorldResource = MakeShared<WorldResource>(res);
 
 		if (!LoadLevel(res.mDefaultLevelUrl))
 		{

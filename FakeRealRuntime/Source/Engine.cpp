@@ -11,9 +11,7 @@ namespace FakeReal
 	Engine::Engine()
 		: mFPS(0), mAverageDuration(0.0f), mFrameCount(0)
 	{
-		g_global_runtime_context.InitializeSystems();
-		m_last_tick_time_point = std::chrono::steady_clock::now();
-		LOG_DEBUG("Engine::Engine");
+		
 	}
 
 	Engine::~Engine()
@@ -21,14 +19,16 @@ namespace FakeReal
 	
 	}
 
+	void Engine::Start(const std::string& configFilePath)
+	{
+		g_global_runtime_context.InitializeSystems(configFilePath);
+		m_last_tick_time_point = std::chrono::steady_clock::now();
+		LOG_DEBUG("Engine::Start");
+	}
+
 	void Engine::Initialize()
 	{
 		LOG_DEBUG("Engine::Initialize");
-	}
-
-	void Engine::Start()
-	{
-		LOG_DEBUG("Engine::Start");
 	}
 
 	void Engine::Run()
@@ -49,10 +49,12 @@ namespace FakeReal
 		g_global_runtime_context.m_pWorldManager->Update(deltaTime);
 		CalculateFPS(deltaTime);
 
+		g_global_runtime_context.m_pRenderSystem->SwapRenderData();
+
 		g_global_runtime_context.m_pRenderSystem->Tick();
 
 		g_global_runtime_context.m_pWindowSystem->PollEvents();
-		//g_global_runtime_context.m_pWindowSystem->SetTitle(std::string("FR Engine - " + std::to_string(mFPS) + "FPS").c_str());
+		g_global_runtime_context.m_pWindowSystem->SetTitle(std::string("FR Engine - " + std::to_string(mFPS) + "FPS").c_str());
 	}
 
 	void Engine::Shutdown()

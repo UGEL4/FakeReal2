@@ -18,7 +18,7 @@ constexpr UniquePtr<T> MakeUnique(Args&& ... args)
 }
 
 template <typename T, typename U>
-SharedPtr<T> StaticPointCast(const SharedPtr<U>& sp) noexcept
+SharedPtr<T> StaticPointerCast(const SharedPtr<U>& sp) noexcept
 {
 	return std::static_pointer_cast<T>(sp);
 }

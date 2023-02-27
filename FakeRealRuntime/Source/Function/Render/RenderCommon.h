@@ -2,6 +2,8 @@
 
 #include <vulkan/vulkan.h>
 #include <vulkan/vk_mem_alloc.h>
+#include "Core/Math/Matrix.h"
+#include "Function/Render/RenderType.h"
 
 namespace FakeReal
 {
@@ -33,5 +35,13 @@ namespace FakeReal
 		FR_PIXEL_FORMAT baseColorImageFormat;
 
 		VulkanPBRMaterial* pMaterial;
+	};
+
+	struct RenderMeshNode
+	{
+		const Matrix4x4* modelMatrix;
+		void* pMesh;
+		void* pMaterial;
+		uint32_t nodeId;
 	};
 }

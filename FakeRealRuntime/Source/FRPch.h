@@ -18,6 +18,8 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <set>
+#include <deque>
+#include <optional>
 
 #include <glm/glm.hpp>
 

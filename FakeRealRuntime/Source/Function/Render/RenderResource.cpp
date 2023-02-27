@@ -1,6 +1,10 @@
 #include "FRPch.h"
 #include "RenderResource.h"
 #include "Function/Render/stb_image.h"
+#include "Core/Mate/Serializer/Serializer.h"
+#include "Resource/ResourceType/Data/MeshData.h"
+#include "Resource/AssetManager/AssetManager.h"
+#include "Function/Global/GlobalRuntimeContext.h"
 
 namespace FakeReal
 {
@@ -10,17 +14,17 @@ namespace FakeReal
 
 	}
 
-	RenderMeshData RenderResource::LoadMeshData()
+	RenderMeshData RenderResource::LoadMeshData(const MeshResourceDesc& meshRes)
 	{
 		RenderMeshData mesh;
-		mesh.mStaticMeshData = LoadStaticMeshData();
+		mesh.mStaticMeshData = LoadStaticMeshData(meshRes.mFile);
 
 		return mesh;
 	}
 
-	StaticMeshData RenderResource::LoadStaticMeshData()
+	StaticMeshData RenderResource::LoadStaticMeshData(const std::string& file)
 	{
-		static std::vector<MeshVertexDataDefinition> g_Vertices =
+		/*static std::vector<MeshVertexDataDefinition> g_Vertices =
 		{
 			//Ç°
 			{-0.5f, -0.5f, 0.5f,		1.f, 0.f, 0.f,		0.f, 0.f },
@@ -78,12 +82,31 @@ namespace FakeReal
 		memcpy(meshData.mIndexBuffer->m_pData, g_Indices.data(), meshData.mIndexBuffer->mSize);
 
 		return meshData;
+		*/
+		StaticMeshData staticMesh = {};
+
+		MeshData meshData;
+		bool result = g_global_runtime_context.m_pAssetManager->LoadAsset(file, meshData);
+		if (!result)
+		{
+			throw std::runtime_error(("Load mesh data failed: file = " + file).c_str());
+		}
+
+		//×é×°mesh
+		size_t stride = sizeof(MeshVertexDataDefinition);
+		staticMesh.mVertexBuffer = MakeShared<DataBuffer>(meshData.mVertices.size() * stride);
+		staticMesh.mIndexBuffer = MakeShared<DataBuffer>(meshData.mIndices.size() * sizeof(uint32_t));
+		//toto: fix: MeshVertexDataDefinition and MeshData they maybe different layout;
+		memcpy(staticMesh.mVertexBuffer->m_pData, meshData.mVertices.data(), staticMesh.mVertexBuffer->mSize);
+		memcpy(staticMesh.mIndexBuffer->m_pData, meshData.mIndices.data(), staticMesh.mIndexBuffer->mSize);
+
+		return staticMesh;
 	}
 
-	RenderMaterialData RenderResource::LoadMaterialData(const std::string& file)
+	RenderMaterialData RenderResource::LoadMaterialData(const MaterialResourceDesc& materialRes)
 	{
 		RenderMaterialData material;
-		material.mBaseColorTexture = LoadTexture(file, true);
+		material.mBaseColorTexture = LoadTexture(materialRes.mBaseColorTextureFile, true);
 
 		return material;
 	}
@@ -92,8 +115,10 @@ namespace FakeReal
 	{
 		SharedPtr<TextureData> texture = MakeShared<TextureData>();
 
+		//todo: opitional
+		stbi_set_flip_vertically_on_load(true);
 		int width, height, comp;
-		texture->m_pPixels = stbi_load("texture/huaji.jpg", &width, &height, &comp, STBI_rgb_alpha);
+		texture->m_pPixels = stbi_load(file.c_str(), &width, &height, &comp, STBI_rgb_alpha);
 		if (!texture->m_pPixels)
 		{
 			return nullptr;

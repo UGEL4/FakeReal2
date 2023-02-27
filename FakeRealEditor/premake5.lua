@@ -19,8 +19,9 @@ project "FakeRealEditor"
         "%{wks.location}/3rdparty/GLFW/include",
         "%{IncludeDir.VulkanSdkDir}",
         "%{wks.location}/3rdparty/glm",
+        "%{wks.location}/3rdparty/rapidjson/include",
     }
-printf("%s", IncludeDir.VulkanSdkDir)
+
     links
     {
         "FakeRealRuntime",

@@ -1,0 +1,16 @@
+#pragma once
+#include "Core/Mate/Serializer/Serializer.h"
+{{#IncludeHeadFiles}}
+#include "{{HeadFileName}}"
+{{/IncludeHeadFiles}}
+
+namespace FakeReal
+{
+	{{#ClassDefines}}
+	template<>
+	void Serializer::Write(JsonWriter& writer, const {{ClassName}}& instance);
+	template<>
+	bool Serializer::Read(JsonReader& reader, {{ClassName}}& instance);
+	
+	{{/ClassDefines}}
+}

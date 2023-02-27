@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Base/BaseDefine.h"
+#include <string>
 
 namespace FakeReal
 {
@@ -8,6 +9,8 @@ namespace FakeReal
 	class WindowSystem;
 	class RenderSystem;
 	class WorldManager;
+	class ConfigManager;
+	class AssetManager;
 
 	class GlobalRuntimeContext
 	{
@@ -15,7 +18,7 @@ namespace FakeReal
 		GlobalRuntimeContext();
 		~GlobalRuntimeContext();
 
-		void InitializeSystems();
+		void InitializeSystems(const std::string& configFilePath);
 		void ShutdownSystems();
 
 	public:
@@ -23,6 +26,8 @@ namespace FakeReal
 		SharedPtr<WindowSystem> m_pWindowSystem;
 		SharedPtr<RenderSystem> m_pRenderSystem;
 		SharedPtr<WorldManager> m_pWorldManager;
+		SharedPtr<ConfigManager> m_pConfigManager;
+		SharedPtr<AssetManager> m_pAssetManager;
 	};
 
 	extern GlobalRuntimeContext g_global_runtime_context;

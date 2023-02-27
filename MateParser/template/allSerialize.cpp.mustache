@@ -1,0 +1,83 @@
+#include "FRPch.h"
+{{#IncludeHeadFiles}}
+#include "{{HeadFileName}}"
+{{/IncludeHeadFiles}}
+
+namespace FakeReal
+{
+	{{#ClassDefines}}
+	template<>
+	void Serializer::Write(JsonWriter& writer, const {{ClassName}}& instance);
+	template<>
+	void Serializer::Write(JsonWriter& writer, const {{ClassName}}& instance)
+	{
+	    writer.StartObject();
+
+		{{#BaseClassDefines}}
+		//base class
+		writer.SetKey("{{BaseClassName}}");
+		Serializer::Write(writer, *(({{BaseClassName}}*)&(instance)));
+
+		{{/BaseClassDefines}}{{#ClassFieldDefines}}
+		{{#ClassFieldIsVector}}
+		writer.SetKey("{{FieldDisplayName}}");
+		writer.StartArray();
+		for (size_t i = 0; i < instance.{{ClassFieldName}}.size(); i++)
+		{
+			Serializer::Write(writer, instance.{{ClassFieldName}}[i]);
+		}
+		writer.EndArray();
+		{{/ClassFieldIsVector}}{{^ClassFieldIsVector}}
+		writer.SetKey("{{FieldDisplayName}}");
+	    Serializer::Write(writer, instance.{{ClassFieldName}});
+		{{/ClassFieldIsVector}}
+		{{/ClassFieldDefines}}
+
+	    writer.EndObject();
+	}
+
+	template<>
+	bool Serializer::Read(JsonReader& reader, {{ClassName}}& instance);
+	template<>
+	bool Serializer::Read(JsonReader& reader, {{ClassName}}& instance)
+	{
+		bool result = true;
+		if (!reader.StartObject())
+		{
+			return false;
+		}
+
+		{{#BaseClassDefines}}
+		//base class
+		reader.Key("{{BaseClassName}}");
+		Serializer::Read(reader, *(({{BaseClassName}}*)&(instance)));
+
+		{{/BaseClassDefines}}{{#ClassFieldDefines}}
+		{{#ClassFieldIsVector}}
+		reader.Key("{{FieldDisplayName}}");
+		{{#ArrayLength}}
+		size_t count = 0;
+		{{/ArrayLength}}if (!reader.StartArray(&count))
+		{
+			return false;
+		}
+		instance.{{ClassFieldName}}.resize(count);
+		for (size_t i = 0; i < count; i++)
+		{
+			Serializer::Read(reader, instance.{{ClassFieldName}}[i]);
+		}
+		if (!reader.EndArray())
+		{
+			return false;
+		}
+		{{/ClassFieldIsVector}}{{^ClassFieldIsVector}}
+		reader.Key("{{FieldDisplayName}}");
+		Serializer::Read(reader, instance.{{ClassFieldName}});
+		{{/ClassFieldIsVector}}
+		{{/ClassFieldDefines}}
+
+		result &= reader.EndObject();
+		return result;
+	}
+	{{/ClassDefines}}
+}

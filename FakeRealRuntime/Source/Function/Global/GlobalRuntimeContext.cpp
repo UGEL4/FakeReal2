@@ -5,6 +5,8 @@
 #include "Function/Render/RenderSystem.h"
 #include "Function/Render/RHI.h"
 #include "Framework/World/WorldManager.h"
+#include "Resource/ConfigManager/ConfigManager.h"
+#include "Resource/AssetManager/AssetManager.h"
 
 namespace FakeReal
 {
@@ -20,9 +22,14 @@ namespace FakeReal
 
 	}
 
-	void GlobalRuntimeContext::InitializeSystems()
+	void GlobalRuntimeContext::InitializeSystems(const std::string& configFilePath)
 	{
 		m_pLogSystem = MakeShared<LogSystem>();
+
+		m_pConfigManager = MakeShared<ConfigManager>();
+		m_pConfigManager->Initialize(configFilePath);
+
+		m_pAssetManager = MakeShared<AssetManager>();
 
 		m_pWorldManager = MakeShared<WorldManager>();
 		m_pWorldManager->Initialize();
