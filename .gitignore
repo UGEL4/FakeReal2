@@ -6,7 +6,7 @@
 *.vcxproj.filters
 *.vcxproj.user
 /bin
-/bin-int
+/bin-init
 .vscode
 .xmake
 build
