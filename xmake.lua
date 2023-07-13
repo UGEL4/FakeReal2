@@ -2,7 +2,7 @@ add_rules("mode.debug", "mode.release")
 
 output_dir = "$(mode)/$(plat)/$(arch)"
 
---[[ project_ldflags = {}
+project_ldflags = {}
 project_cxflags = {}
 project_mxflags = {}
 
@@ -45,6 +45,8 @@ if(has_config("is_msvc")) then
     if (is_mode("asan")) then
         table.insert(project_ldflags, "/fsanitize=address")
     end
-end ]]
+end
 
 includes("xmake/3rdparty/glfw.lua")
+includes("FakeRealRuntime/xmake.lua")
+includes("FakeRealEditor/xmake.lua")

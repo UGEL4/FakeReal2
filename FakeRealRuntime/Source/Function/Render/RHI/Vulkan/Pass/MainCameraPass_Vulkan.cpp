@@ -124,7 +124,7 @@ namespace FakeReal
 			scissor.offset = { 0, 0 };
 			scissor.extent = m_pVulkanRhi->mSwapchainImageExtent;
 
-			vkCmdBeginRenderPass(m_pVulkanRhi->m_pCurCommandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE); //VK_SUBPASS_CONTENTS_INLINE : ËùÓÐÒªÖ´ÐÐµÄÖ¸Áî¶¼ÔÚÖ÷ÒªÖ¸Áî»º³åÖÐ£¬Ã»ÓÐ¸¨ÖúÖ¸Áî»º³åÐèÒªÖ´ÐÐ
+			vkCmdBeginRenderPass(m_pVulkanRhi->m_pCurCommandBuffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE); //VK_SUBPASS_CONTENTS_INLINE : ï¿½ï¿½ï¿½ï¿½ÒªÖ´ï¿½Ðµï¿½Ö¸ï¿½î¶¼ï¿½ï¿½ï¿½ï¿½ÒªÖ¸ï¿½î»ºï¿½ï¿½ï¿½Ð£ï¿½Ã»ï¿½Ð¸ï¿½ï¿½ï¿½Ö¸ï¿½î»ºï¿½ï¿½ï¿½ï¿½ÒªÖ´ï¿½ï¿½
 
 			vkCmdSetViewport(m_pVulkanRhi->m_pCurCommandBuffer, 0, 1, &viewport);
 
@@ -532,8 +532,8 @@ namespace FakeReal
 				throw std::runtime_error("VkPipelineLayout create failed : per mesh");
 			}
 
-			VkShaderModule pVertexShaderModule		= VulkanUtils::CreateShader("shader/deferred_write.vert.spv", m_pVulkanRhi->m_pDevice);
-			VkShaderModule pFragmentShaderModule	= VulkanUtils::CreateShader("shader/deferred_write.frag.spv", m_pVulkanRhi->m_pDevice);
+			VkShaderModule pVertexShaderModule		= VulkanUtils::CreateShader("D:/c++/FakeReal2/bin/debug/windows/x64/FakeRealEditor/shader/deferred_write.vert.spv", m_pVulkanRhi->m_pDevice);
+			VkShaderModule pFragmentShaderModule	= VulkanUtils::CreateShader("D:/c++/FakeReal2/bin/debug/windows/x64/FakeRealEditor/shader/deferred_write.frag.spv", m_pVulkanRhi->m_pDevice);
 			VkPipelineShaderStageCreateInfo vertexShaderCreateInfo = {};
 			vertexShaderCreateInfo.sType				= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			vertexShaderCreateInfo.module				= pVertexShaderModule;
@@ -613,8 +613,8 @@ namespace FakeReal
 				throw std::runtime_error("VkPipelineLayout create failed : deferred lighting");
 			}
 
-			VkShaderModule pVertexShaderModule		= VulkanUtils::CreateShader("shader/deferred_read.vert.spv", m_pVulkanRhi->m_pDevice);
-			VkShaderModule pFragmentShaderModule	= VulkanUtils::CreateShader("shader/deferred_read.frag.spv", m_pVulkanRhi->m_pDevice);
+			VkShaderModule pVertexShaderModule		= VulkanUtils::CreateShader("D:/c++/FakeReal2/bin/debug/windows/x64/FakeRealEditor/shader/deferred_read.vert.spv", m_pVulkanRhi->m_pDevice);
+			VkShaderModule pFragmentShaderModule	= VulkanUtils::CreateShader("D:/c++/FakeReal2/bin/debug/windows/x64/FakeRealEditor/shader/deferred_read.frag.spv", m_pVulkanRhi->m_pDevice);
 			VkPipelineShaderStageCreateInfo vertexShaderCreateInfo = {};
 			vertexShaderCreateInfo.sType				= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			vertexShaderCreateInfo.module				= pVertexShaderModule;
@@ -739,7 +739,7 @@ namespace FakeReal
 		}
 
 		{
-			//¶Á
+			//ï¿½ï¿½
 			// Image descriptors for the offscreen color attachments
 			VkDescriptorImageInfo texPosition{};
 			texPosition.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

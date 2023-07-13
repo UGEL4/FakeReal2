@@ -9,8 +9,16 @@ target("GLFW")
     set_targetdir(targetdir)
     set_plat(os.host())
     set_arch(os.arch())
+    add_includedirs(glfw_dir .. "/include")
     if is_os("windows") then
-        add_syslinks("advapi32", "user32", "shell32", "Ole32", {public = true})
+        add_syslinks("advapi32", "user32", "shell32", "ole32", "kernel32",
+        "gdi32",
+        "winspool",
+        "comdlg32",
+        "oleaut32",
+        "uuid",
+        "odbc32",
+        "odbccp32",{public = true})
         add_defines("_GLFW_WIN32", "_CRT_SECURE_NO_WARNINGS")
         --add_cxflags(project_cxflags, {public = true, force = true})
         add_defines("UNICODE")

@@ -166,8 +166,8 @@ namespace FakeReal
 		{
 			assert(0);
 		}
-		//Ìá½»Ö¸Áî»º³å
-		VkPipelineStageFlags stageFlags[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };//ÓësemaphoresµÄË÷ÒýÏà¶ÔÓ¦
+		//ï¿½á½»Ö¸ï¿½î»ºï¿½ï¿½
+		VkPipelineStageFlags stageFlags[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };//ï¿½ï¿½semaphoresï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦
 		VkSubmitInfo info			= {};
 		info.sType					= VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		info.commandBufferCount		= 1;
@@ -185,7 +185,7 @@ namespace FakeReal
 			assert(0);
 		}
 
-		//³ÊÏÖ
+		//ï¿½ï¿½ï¿½ï¿½
 		VkPresentInfoKHR presentInfo	= {};
 		presentInfo.sType				= VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 		presentInfo.swapchainCount		= 1;
@@ -415,7 +415,7 @@ namespace FakeReal
 		createInfo.clipped			= true;
 
 		QueueFamilyIndex index			= FindQueueFamilies(m_pPhysicalDevice);
-		uint32_t queueFamilyIndices[]	= { index.graphicsFamily, index.presentFamily };
+		uint32_t queueFamilyIndices[]	= { (uint32_t)index.graphicsFamily, (uint32_t)index.presentFamily };
 		if (index.graphicsFamily != index.presentFamily)
 		{
 			createInfo.queueFamilyIndexCount	= 2;
@@ -843,8 +843,8 @@ namespace FakeReal
 
 	VkExtent2D VulkanRHI::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const
 	{
-		//Ò»Ð©´°¿ÚÏµÍ³»áÊ¹ÓÃÒ»¸öÌØÊâÖµ£¬’TÀ©°ç’S´Á‘ò ’S±äÁ¿ÀàÐÍµÄ¹¹´óÖµ£¬±íÊ¾ÔÊÐíÎÒÃÇ×Ô¼ºÑ¡Ôñ¶ÔÓÚ´°¿Ú–»ºÏÊÊµÄ½»»»·¶Î§£¬
-		//µ«ÎÒÃÇÑ¡ÔñµÄ½»»»·¶Î§íˆÒªÔÚminImageExtentÓëmaxImageExtentµÄ·¶Î§ÄÚ
+		//Ò»Ð©ï¿½ï¿½ï¿½ï¿½ÏµÍ³ï¿½ï¿½Ê¹ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½Tï¿½ï¿½ï¿½ï¿½Sï¿½ï¿½ï¿½ï¿½ ï¿½Sï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÍµÄ¹ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¼ï¿½Ñ¡ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½Ú–ï¿½ï¿½ï¿½ï¿½ÊµÄ½ï¿½ï¿½ï¿½ï¿½ï¿½Î§ï¿½ï¿½
+		//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½Ä½ï¿½ï¿½ï¿½ï¿½ï¿½Î§ï¿½Òªï¿½ï¿½minImageExtentï¿½ï¿½maxImageExtentï¿½Ä·ï¿½Î§ï¿½ï¿½
 		if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
 		{
 			return capabilities.currentExtent;
@@ -853,7 +853,7 @@ namespace FakeReal
 		{
 			int width, height = 0;
 			glfwGetFramebufferSize(m_pWindow, &width, &height);
-			VkExtent2D extent2D = { width, height };
+			VkExtent2D extent2D = { (uint32_t)width, (uint32_t)height };
 			extent2D.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, extent2D.width));
 			extent2D.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, extent2D.height));
 
