@@ -32,31 +32,31 @@ namespace FakeReal
 			{ 0.5f,  0.5f, 0.5f,		0.f, 0.f, 1.f,		1.f, 1.f },
 			{-0.5f,  0.5f, 0.5f,		1.f, 1.f, 0.f,		0.f, 1.f },
 
-			//ºó
+			//ï¿½ï¿½
 			{ 0.5f, -0.5f, -0.5f,		0.f, 1.f, 0.f,		0.f, 0.f },
 			{-0.5f, -0.5f, -0.5f,		1.f, 0.f, 0.f,		1.f, 0.f },
 			{-0.5f,  0.5f, -0.5f,		1.f, 1.f, 0.f,		1.f, 1.f },
 			{ 0.5f,  0.5f, -0.5f,		0.f, 0.f, 1.f,		0.f, 1.f },
 
-			//×ó
+			//ï¿½ï¿½
 			{-0.5f,  -0.5f,  0.5f,		1.f, 1.f, 0.f,		1.f, 0.f },
 			{-0.5f,   0.5f,  0.5f,		1.f, 1.f, 0.f,		1.f, 1.f },
 			{-0.5f,   0.5f, -0.5f,		1.f, 1.f, 0.f,		0.f, 1.f },
 			{-0.5f,  -0.5f, -0.5f,		1.f, 1.f, 0.f,		0.f, 0.f },
 
-			//ÓÒ
+			//ï¿½ï¿½
 			{0.5f,  -0.5f,  0.5f,		1.f, 1.f, 0.f,		0.f, 0.f },
 			{0.5f,  -0.5f, -0.5f,		1.f, 1.f, 0.f,		1.f, 0.f },
 			{0.5f,   0.5f, -0.5f,		1.f, 1.f, 0.f,		1.f, 1.f },
 			{0.5f,   0.5f,  0.5f,		1.f, 1.f, 0.f,		0.f, 1.f },
 
-			//ÉÏ
+			//ï¿½ï¿½
 			{-0.5f,  -0.5f, -0.5f,		1.f, 1.f, 0.f,		0.f, 0.f },
 			{ 0.5f,  -0.5f, -0.5f,		1.f, 1.f, 0.f,		1.f, 0.f },
 			{ 0.5f,  -0.5f,  0.5f,		1.f, 1.f, 0.f,		1.f, 1.f },
 			{-0.5f,  -0.5f,  0.5f,		1.f, 1.f, 0.f,		0.f, 1.f },
 
-			//ÏÂ
+			//ï¿½ï¿½
 			{-0.5f,   0.5f,  0.5f,		1.f, 1.f, 0.f,		0.f, 0.f },
 			{ 0.5f,   0.5f,  0.5f,		1.f, 1.f, 0.f,		1.f, 0.f },
 			{ 0.5f,   0.5f, -0.5f,		1.f, 1.f, 0.f,		1.f, 1.f },
@@ -73,7 +73,7 @@ namespace FakeReal
 			20, 21, 22, 22, 23, 20
 		};
 
-		//×é×°mesh
+		//ï¿½ï¿½×°mesh
 		size_t stride = sizeof(MeshVertexDataDefinition);
 		StaticMeshData meshData;
 		meshData.mVertexBuffer	= MakeShared<DataBuffer>(g_Vertices.size() * stride);
@@ -92,7 +92,7 @@ namespace FakeReal
 			throw std::runtime_error(("Load mesh data failed: file = " + file).c_str());
 		}
 
-		//×é×°mesh
+		//ï¿½ï¿½×°mesh
 		size_t stride = sizeof(MeshVertexDataDefinition);
 		staticMesh.mVertexBuffer = MakeShared<DataBuffer>(meshData.mVertices.size() * stride);
 		staticMesh.mIndexBuffer = MakeShared<DataBuffer>(meshData.mIndices.size() * sizeof(uint32_t));
@@ -115,10 +115,11 @@ namespace FakeReal
 	{
 		SharedPtr<TextureData> texture = MakeShared<TextureData>();
 
+		std::string full_url = g_global_runtime_context.m_pAssetManager->GetFullPath(file).generic_string();
 		//todo: opitional
 		stbi_set_flip_vertically_on_load(true);
 		int width, height, comp;
-		texture->m_pPixels = stbi_load(file.c_str(), &width, &height, &comp, STBI_rgb_alpha);
+		texture->m_pPixels = stbi_load(full_url.c_str(), &width, &height, &comp, STBI_rgb_alpha);
 		if (!texture->m_pPixels)
 		{
 			return nullptr;

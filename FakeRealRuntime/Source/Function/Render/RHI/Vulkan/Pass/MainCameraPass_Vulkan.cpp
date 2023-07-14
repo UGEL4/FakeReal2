@@ -106,7 +106,7 @@ namespace FakeReal
 			std::array<VkClearValue, 5> clearVals = {};
 			clearVals[0].color = { 0.f, 0.f, 0.f, 0.f };
 			clearVals[1].color = { 0.f, 0.f, 0.f, 0.f };
-			clearVals[2].color = { 0.f, 0.f, 0.f, 0.f };
+			clearVals[2].color = { 0.5f, 0.5f, 0.5f, 0.f };
 			clearVals[3].depthStencil	= { 1.f, 0 };
 			clearVals[4].color			= { 0.f, 0.f, 0.f, 0.f };
 			beginInfo.clearValueCount	= 5;
@@ -532,8 +532,8 @@ namespace FakeReal
 				throw std::runtime_error("VkPipelineLayout create failed : per mesh");
 			}
 
-			VkShaderModule pVertexShaderModule		= VulkanUtils::CreateShader("D:/c++/FakeReal2/bin/debug/windows/x64/FakeRealEditor/shader/deferred_write.vert.spv", m_pVulkanRhi->m_pDevice);
-			VkShaderModule pFragmentShaderModule	= VulkanUtils::CreateShader("D:/c++/FakeReal2/bin/debug/windows/x64/FakeRealEditor/shader/deferred_write.frag.spv", m_pVulkanRhi->m_pDevice);
+			VkShaderModule pVertexShaderModule		= VulkanUtils::CreateShader("shader/deferred_write.vert.spv", m_pVulkanRhi->m_pDevice);
+			VkShaderModule pFragmentShaderModule	= VulkanUtils::CreateShader("shader/deferred_write.frag.spv", m_pVulkanRhi->m_pDevice);
 			VkPipelineShaderStageCreateInfo vertexShaderCreateInfo = {};
 			vertexShaderCreateInfo.sType				= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			vertexShaderCreateInfo.module				= pVertexShaderModule;
@@ -613,8 +613,8 @@ namespace FakeReal
 				throw std::runtime_error("VkPipelineLayout create failed : deferred lighting");
 			}
 
-			VkShaderModule pVertexShaderModule		= VulkanUtils::CreateShader("D:/c++/FakeReal2/bin/debug/windows/x64/FakeRealEditor/shader/deferred_read.vert.spv", m_pVulkanRhi->m_pDevice);
-			VkShaderModule pFragmentShaderModule	= VulkanUtils::CreateShader("D:/c++/FakeReal2/bin/debug/windows/x64/FakeRealEditor/shader/deferred_read.frag.spv", m_pVulkanRhi->m_pDevice);
+			VkShaderModule pVertexShaderModule		= VulkanUtils::CreateShader("shader/deferred_read.vert.spv", m_pVulkanRhi->m_pDevice);
+			VkShaderModule pFragmentShaderModule	= VulkanUtils::CreateShader("shader/deferred_read.frag.spv", m_pVulkanRhi->m_pDevice);
 			VkPipelineShaderStageCreateInfo vertexShaderCreateInfo = {};
 			vertexShaderCreateInfo.sType				= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			vertexShaderCreateInfo.module				= pVertexShaderModule;

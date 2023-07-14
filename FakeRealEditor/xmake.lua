@@ -26,7 +26,7 @@ target("FakeRealEditor")
     add_links("FakeRealRuntime", "GLFW", "vulkan-1")
     
     set_objectdir(objdir)
-    --set_targetdir(targetdir)
+    set_targetdir(targetdir)
     
     add_includedirs(editor_includes)
     -- add_headerfiles("$(projectdir)/FakeRealEditor/Source/**.h")

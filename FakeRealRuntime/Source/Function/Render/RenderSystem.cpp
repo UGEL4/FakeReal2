@@ -118,7 +118,7 @@ namespace FakeReal
 					else
 					{
 						//materialResDesc.mBaseColorTextureFile = "texture/huaji.jpg";
-						materialResDesc.mBaseColorTextureFile = "F:/FakeReal/FakeReal2/FakeReal2/asset/objects/character/default/stromtrooper/component/mesh/texture/Stormtrooper_D.png";
+						materialResDesc.mBaseColorTextureFile = "asset/objects/character/default/stromtrooper/component/mesh/texture/Stormtrooper_D.png";
 						//materialResDesc.mBaseColorTextureFile = "F:/FakeReal/FakeReal2/FakeReal2/asset/objects/character/default/cube/component/mesh/texture/huaji.jpg";
 					}
 
