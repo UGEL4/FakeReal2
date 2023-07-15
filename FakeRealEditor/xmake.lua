@@ -15,7 +15,7 @@ local glfw_lib    = "$(projectdir)/bin/" .. output_dir .. "/GLFW"
 local vulkan_lib  = vulkan_sdk_dir .. "/lib/Win32"
 target("FakeRealEditor")
     set_kind("binary")
-    set_languages("c++17")
+    set_languages("cxx20")
     set_group("editor")
     add_cxxflags(project_cxflags)
     add_defines("UNICODE")

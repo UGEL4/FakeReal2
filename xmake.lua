@@ -2,6 +2,24 @@ add_rules("mode.debug", "mode.release")
 
 output_dir = "$(mode)/$(plat)/$(arch)"
 
+if (is_os("windows")) then 
+    add_defines("_GAMING_DESKTOP")
+    add_defines("_WINDOWS")
+    add_defines("UNICODE")
+    add_defines("_UNICODE")
+    add_defines("NOMINMAX")
+    add_defines("_CRT_SECURE_NO_WARNINGS")
+   --[[  if (is_mode("release")) then
+        set_runtimes("MD")
+    elseif (is_mode("asan")) then
+        table.insert(defs_list, "_DISABLE_VECTOR_ANNOTATION")
+    else
+        set_runtimes("MDd")
+    end ]]
+else
+
+end
+
 project_ldflags = {}
 project_cxflags = {}
 project_mxflags = {}
