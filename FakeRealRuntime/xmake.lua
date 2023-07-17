@@ -13,7 +13,7 @@ local objdir    = "$(projectdir)/bin-init/" .. output_dir .. "/FakeRealRuntime"
 local glfw_lib = "$(projectdir)/bin/" .. output_dir .. "/GLFW"
 target("FakeRealRuntime")
     set_kind("static")
-    set_languages("cxx20", "c11")
+    set_languages("cxx20")
     set_group("runtime")
     add_cxflags(project_cxflags)
     add_defines("UNICODE")
@@ -31,4 +31,4 @@ target("FakeRealRuntime")
     add_includedirs(runtime_indluces_dir, {public = true})
     
     add_headerfiles("$(projectdir)/FakeRealRuntime/Source/**.h")
-    add_files("$(projectdir)/FakeRealRuntime/Source/**.cpp", "$(projectdir)/FakeRealRuntime/**.build.c")
+    add_files("$(projectdir)/FakeRealRuntime/Source/**.cpp", "$(projectdir)/FakeRealRuntime/**.build.cpp")

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Platform/Config.h"
+#include "Core/Base/Macro.h"
 
 #define GPU_USE_VULKAN
 
@@ -24,3 +25,12 @@
             memset((void*)var, 0, sizeof(type) * (num));
     #endif
 #endif
+
+#define CGPU_NAME_HASH_SEED 8053064571610612741
+
+#define GPU_SAFE_FREE(ptr) if (ptr) free(ptr);
+
+#define GPU_LOG_INFO LOG_INFO
+#define GPU_LOG_DEBUG LOG_DEBUG
+#define GPU_LOG_WARNING LOG_WARNING
+#define GPU_LOG_ERROR LOG_ERROR

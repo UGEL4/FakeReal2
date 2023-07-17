@@ -50,10 +50,10 @@ namespace FakeReal
 		}
 
 		template<typename... Args>
-		//void FatalCallback(Args&&... args)
-		void FatalCallback(fmt::format_string<Args...> s, Args&&... args)
+		void FatalCallback(Args&&... args)
+		//void FatalCallback(fmt::format_string<Args...> s, Args&&... args)
 		{
-			const std::string format_str = fmt::format(s, std::forward<Args>(args)...);
+			const std::string format_str = fmt::format(std::forward<Args>(args)...);
 			throw std::runtime_error(format_str);
 		}
 

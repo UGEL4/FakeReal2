@@ -1,304 +1,304 @@
-// #pragma once
-// #include "GpuConfig.h"
-// #include "Flags.h"
+#pragma once
+#include "GpuConfig.h"
+#include "Flags.h"
 
-// #define DEFINE_GPU_OBJECT(name) struct name##Descriptor; typedef const struct name *name##ID;
+#define DEFINE_GPU_OBJECT(name) struct name##Descriptor; typedef const struct name *name##ID;
 
-// DEFINE_GPU_OBJECT(GPUSurface)
-// DEFINE_GPU_OBJECT(GPUInstance)
-// DEFINE_GPU_OBJECT(GPUAdapter)
-// DEFINE_GPU_OBJECT(GPUDevice)
-// DEFINE_GPU_OBJECT(GPUQueue)
-// DEFINE_GPU_OBJECT(GPUSwapchain)
-// DEFINE_GPU_OBJECT(GPUTexture)
-// DEFINE_GPU_OBJECT(GPUTextureView)
-// DEFINE_GPU_OBJECT(GPUShaderLibrary)
-// DEFINE_GPU_OBJECT(GPURootSignature)
-// DEFINE_GPU_OBJECT(GPURenderPipeline)
-// DEFINE_GPU_OBJECT(GPUSampler)
-// DEFINE_GPU_OBJECT(GPURootSignaturePool)
-// DEFINE_GPU_OBJECT(GPUCommandPool)
-// DEFINE_GPU_OBJECT(GPUCommandBuffer)
-// DEFINE_GPU_OBJECT(GPUFence)
-// DEFINE_GPU_OBJECT(GPUSemaphore)
-// DEFINE_GPU_OBJECT(GPUBuffer)
-// DEFINE_GPU_OBJECT(GPURenderPassEncoder)
-// DEFINE_GPU_OBJECT(GPUDescriptorSet)
+DEFINE_GPU_OBJECT(GPUSurface)
+DEFINE_GPU_OBJECT(GPUInstance)
+DEFINE_GPU_OBJECT(GPUAdapter)
+DEFINE_GPU_OBJECT(GPUDevice)
+DEFINE_GPU_OBJECT(GPUQueue)
+DEFINE_GPU_OBJECT(GPUSwapchain)
+DEFINE_GPU_OBJECT(GPUTexture)
+DEFINE_GPU_OBJECT(GPUTextureView)
+DEFINE_GPU_OBJECT(GPUShaderLibrary)
+DEFINE_GPU_OBJECT(GPURootSignature)
+DEFINE_GPU_OBJECT(GPURenderPipeline)
+DEFINE_GPU_OBJECT(GPUSampler)
+DEFINE_GPU_OBJECT(GPURootSignaturePool)
+DEFINE_GPU_OBJECT(GPUCommandPool)
+DEFINE_GPU_OBJECT(GPUCommandBuffer)
+DEFINE_GPU_OBJECT(GPUFence)
+DEFINE_GPU_OBJECT(GPUSemaphore)
+DEFINE_GPU_OBJECT(GPUBuffer)
+DEFINE_GPU_OBJECT(GPURenderPassEncoder)
+DEFINE_GPU_OBJECT(GPUDescriptorSet)
 
-// #ifdef __cplusplus
-// extern "C" {
-// #endif
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-// #define GPU_MAX_VERTEX_ATTRIBS 15
-// #define GPU_MAX_MRT_COUNT 8u
+#define GPU_MAX_VERTEX_ATTRIBS 15
+#define GPU_MAX_MRT_COUNT 8u
 
-// #define GPU_COLOR_MASK_RED 0x1
-// #define GPU_COLOR_MASK_GREEN 0x2
-// #define GPU_COLOR_MASK_BLUE 0x4
-// #define GPU_COLOR_MASK_ALPHA 0x8
-// #define GPU_COLOR_MASK_ALL GPU_COLOR_MASK_RED | GPU_COLOR_MASK_GREEN | GPU_COLOR_MASK_BLUE | GPU_COLOR_MASK_ALPHA
-// #define GPU_COLOR_MASK_NONE 0
+#define GPU_COLOR_MASK_RED 0x1
+#define GPU_COLOR_MASK_GREEN 0x2
+#define GPU_COLOR_MASK_BLUE 0x4
+#define GPU_COLOR_MASK_ALPHA 0x8
+#define GPU_COLOR_MASK_ALL GPU_COLOR_MASK_RED | GPU_COLOR_MASK_GREEN | GPU_COLOR_MASK_BLUE | GPU_COLOR_MASK_ALPHA
+#define GPU_COLOR_MASK_NONE 0
 
-// // instance api
-// GPU_API GPUInstanceID GPUCreateInstance(const struct GPUInstanceDescriptor *pDesc);
-// typedef GPUInstanceID (*GPUProcCreateInstance)(const struct GPUInstanceDescriptor *pDesc);
-// GPU_API void GPUFreeInstance(GPUInstanceID instance);
-// typedef void (*GPUProcFreeInstance)(GPUInstanceID instance);
+// instance api
+GPU_API GPUInstanceID GPUCreateInstance(const struct GPUInstanceDescriptor *pDesc);
+typedef GPUInstanceID (*GPUProcCreateInstance)(const struct GPUInstanceDescriptor *pDesc);
+GPU_API void GPUFreeInstance(GPUInstanceID instance);
+typedef void (*GPUProcFreeInstance)(GPUInstanceID instance);
 
-// // adapter api
-// GPU_API void GPUEnumerateAdapters(GPUInstanceID pInstance, GPUAdapterID *const ppAdapters, uint32_t *adapterCount);
-// typedef void (*GPUProcEnumerateAdapters)(GPUInstanceID pInstance, GPUAdapterID *const ppAdapters, uint32_t *adapterCount);
+// adapter api
+GPU_API void GPUEnumerateAdapters(GPUInstanceID pInstance, GPUAdapterID *const ppAdapters, uint32_t *adapterCount);
+typedef void (*GPUProcEnumerateAdapters)(GPUInstanceID pInstance, GPUAdapterID *const ppAdapters, uint32_t *adapterCount);
 
-// // device api
-// GPU_API GPUDeviceID GPUCreateDevice(GPUAdapterID pAdapter, const struct GPUDeviceDescriptor *pDesc);
-// typedef GPUDeviceID (*GPUProcCreateDevice)(GPUAdapterID pAdapter, const struct GPUDeviceDescriptor *pDesc);
-// GPU_API void GPUFreeDevice(GPUDeviceID pDevice);
-// typedef void (*GPUProcFreeDevice)(GPUDeviceID pDevice);
+// device api
+GPU_API GPUDeviceID GPUCreateDevice(GPUAdapterID pAdapter, const struct GPUDeviceDescriptor *pDesc);
+typedef GPUDeviceID (*GPUProcCreateDevice)(GPUAdapterID pAdapter, const struct GPUDeviceDescriptor *pDesc);
+GPU_API void GPUFreeDevice(GPUDeviceID pDevice);
+typedef void (*GPUProcFreeDevice)(GPUDeviceID pDevice);
 
-// // queue
-// GPU_API GPUQueueID GPUGetQueue(GPUDeviceID pDevice, EGPUQueueType queueType, uint32_t queueIndex);
-// typedef GPUQueueID (*GPUProcGetQueue)(GPUDeviceID pDevice, EGPUQueueType queueType, uint32_t queueIndex);
-// GPU_API void GPUFreeQueue(GPUQueueID queue);
-// typedef void (*GPUProcFreeQueue)(GPUQueueID queue);
-// GPU_API void GPUSubmitQueue(GPUQueueID queue, const struct GPUQueueSubmitDescriptor *desc);
-// typedef void (*GPUProcSubmitQueue)(GPUQueueID queue, const struct GPUQueueSubmitDescriptor *desc);
-// GPU_API void GPUWaitQueueIdle(GPUQueueID queue);
-// typedef void (*GPUProcWaitQueueIdle)(GPUQueueID queue);
-// GPU_API void GPUQueuePresent(GPUQueueID queue, const struct GPUQueuePresentDescriptor *desc);
-// typedef void (*GPUProcQueuePresent)(GPUQueueID queue, const struct GPUQueuePresentDescriptor *desc);
+// queue
+GPU_API GPUQueueID GPUGetQueue(GPUDeviceID pDevice, EGPUQueueType queueType, uint32_t queueIndex);
+typedef GPUQueueID (*GPUProcGetQueue)(GPUDeviceID pDevice, EGPUQueueType queueType, uint32_t queueIndex);
+GPU_API void GPUFreeQueue(GPUQueueID queue);
+typedef void (*GPUProcFreeQueue)(GPUQueueID queue);
+GPU_API void GPUSubmitQueue(GPUQueueID queue, const struct GPUQueueSubmitDescriptor *desc);
+typedef void (*GPUProcSubmitQueue)(GPUQueueID queue, const struct GPUQueueSubmitDescriptor *desc);
+GPU_API void GPUWaitQueueIdle(GPUQueueID queue);
+typedef void (*GPUProcWaitQueueIdle)(GPUQueueID queue);
+GPU_API void GPUQueuePresent(GPUQueueID queue, const struct GPUQueuePresentDescriptor *desc);
+typedef void (*GPUProcQueuePresent)(GPUQueueID queue, const struct GPUQueuePresentDescriptor *desc);
 
-// // surface api
-// GPU_API GPUSurfaceID GPUCreateSurfaceFromNativeView(GPUInstanceID pInstance, void *view);
-// GPU_API void GPUFreeSurface(GPUInstanceID pInstance, GPUSurfaceID pSurface);
-// typedef void (*GPUProcFreeSurface)(GPUInstanceID pInstance, GPUSurfaceID pSurface);
-// #if defined(_WIN64)
-//     typedef struct HWND__ *HWND;
-//     GPU_API GPUSurfaceID GPUCreateSurfaceFromHWND(GPUInstanceID pInstance, HWND window);
-//     typedef GPUSurfaceID (*GPUProcCreateSurfaceFromHWND)(GPUInstanceID pInstance, HWND window);
-// #endif
-// typedef struct GPUSurfacesProcTable
-// {
-//     GPUProcFreeSurface FreeSurface;
-// #if defined(_WIN64)
-//     const GPUProcCreateSurfaceFromHWND CreateSurfaceFromHWND;
-// #endif
-// } GPUSurfacesProcTable;
+// surface api
+GPU_API GPUSurfaceID GPUCreateSurfaceFromNativeView(GPUInstanceID pInstance, void *view);
+GPU_API void GPUFreeSurface(GPUInstanceID pInstance, GPUSurfaceID pSurface);
+typedef void (*GPUProcFreeSurface)(GPUInstanceID pInstance, GPUSurfaceID pSurface);
+#if defined(_WIN64)
+    typedef struct HWND__ *HWND;
+    GPU_API GPUSurfaceID GPUCreateSurfaceFromHWND(GPUInstanceID pInstance, HWND window);
+    typedef GPUSurfaceID (*GPUProcCreateSurfaceFromHWND)(GPUInstanceID pInstance, HWND window);
+#endif
+typedef struct GPUSurfacesProcTable
+{
+    GPUProcFreeSurface FreeSurface;
+#if defined(_WIN64)
+    const GPUProcCreateSurfaceFromHWND CreateSurfaceFromHWND;
+#endif
+} GPUSurfacesProcTable;
 
-// // swapchain api
-// GPU_API GPUSwapchainID GPUCreateSwapchain(GPUDeviceID pDevice, const struct GPUSwapchainDescriptor *pDesc);
-// typedef GPUSwapchainID (*GPUProcCreateSwapchain)(GPUDeviceID pDevice, const struct GPUSwapchainDescriptor *pDesc);
-// GPU_API void GPUFreeSwapchain(GPUSwapchainID pSwapchain);
-// typedef void (*GPUProcFreeSwapchain)(GPUSwapchainID pSwapchain);
-// GPU_API uint32_t GPUAcquireNextImage(GPUSwapchainID swapchain, const struct GPUAcquireNextDescriptor *desc);
-// typedef uint32_t (*GPUProcAcquireNextImage)(GPUSwapchainID swapchain, const struct GPUAcquireNextDescriptor *desc);
+// swapchain api
+GPU_API GPUSwapchainID GPUCreateSwapchain(GPUDeviceID pDevice, const struct GPUSwapchainDescriptor *pDesc);
+typedef GPUSwapchainID (*GPUProcCreateSwapchain)(GPUDeviceID pDevice, const struct GPUSwapchainDescriptor *pDesc);
+GPU_API void GPUFreeSwapchain(GPUSwapchainID pSwapchain);
+typedef void (*GPUProcFreeSwapchain)(GPUSwapchainID pSwapchain);
+GPU_API uint32_t GPUAcquireNextImage(GPUSwapchainID swapchain, const struct GPUAcquireNextDescriptor *desc);
+typedef uint32_t (*GPUProcAcquireNextImage)(GPUSwapchainID swapchain, const struct GPUAcquireNextDescriptor *desc);
 
-// // texture & texture_view api
-// GPUTextureViewID
-// GPUCreateTextureView(GPUDeviceID pDevice,
-//                      const struct GPUTextureViewDescriptor *pDesc);
-// typedef GPUTextureViewID (*GPUProcCreateTextureView)(
-//     GPUDeviceID pDevice, const struct GPUTextureViewDescriptor *pDesc);
-// void GPUFreeTextureView(GPUTextureViewID pTextureView);
-// typedef void (*GPUProcFreeTextureView)(GPUTextureViewID pTextureView);
-// GPUTextureID GPUCreateTexture(GPUDeviceID device,
-//                               const struct GPUTextureDescriptor *desc);
-// typedef GPUTextureID (*GPUProcCreateTexture)(GPUDeviceID device,
-//                                              const struct GPUTextureDescriptor *desc);
-// void GPUFreeTexture(GPUTextureID texture);
-// typedef void (*GPUProcFreeTexture)(GPUTextureID texture);
+// texture & texture_view api
+GPUTextureViewID
+GPUCreateTextureView(GPUDeviceID pDevice,
+                     const struct GPUTextureViewDescriptor *pDesc);
+typedef GPUTextureViewID (*GPUProcCreateTextureView)(
+    GPUDeviceID pDevice, const struct GPUTextureViewDescriptor *pDesc);
+void GPUFreeTextureView(GPUTextureViewID pTextureView);
+typedef void (*GPUProcFreeTextureView)(GPUTextureViewID pTextureView);
+GPUTextureID GPUCreateTexture(GPUDeviceID device,
+                              const struct GPUTextureDescriptor *desc);
+typedef GPUTextureID (*GPUProcCreateTexture)(GPUDeviceID device,
+                                             const struct GPUTextureDescriptor *desc);
+void GPUFreeTexture(GPUTextureID texture);
+typedef void (*GPUProcFreeTexture)(GPUTextureID texture);
 
-// // shader api
-// GPUShaderLibraryID
-// GPUCreateShaderLibrary(GPUDeviceID pDevice,
-//                        const struct GPUShaderLibraryDescriptor *pDesc);
-// typedef GPUShaderLibraryID (*GPUProcCreateShaderLibrary)(
-//     GPUDeviceID pDevice, const struct GPUShaderLibraryDescriptor *pDesc);
-// void GPUFreeShaderLibrary(GPUShaderLibraryID pShader);
-// typedef void (*GPUProcFreeShaderLibrary)(GPUShaderLibraryID pShader);
+// shader api
+GPUShaderLibraryID
+GPUCreateShaderLibrary(GPUDeviceID pDevice,
+                       const struct GPUShaderLibraryDescriptor *pDesc);
+typedef GPUShaderLibraryID (*GPUProcCreateShaderLibrary)(
+    GPUDeviceID pDevice, const struct GPUShaderLibraryDescriptor *pDesc);
+void GPUFreeShaderLibrary(GPUShaderLibraryID pShader);
+typedef void (*GPUProcFreeShaderLibrary)(GPUShaderLibraryID pShader);
 
-// // pipeline
-// GPURenderPipelineID
-// GPUCreateRenderPipeline(GPUDeviceID pDevice,
-//                         const struct GPURenderPipelineDescriptor *pDesc);
-// typedef GPURenderPipelineID (*GPUProcCreateRenderPipeline)(
-//     GPUDeviceID pDevice, const struct GPURenderPipelineDescriptor *pDesc);
-// void GPUFreeRenderPipeline(GPURenderPipelineID pPipeline);
-// typedef void (*GPUProcFreeRenderPipeline)(GPURenderPipelineID pPipeline);
+// pipeline
+GPURenderPipelineID
+GPUCreateRenderPipeline(GPUDeviceID pDevice,
+                        const struct GPURenderPipelineDescriptor *pDesc);
+typedef GPURenderPipelineID (*GPUProcCreateRenderPipeline)(
+    GPUDeviceID pDevice, const struct GPURenderPipelineDescriptor *pDesc);
+void GPUFreeRenderPipeline(GPURenderPipelineID pPipeline);
+typedef void (*GPUProcFreeRenderPipeline)(GPURenderPipelineID pPipeline);
 
-// GPURootSignatureID
-// GPUCreateRootSignature(GPUDeviceID device,
-//                        const struct GPURootSignatureDescriptor *desc);
-// typedef GPURootSignatureID (*GPUProcCreateRootSignature)(
-//     GPUDeviceID device, const struct GPURootSignatureDescriptor *desc);
-// void GPUFreeRootSignature(GPURootSignatureID RS);
-// typedef void (*GPUProcFreeRootSignature)(GPURootSignatureID RS);
+GPURootSignatureID
+GPUCreateRootSignature(GPUDeviceID device,
+                       const struct GPURootSignatureDescriptor *desc);
+typedef GPURootSignatureID (*GPUProcCreateRootSignature)(
+    GPUDeviceID device, const struct GPURootSignatureDescriptor *desc);
+void GPUFreeRootSignature(GPURootSignatureID RS);
+typedef void (*GPUProcFreeRootSignature)(GPURootSignatureID RS);
 
-// // command
-// GPUCommandPoolID GPUCreateCommandPool(GPUQueueID queue);
-// typedef GPUCommandPoolID (*GPUProcCreateCommandPool)(GPUQueueID queue);
-// void GPUFreeCommandPool(GPUCommandPoolID pool);
-// typedef void (*GPUProcFreeCommandPool)(GPUCommandPoolID pool);
-// void GPUResetCommandPool(GPUCommandPoolID pool);
-// typedef void (*GPUProcResetCommandPool)(GPUCommandPoolID pool);
-// GPUCommandBufferID
-// GPUCreateCommandBuffer(GPUCommandPoolID pool,
-//                        const struct GPUCommandBufferDescriptor *desc);
-// typedef GPUCommandBufferID (*GPUProcCreateCommandBuffer)(
-//     GPUCommandPoolID pool, const struct GPUCommandBufferDescriptor *desc);
-// void GPUFreeCommandBuffer(GPUCommandBufferID cmd);
-// typedef void (*GPUProcFreeCommandBuffer)(GPUCommandBufferID cmd);
-// void GPUCmdBegin(GPUCommandBufferID cmdBuffer);
-// typedef void (*GPUProcCmdBegin)(GPUCommandBufferID cmdBuffer);
-// void GPUCmdEnd(GPUCommandBufferID cmdBuffer);
-// typedef void (*GPUProcCmdEnd)(GPUCommandBufferID cmdBuffer);
-// void GPUCmdResourceBarrier(GPUCommandBufferID cmd,
-//                            const struct GPUResourceBarrierDescriptor *desc);
-// typedef void (*GPUProcCmdResourceBarrier)(
-//     GPUCommandBufferID cmd, const struct GPUResourceBarrierDescriptor *desc);
-// void GPUCmdTransferBufferToTexture(
-//     GPUCommandBufferID cmd, const struct GPUBufferToTextureTransfer *desc);
-// typedef void (*GPUProcCmdTransferBufferToTexture)(
-//     GPUCommandBufferID cmd, const struct GPUBufferToTextureTransfer *desc);
-// void GPUCmdTransferBufferToBuffer(GPUCommandBufferID cmd,
-//                                   const struct GPUBufferToBufferTransfer *desc);
-// typedef void (*GPUProcCmdTransferBufferToBuffer)(
-//     GPUCommandBufferID cmd, const struct GPUBufferToBufferTransfer *desc);
-// void GPUCmdTransferTextureToTexture(
-//     GPUCommandBufferID cmd, const struct GPUTextureToTextureTransfer *desc);
-// typedef void (*GPUProcCmdTransferTextureToTexture)(
-//     GPUCommandBufferID cmd, const struct GPUTextureToTextureTransfer *desc);
+// command
+GPUCommandPoolID GPUCreateCommandPool(GPUQueueID queue);
+typedef GPUCommandPoolID (*GPUProcCreateCommandPool)(GPUQueueID queue);
+void GPUFreeCommandPool(GPUCommandPoolID pool);
+typedef void (*GPUProcFreeCommandPool)(GPUCommandPoolID pool);
+void GPUResetCommandPool(GPUCommandPoolID pool);
+typedef void (*GPUProcResetCommandPool)(GPUCommandPoolID pool);
+GPUCommandBufferID
+GPUCreateCommandBuffer(GPUCommandPoolID pool,
+                       const struct GPUCommandBufferDescriptor *desc);
+typedef GPUCommandBufferID (*GPUProcCreateCommandBuffer)(
+    GPUCommandPoolID pool, const struct GPUCommandBufferDescriptor *desc);
+void GPUFreeCommandBuffer(GPUCommandBufferID cmd);
+typedef void (*GPUProcFreeCommandBuffer)(GPUCommandBufferID cmd);
+void GPUCmdBegin(GPUCommandBufferID cmdBuffer);
+typedef void (*GPUProcCmdBegin)(GPUCommandBufferID cmdBuffer);
+void GPUCmdEnd(GPUCommandBufferID cmdBuffer);
+typedef void (*GPUProcCmdEnd)(GPUCommandBufferID cmdBuffer);
+void GPUCmdResourceBarrier(GPUCommandBufferID cmd,
+                           const struct GPUResourceBarrierDescriptor *desc);
+typedef void (*GPUProcCmdResourceBarrier)(
+    GPUCommandBufferID cmd, const struct GPUResourceBarrierDescriptor *desc);
+void GPUCmdTransferBufferToTexture(
+    GPUCommandBufferID cmd, const struct GPUBufferToTextureTransfer *desc);
+typedef void (*GPUProcCmdTransferBufferToTexture)(
+    GPUCommandBufferID cmd, const struct GPUBufferToTextureTransfer *desc);
+void GPUCmdTransferBufferToBuffer(GPUCommandBufferID cmd,
+                                  const struct GPUBufferToBufferTransfer *desc);
+typedef void (*GPUProcCmdTransferBufferToBuffer)(
+    GPUCommandBufferID cmd, const struct GPUBufferToBufferTransfer *desc);
+void GPUCmdTransferTextureToTexture(
+    GPUCommandBufferID cmd, const struct GPUTextureToTextureTransfer *desc);
+typedef void (*GPUProcCmdTransferTextureToTexture)(
+    GPUCommandBufferID cmd, const struct GPUTextureToTextureTransfer *desc);
 
-// // fence & semaphore
-// GPUFenceID GPUCreateFence(GPUDeviceID device);
-// typedef GPUFenceID (*GPUProcCreateFence)(GPUDeviceID device);
-// void GPUFreeFence(GPUFenceID fence);
-// typedef void (*GPUProcFreeFence)(GPUFenceID fence);
-// void GPUWaitFences(const GPUFenceID *fences, uint32_t fenceCount);
-// typedef void (*GPUProcWaitFences)(const GPUFenceID *fences,
-//                                   uint32_t fenceCount);
-// EGPUFenceStatus GPUQueryFenceStatus(GPUFenceID fence);
-// typedef EGPUFenceStatus (*GPUProcQueryFenceStatus)(GPUFenceID fence);
-// GPUSemaphoreID GPUCreateSemaphore(GPUDeviceID device);
-// typedef GPUSemaphoreID (*GPUProcCreateSemaphore)(GPUDeviceID device);
-// void GPUFreeSemaphore(GPUSemaphoreID semaphore);
-// typedef void (*GPUProcFreeSemaphore)(GPUSemaphoreID semaphore);
+// fence & semaphore
+GPUFenceID GPUCreateFence(GPUDeviceID device);
+typedef GPUFenceID (*GPUProcCreateFence)(GPUDeviceID device);
+void GPUFreeFence(GPUFenceID fence);
+typedef void (*GPUProcFreeFence)(GPUFenceID fence);
+void GPUWaitFences(const GPUFenceID *fences, uint32_t fenceCount);
+typedef void (*GPUProcWaitFences)(const GPUFenceID *fences,
+                                  uint32_t fenceCount);
+EGPUFenceStatus GPUQueryFenceStatus(GPUFenceID fence);
+typedef EGPUFenceStatus (*GPUProcQueryFenceStatus)(GPUFenceID fence);
+GPUSemaphoreID GPUCreateSemaphore(GPUDeviceID device);
+typedef GPUSemaphoreID (*GPUProcCreateSemaphore)(GPUDeviceID device);
+void GPUFreeSemaphore(GPUSemaphoreID semaphore);
+typedef void (*GPUProcFreeSemaphore)(GPUSemaphoreID semaphore);
 
-// GPURenderPassEncoderID
-// GPUCmdBeginRenderPass(GPUCommandBufferID cmd,
-//                       const struct GPURenderPassDescriptor *desc);
-// typedef GPURenderPassEncoderID (*GPUProcCmdBeginRenderPass)(
-//     GPUCommandBufferID cmd, const struct GPURenderPassDescriptor *desc);
-// void GPUCmdEndRenderPass(GPUCommandBufferID cmd,
-//                          GPURenderPassEncoderID encoder);
-// typedef void (*GPUProcCmdEndRenderPass)(GPUCommandBufferID cmd,
-//                                         GPURenderPassEncoderID encoder);
-// void GPURenderEncoderSetViewport(GPURenderPassEncoderID encoder, float x,
-//                                  float y, float width, float height,
-//                                  float min_depth, float max_depth);
-// typedef void (*GPUProcRenderEncoderSetViewport)(GPURenderPassEncoderID encoder,
-//                                                 float x, float y, float width,
-//                                                 float height, float min_depth,
-//                                                 float max_depth);
-// void GPURenderEncoderSetScissor(GPURenderPassEncoderID encoder, uint32_t x,
-//                                 uint32_t y, uint32_t width, uint32_t height);
-// typedef void (*GPUProcRenderEncoderSetScissor)(GPURenderPassEncoderID encoder,
-//                                                uint32_t x, uint32_t y,
-//                                                uint32_t width, uint32_t height);
-// void GPURenderEncoderBindPipeline(GPURenderPassEncoderID encoder,
-//                                   GPURenderPipelineID pipeline);
-// typedef void (*GPUProcRenderEncoderBindPipeline)(GPURenderPassEncoderID encoder,
-//                                                  GPURenderPipelineID pipeline);
-// void GPURenderEncoderDraw(GPURenderPassEncoderID encoder, uint32_t vertex_count,
-//                           uint32_t first_vertex);
-// typedef void (*GPUProcRenderEncoderDraw)(GPURenderPassEncoderID encoder,
-//                                          uint32_t vertex_count,
-//                                          uint32_t first_vertex);
-// void GPURenderEncoderDrawIndexed(GPURenderPassEncoderID encoder,
-//                                  uint32_t indexCount, uint32_t firstIndex,
-//                                  uint32_t vertexOffset);
-// typedef void (*GPUProcRenderEncoderDrawIndexed)(GPURenderPassEncoderID encoder,
-//                                                 uint32_t indexCount,
-//                                                 uint32_t firstIndex,
-//                                                 uint32_t vertexOffset);
-// void GPURenderEncoderDrawIndexedInstanced(
-//     GPURenderPassEncoderID encoder, uint32_t indexCount, uint32_t instanceCount,
-//     uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
-// typedef void (*GPUProcRenderEncoderDrawIndexedInstanced)(
-//     GPURenderPassEncoderID encoder, uint32_t indexCount, uint32_t instanceCount,
-//     uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
-// void GPURenderEncoderBindVertexBuffers(GPURenderPassEncoderID encoder,
-//                                        uint32_t buffer_count,
-//                                        const GPUBufferID *buffers,
-//                                        const uint32_t *strides,
-//                                        const uint32_t *offsets);
-// typedef void (*GPUProcRenderEncoderBindVertexBuffers)(
-//     GPURenderPassEncoderID encoder, uint32_t buffer_count,
-//     const GPUBufferID *buffers, const uint32_t *strides,
-//     const uint32_t *offsets);
-// void GPURenderEncoderBindIndexBuffer(GPURenderPassEncoderID encoder,
-//                                      GPUBufferID buffer, uint32_t offset,
-//                                      uint64_t indexStride);
-// typedef void (*GPUProcRenderEncoderBindIndexBuffer)(
-//     GPURenderPassEncoderID encoder, GPUBufferID buffer, uint32_t offset,
-//     uint64_t indexStride);
-// void GPURenderEncoderBindDescriptorSet(GPURenderPassEncoderID encoder,
-//                                        GPUDescriptorSetID set);
-// typedef void (*GPUProcRenderEncoderBindDescriptorSet)(
-//     GPURenderPassEncoderID encoder, GPUDescriptorSetID set);
+GPURenderPassEncoderID
+GPUCmdBeginRenderPass(GPUCommandBufferID cmd,
+                      const struct GPURenderPassDescriptor *desc);
+typedef GPURenderPassEncoderID (*GPUProcCmdBeginRenderPass)(
+    GPUCommandBufferID cmd, const struct GPURenderPassDescriptor *desc);
+void GPUCmdEndRenderPass(GPUCommandBufferID cmd,
+                         GPURenderPassEncoderID encoder);
+typedef void (*GPUProcCmdEndRenderPass)(GPUCommandBufferID cmd,
+                                        GPURenderPassEncoderID encoder);
+void GPURenderEncoderSetViewport(GPURenderPassEncoderID encoder, float x,
+                                 float y, float width, float height,
+                                 float min_depth, float max_depth);
+typedef void (*GPUProcRenderEncoderSetViewport)(GPURenderPassEncoderID encoder,
+                                                float x, float y, float width,
+                                                float height, float min_depth,
+                                                float max_depth);
+void GPURenderEncoderSetScissor(GPURenderPassEncoderID encoder, uint32_t x,
+                                uint32_t y, uint32_t width, uint32_t height);
+typedef void (*GPUProcRenderEncoderSetScissor)(GPURenderPassEncoderID encoder,
+                                               uint32_t x, uint32_t y,
+                                               uint32_t width, uint32_t height);
+void GPURenderEncoderBindPipeline(GPURenderPassEncoderID encoder,
+                                  GPURenderPipelineID pipeline);
+typedef void (*GPUProcRenderEncoderBindPipeline)(GPURenderPassEncoderID encoder,
+                                                 GPURenderPipelineID pipeline);
+void GPURenderEncoderDraw(GPURenderPassEncoderID encoder, uint32_t vertex_count,
+                          uint32_t first_vertex);
+typedef void (*GPUProcRenderEncoderDraw)(GPURenderPassEncoderID encoder,
+                                         uint32_t vertex_count,
+                                         uint32_t first_vertex);
+void GPURenderEncoderDrawIndexed(GPURenderPassEncoderID encoder,
+                                 uint32_t indexCount, uint32_t firstIndex,
+                                 uint32_t vertexOffset);
+typedef void (*GPUProcRenderEncoderDrawIndexed)(GPURenderPassEncoderID encoder,
+                                                uint32_t indexCount,
+                                                uint32_t firstIndex,
+                                                uint32_t vertexOffset);
+void GPURenderEncoderDrawIndexedInstanced(
+    GPURenderPassEncoderID encoder, uint32_t indexCount, uint32_t instanceCount,
+    uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
+typedef void (*GPUProcRenderEncoderDrawIndexedInstanced)(
+    GPURenderPassEncoderID encoder, uint32_t indexCount, uint32_t instanceCount,
+    uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
+void GPURenderEncoderBindVertexBuffers(GPURenderPassEncoderID encoder,
+                                       uint32_t buffer_count,
+                                       const GPUBufferID *buffers,
+                                       const uint32_t *strides,
+                                       const uint32_t *offsets);
+typedef void (*GPUProcRenderEncoderBindVertexBuffers)(
+    GPURenderPassEncoderID encoder, uint32_t buffer_count,
+    const GPUBufferID *buffers, const uint32_t *strides,
+    const uint32_t *offsets);
+void GPURenderEncoderBindIndexBuffer(GPURenderPassEncoderID encoder,
+                                     GPUBufferID buffer, uint32_t offset,
+                                     uint64_t indexStride);
+typedef void (*GPUProcRenderEncoderBindIndexBuffer)(
+    GPURenderPassEncoderID encoder, GPUBufferID buffer, uint32_t offset,
+    uint64_t indexStride);
+void GPURenderEncoderBindDescriptorSet(GPURenderPassEncoderID encoder,
+                                       GPUDescriptorSetID set);
+typedef void (*GPUProcRenderEncoderBindDescriptorSet)(
+    GPURenderPassEncoderID encoder, GPUDescriptorSetID set);
 
-// // buffer
-// GPUBufferID GPUCreateBuffer(GPUDeviceID device,
-//                             const struct GPUBufferDescriptor *desc);
-// typedef GPUBufferID (*GPUProcCreateBuffer)(GPUDeviceID device,
-//                                            const struct GPUBufferDescriptor *desc);
-// void GPUFreeBuffer(GPUBufferID buffer);
-// typedef void (*GPUProcFreeBuffer)(GPUBufferID buffer);
-// void GPUTransferBufferToBuffer(GPUCommandBufferID cmd,
-//                                const struct GPUBufferToBufferTransfer *desc);
-// typedef void (*GPUProcTransferBufferToBuffer)(
-//     GPUCommandBufferID cmd, const struct GPUBufferToBufferTransfer *desc);
+// buffer
+GPUBufferID GPUCreateBuffer(GPUDeviceID device,
+                            const struct GPUBufferDescriptor *desc);
+typedef GPUBufferID (*GPUProcCreateBuffer)(GPUDeviceID device,
+                                           const struct GPUBufferDescriptor *desc);
+void GPUFreeBuffer(GPUBufferID buffer);
+typedef void (*GPUProcFreeBuffer)(GPUBufferID buffer);
+void GPUTransferBufferToBuffer(GPUCommandBufferID cmd,
+                               const struct GPUBufferToBufferTransfer *desc);
+typedef void (*GPUProcTransferBufferToBuffer)(
+    GPUCommandBufferID cmd, const struct GPUBufferToBufferTransfer *desc);
 
-// // sampler
-// GPUSamplerID GPUCreateSampler(GPUDeviceID device,
-//                               const struct GPUSamplerDescriptor *desc);
-// typedef GPUSamplerID (*GPUProcCreateSampler)(
-//     GPUDeviceID device, const struct GPUSamplerDescriptor *desc);
-// void GPUFreeSampler(GPUSamplerID sampler);
-// typedef void (*GPUProcFreeSampler)(GPUSamplerID sampler);
+// sampler
+GPUSamplerID GPUCreateSampler(GPUDeviceID device,
+                              const struct GPUSamplerDescriptor *desc);
+typedef GPUSamplerID (*GPUProcCreateSampler)(
+    GPUDeviceID device, const struct GPUSamplerDescriptor *desc);
+void GPUFreeSampler(GPUSamplerID sampler);
+typedef void (*GPUProcFreeSampler)(GPUSamplerID sampler);
 
-// GPUDescriptorSetID
-// GPUCreateDescriptorSet(GPUDeviceID device,
-//                        const struct GPUDescriptorSetDescriptor *desc);
-// typedef GPUDescriptorSetID (*GPUProcCreateDescriptorSet)(
-//     GPUDeviceID device, const struct GPUDescriptorSetDescriptor *desc);
-// void GPUFreeDescriptorSet(GPUDescriptorSetID set);
-// typedef void (*GPUProcFreeDescriptorSet)(GPUDescriptorSetID set);
-// void GPUUpdateDescriptorSet(GPUDescriptorSetID set,
-//                             const struct GPUDescriptorData *datas,
-//                             uint32_t count);
-// typedef void (*GPUProcUpdateDescriptorSet)(
-//     GPUDescriptorSetID set, const struct GPUDescriptorData *datas,
-//     uint32_t count);
+GPUDescriptorSetID
+GPUCreateDescriptorSet(GPUDeviceID device,
+                       const struct GPUDescriptorSetDescriptor *desc);
+typedef GPUDescriptorSetID (*GPUProcCreateDescriptorSet)(
+    GPUDeviceID device, const struct GPUDescriptorSetDescriptor *desc);
+void GPUFreeDescriptorSet(GPUDescriptorSetID set);
+typedef void (*GPUProcFreeDescriptorSet)(GPUDescriptorSetID set);
+void GPUUpdateDescriptorSet(GPUDescriptorSetID set,
+                            const struct GPUDescriptorData *datas,
+                            uint32_t count);
+typedef void (*GPUProcUpdateDescriptorSet)(
+    GPUDescriptorSetID set, const struct GPUDescriptorData *datas,
+    uint32_t count);
 
-// typedef struct GPUProcTable {
-//   // instance api
-//   const GPUProcCreateInstance CreateInstance;
-//   const GPUProcFreeInstance FreeInstance;
+typedef struct GPUProcTable {
+  // instance api
+  const GPUProcCreateInstance CreateInstance;
+  const GPUProcFreeInstance FreeInstance;
 
-//   // adapter api
-//   const GPUProcEnumerateAdapters EnumerateAdapters;
+  // adapter api
+  const GPUProcEnumerateAdapters EnumerateAdapters;
 
-//   // device api
-//   const GPUProcCreateDevice CreateDevice;
-//   const GPUProcFreeDevice FreeDevice;
+  // device api
+  const GPUProcCreateDevice CreateDevice;
+  const GPUProcFreeDevice FreeDevice;
 
-//   // queue
-//   const GPUProcGetQueue GetQueue;
-//   const GPUProcFreeQueue FreeQueue;
-//   const GPUProcSubmitQueue SubmitQueue;
-//   const GPUProcWaitQueueIdle WaitQueueIdle;
-//   const GPUProcQueuePresent QueuePresent;
-
+  // queue
+  const GPUProcGetQueue GetQueue;
+  const GPUProcFreeQueue FreeQueue;
+  const GPUProcSubmitQueue SubmitQueue;
+  const GPUProcWaitQueueIdle WaitQueueIdle;
+  const GPUProcQueuePresent QueuePresent;
+} GPUProcTable;
 //   // swapchain api
 //   const GPUProcCreateSwapchain CreateSwapchain;
 //   const GPUProcFreeSwapchain FreeSwapchain;
@@ -369,78 +369,117 @@
 //   const GPUProcUpdateDescriptorSet UpdateDescriptorSet;
 // } GPUProcTable;
 
-// typedef struct CGPUChainedDescriptor {
-//   EGPUBackend backend;
-// } CGPUChainedDescriptor;
+typedef struct CGPUChainedDescriptor
+{
+    EGPUBackend backend;
+} CGPUChainedDescriptor;
 
-// typedef struct GPUInstanceDescriptor {
-//   const CGPUChainedDescriptor *pChained;
-//   EGPUBackend backend;
-//   bool enableDebugLayer;
-//   bool enableValidation;
-// } GPUInstanceDescriptor;
+typedef struct GPUInstanceDescriptor
+{
+    const CGPUChainedDescriptor* pChained;
+    EGPUBackend backend;
+    bool enableDebugLayer;
+    bool enableValidation;
+} GPUInstanceDescriptor;
 
-// typedef struct GPUInstance {
-//   const GPUProcTable *pProcTable;
-//   const GPUSurfacesProcTable *pSurfaceProcTable;
+typedef struct GPUInstance
+{
+    const GPUProcTable* pProcTable;
+    const GPUSurfacesProcTable* pSurfaceProcTable;
 
-//   EGPUBackend backend;
-// } GPUInstance;
+    EGPUBackend backend;
+} GPUInstance;
 
-// typedef struct GPUFormatSupport {
-//   uint8_t shader_read : 1;
-//   uint8_t shader_write : 1;
-//   uint8_t render_target_write : 1;
-// } GPUFormatSupport;
+typedef struct GPUFormatSupport
+{
+    uint8_t shader_read : 1;
+    uint8_t shader_write : 1;
+    uint8_t render_target_write : 1;
+} GPUFormatSupport;
 
-// typedef struct GPUAdapterDetail {
-//   GPUFormatSupport format_supports[GPU_FORMAT_COUNT];
-// } GPUAdapterDetail;
+typedef struct GPUAdapterDetail
+{
+    GPUFormatSupport format_supports[GPU_FORMAT_COUNT];
+} GPUAdapterDetail;
 
-// typedef struct GPUAdapter {
-//   GPUInstanceID pInstance;
-//   const GPUProcTable *pProcTableCache;
-// } GPUAdapter;
+typedef struct GPUAdapter
+{
+    GPUInstanceID pInstance;
+    const GPUProcTable* pProcTableCache;
+} GPUAdapter;
 
-// typedef struct GPUQueueGroupDescriptor {
-//   EGPUQueueType queueType;
-//   uint32_t queueCount;
-// } GPUQueueGroupDescriptor;
+typedef struct GPUQueueGroupDescriptor
+{
+    EGPUQueueType queueType;
+    uint32_t queueCount;
+} GPUQueueGroupDescriptor;
 
-// typedef struct GPUDeviceDescriptor {
-//   GPUQueueGroupDescriptor *pQueueGroup;
-//   uint32_t queueGroupCount;
-//   bool disablePipelineCache;
-// } GPUDeviceDescriptor;
+typedef struct GPUDeviceDescriptor
+{
+    GPUQueueGroupDescriptor* pQueueGroup;
+    uint32_t queueGroupCount;
+    bool disablePipelineCache;
+} GPUDeviceDescriptor;
 
-// typedef struct GPUDevice {
-//   const GPUAdapterID pAdapter;
-//   const GPUProcTable *pProcTableCache;
-//   uint64_t nextTextureId;
-// } GPUDevice;
+typedef struct GPUDevice
+{
+    const GPUAdapterID pAdapter;
+    const GPUProcTable* pProcTableCache;
+    uint64_t nextTextureId;
+} GPUDevice;
 
-// typedef struct GPUQueue {
-//   GPUDeviceID pDevice;
-//   EGPUQueueType queueType;
-//   uint32_t queueIndex;
-// } GPUQueue;
+typedef struct GPUQueueSubmitDescriptor
+{
+    GPUCommandBufferID* cmds;
+    GPUFenceID signal_fence;
+    GPUSemaphoreID* wait_semaphores;
+    GPUSemaphoreID* signal_semaphores;
+    uint32_t cmds_count;
+    uint32_t wait_semaphore_count;
+    uint32_t signal_semaphore_count;
+} GPUQueueSubmitDescriptor;
 
-// typedef struct GPUSwapchainDescriptor {
-//   GPUQueueID *ppPresentQueues;
-//   uint32_t presentQueuesCount;
-//   GPUSurfaceID pSurface;
-//   EGPUFormat format;
-//   uint32_t width;
-//   uint32_t height;
-//   uint32_t imageCount;
-//   bool enableVSync;
-// } GPUSwapchainDescriptor;
+typedef struct GPUQueue
+{
+    GPUDeviceID pDevice;
+    EGPUQueueType queueType;
+    uint32_t queueIndex;
+} GPUQueue;
 
-// typedef struct GPUSwapchain {
-//   GPUDeviceID pDevice;
-//   const GPUTextureID *ppBackBuffers;
-//   uint32_t backBuffersCount;
-// } GPUSwapchain;
+typedef struct GPUFence
+{
+    GPUDeviceID device;
+} GPUFence;
+
+typedef struct GPUAcquireNextDescriptor
+{
+    GPUSemaphoreID signal_semaphore;
+    GPUFenceID fence;
+} GPUAcquireNextDescriptor;
+
+typedef struct GPUSemaphore
+{
+    GPUDeviceID device;
+} GPUSemaphore;
+
+typedef struct GPUSwapchainDescriptor
+{
+    GPUQueueID* ppPresentQueues;
+    uint32_t presentQueuesCount;
+    GPUSurfaceID pSurface;
+    EGPUFormat format;
+    uint32_t width;
+    uint32_t height;
+    uint32_t imageCount;
+    bool enableVSync;
+} GPUSwapchainDescriptor;
+
+typedef struct GPUSwapchain
+{
+    GPUDeviceID pDevice;
+    const GPUTextureID* ppBackBuffers;
+    uint32_t backBuffersCount;
+} GPUSwapchain;
 
 // typedef enum EGPUTextureDimension {
 //   GPU_TEX_DIMENSION_1D,
@@ -812,28 +851,17 @@
 //   GPUQueueID queue;
 // } GPUCommandPool;
 
-// typedef struct GPUCommandBufferDescriptor {
-//   bool isSecondary : 1;
-// } GPUCommandBufferDescriptor;
+typedef struct GPUCommandBufferDescriptor
+{
+  bool isSecondary : 1;
+} GPUCommandBufferDescriptor;
 
-// typedef struct GPUCommandBuffer {
-//   GPUDeviceID device;
-//   GPUCommandPoolID pool;
-//   EGPUPipelineType currentDispatch;
-// } GPUCommandBuffer;
-
-// typedef struct GPUFence {
-//   GPUDeviceID device;
-// } GPUFence;
-
-// typedef struct GPUAcquireNextDescriptor {
-//   GPUSemaphoreID signal_semaphore;
-//   GPUFenceID fence;
-// } GPUAcquireNextDescriptor;
-
-// typedef struct GPUSemaphore {
-//   GPUDeviceID device;
-// } GPUSemaphore;
+typedef struct GPUCommandBuffer
+{
+  GPUDeviceID device;
+  GPUCommandPoolID pool;
+  EGPUPipelineType currentDispatch;
+} GPUCommandBuffer;
 
 // typedef struct GPUColorAttachment {
 //   GPUTextureViewID view;
@@ -928,22 +956,13 @@
 //   GPUDeviceID device;
 // } GPURenderPassEncoder;
 
-// typedef struct GPUQueueSubmitDescriptor {
-//   GPUCommandBufferID *cmds;
-//   GPUFenceID signal_fence;
-//   GPUSemaphoreID *wait_semaphores;
-//   GPUSemaphoreID *signal_semaphores;
-//   uint32_t cmds_count;
-//   uint32_t wait_semaphore_count;
-//   uint32_t signal_semaphore_count;
-// } GPUQueueSubmitDescriptor;
-
-// typedef struct GPUQueuePresentDescriptor {
-//   GPUSwapchainID swapchain;
-//   const GPUSemaphoreID *wait_semaphores;
-//   uint32_t wait_semaphore_count;
-//   uint8_t index;
-// } GPUQueuePresentDescriptor;
+typedef struct GPUQueuePresentDescriptor
+{
+    GPUSwapchainID swapchain;
+    const GPUSemaphoreID* wait_semaphores;
+    uint32_t wait_semaphore_count;
+    uint8_t index;
+} GPUQueuePresentDescriptor;
 
 // typedef struct GPUBufferRange {
 //   uint64_t offset;
@@ -1014,6 +1033,6 @@
 //   uint32_t count;
 // } GPUDescriptorData;
 
-// #ifdef __cplusplus
-// }
-// #endif // extern "C"
+#ifdef __cplusplus
+}
+#endif // extern "C"
