@@ -2,6 +2,10 @@
 #include <stdint.h>
 #include "GpuConfig.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum EGPUBackend
 {
     GPUBackend_Vulkan = 0,
@@ -366,3 +370,95 @@ typedef enum EGPUResourceType
     GPU_RESOURCE_TYPE_MAX_ENUM_BIT = 0x7FFFFFFF
 } EGPUResourceType;
 typedef uint32_t GPUResourceTypes;
+
+typedef enum EGPUTextureDimension
+{
+    GPU_TEX_DIMENSION_1D,
+    GPU_TEX_DIMENSION_2D,
+    GPU_TEX_DIMENSION_2DMS,
+    GPU_TEX_DIMENSION_3D,
+    GPU_TEX_DIMENSION_CUBE,
+    GPU_TEX_DIMENSION_1D_ARRAY,
+    GPU_TEX_DIMENSION_2D_ARRAY,
+    GPU_TEX_DIMENSION_2DMS_ARRAY,
+    GPU_TEX_DIMENSION_CUBE_ARRAY,
+    GPU_TEX_DIMENSION_COUNT,
+    GPU_TEX_DIMENSION_UNDEFINED,
+    GPU_TEX_DIMENSION_MAX_ENUM_BIT = 0x7FFFFFFF
+} EGPUTextureDimension;
+
+typedef enum EGPUTextureCreationFlag
+{
+    /// Default flag (Texture will use default allocation strategy decided by the
+    /// api specific allocator)
+    GPU_TCF_NONE = 0,
+    /// Texture will allocate its own memory (COMMITTED resource)
+    /// Note that this flag is not restricted Commited/Dedicated Allocation
+    /// Actually VMA/D3D12MA allocate dedicated memories with ALLOW_ALIAS flag
+    /// with specific loacl heaps If the texture needs to be restricted
+    /// Committed/Dedicated(thus you want to keep its priority high) Toogle
+    /// is_dedicated flag in GPUTextureDescriptor
+    GPU_TCF_OWN_MEMORY_BIT = 0x01,
+    /// Texture will be allocated in memory which can be shared among multiple
+    /// processes
+    GPU_TCF_EXPORT_BIT = 0x02,
+    /// Texture will be allocated in memory which can be shared among multiple
+    /// gpus
+    GPU_TCF_EXPORT_ADAPTER_BIT = 0x04,
+    /// Use on-tile memory to store this texture
+    GPU_TCF_ON_TILE = 0x08,
+    /// Prevent compression meta data from generating (XBox)
+    GPU_TCF_NO_COMPRESSION = 0x10,
+    /// Force 2D instead of automatically determining dimension based on width,
+    /// height, depth
+    GPU_TCF_FORCE_2D = 0x20,
+    /// Force 3D instead of automatically determining dimension based on width,
+    /// height, depth
+    GPU_TCF_FORCE_3D = 0x40,
+    /// Display target
+    GPU_TCF_ALLOW_DISPLAY_TARGET = 0x80,
+    /// Create a normal map texture
+    GPU_TCF_NORMAL_MAP = 0x100,
+    /// Fragment mask
+    GPU_TCF_FRAG_MASK = 0x200,
+    ///
+    GPU_TCF_USABLE_MAX   = 0x40000,
+    GPU_TCF_MAX_ENUM_BIT = 0x7FFFFFFF
+} EGPUTextureCreationFlag;
+typedef uint32_t GPUTextureCreationFlags;
+
+typedef union GPUClearValue
+{
+    struct
+    {
+        float r;
+        float g;
+        float b;
+        float a;
+    };
+    struct
+    {
+        float depth;
+        uint32_t stencil;
+    };
+} GPUClearValue;
+
+static inline bool FormatUtil_IsDepthStencilFormat(EGPUFormat const fmt)
+{
+    switch (fmt)
+    {
+        case GPU_FORMAT_D24_UNORM_S8_UINT:
+        case GPU_FORMAT_D32_SFLOAT_S8_UINT:
+        case GPU_FORMAT_D16_UNORM_S8_UINT:
+        case GPU_FORMAT_D16_UNORM:
+        case GPU_FORMAT_D32_SFLOAT:
+            return true;
+        default:
+            return false;
+    }
+    return false;
+}
+
+#ifdef __cplusplus
+}
+#endif

@@ -24,49 +24,46 @@ const GPUProcTable* GPUVulkanProcTable();
 const GPUSurfacesProcTable* GPUVulkanSurfacesTable();
 
 // instance api
-GPUInstanceID GPUCreateInstance_Vulkan(const GPUInstanceDescriptor* pDesc);
-void GPUFreeInstance_Vllkan(GPUInstanceID pInstance);
+GPU_API GPUInstanceID GPUCreateInstance_Vulkan(const GPUInstanceDescriptor* pDesc);
+GPU_API void GPUFreeInstance_Vllkan(GPUInstanceID pInstance);
 
 // adapter
-void GPUEnumerateAdapters_Vulkan(GPUInstanceID pInstance, GPUAdapterID* const ppAdapters, uint32_t* adapterCount);
-VkFormat GPUFormatToVulkanFormat(EGPUFormat format);
-EGPUFormat GPUVulkanFormatToGPUFormat(VkFormat format);
+GPU_API void GPUEnumerateAdapters_Vulkan(GPUInstanceID pInstance, GPUAdapterID* const ppAdapters, uint32_t* adapterCount);
 
 // device api
-GPUDeviceID GPUCreateDevice_Vulkan(GPUAdapterID pAdapter, const GPUDeviceDescriptor* pDesc);
-void GPUFreeDevice_Vulkan(GPUDeviceID pDevice);
+GPU_API GPUDeviceID GPUCreateDevice_Vulkan(GPUAdapterID pAdapter, const GPUDeviceDescriptor* pDesc);
+GPU_API void GPUFreeDevice_Vulkan(GPUDeviceID pDevice);
 
 // queue
-uint32_t GPUQueryQueueCount_Vulkan(const GPUAdapterID pAdapter, const EGPUQueueType queueType);
-GPUQueueID GPUGetQueue_Vulkan(GPUDeviceID pDevice, EGPUQueueType queueType, uint32_t queueIndex);
-void GPUFreeQueue_Vulkan(GPUQueueID queue);
-void GPUSubmitQueue_Vulkan(GPUQueueID queue, const struct GPUQueueSubmitDescriptor* desc);
-void GPUWaitQueueIdle_Vulkan(GPUQueueID queue);
-void GPUQueuePresent_Vulkan(GPUQueueID queue, const struct GPUQueuePresentDescriptor* desc);
+GPU_API uint32_t GPUQueryQueueCount_Vulkan(const GPUAdapterID pAdapter, const EGPUQueueType queueType);
+GPU_API GPUQueueID GPUGetQueue_Vulkan(GPUDeviceID pDevice, EGPUQueueType queueType, uint32_t queueIndex);
+GPU_API void GPUFreeQueue_Vulkan(GPUQueueID queue);
+GPU_API void GPUSubmitQueue_Vulkan(GPUQueueID queue, const struct GPUQueueSubmitDescriptor* desc);
+GPU_API void GPUWaitQueueIdle_Vulkan(GPUQueueID queue);
+GPU_API void GPUQueuePresent_Vulkan(GPUQueueID queue, const struct GPUQueuePresentDescriptor* desc);
+
 // swapchain
-GPUSwapchainID GPUCreateSwapchain_Vulkan(GPUDeviceID pDevice, GPUSwapchainDescriptor* pDesc);
-void GPUFreeSwapchain_Vulkan(GPUSwapchainID pSwapchain);
-uint32_t GPUAcquireNextImage_Vulkan(GPUSwapchainID swapchain, const struct GPUAcquireNextDescriptor* desc);
+GPU_API GPUSwapchainID GPUCreateSwapchain_Vulkan(GPUDeviceID pDevice, const struct GPUSwapchainDescriptor* pDesc);
+GPU_API void GPUFreeSwapchain_Vulkan(GPUSwapchainID pSwapchain);
+GPU_API uint32_t GPUAcquireNextImage_Vulkan(GPUSwapchainID swapchain, const struct GPUAcquireNextDescriptor* desc);
 
 // texture & texture_view api
-GPUTextureViewID GPUCreateTextureView_Vulkan(GPUDeviceID pDevice, const GPUTextureViewDescriptor* pDesc);
-void GPUFreeTextureView_Vulkan(GPUTextureViewID pTextureView);
-GPUTextureID GPUCreateTexture_Vulkan(GPUDeviceID device, const GPUTextureDescriptor* desc);
-void GPUFreeTexture_Vulkan(GPUTextureID texture);
+GPU_API GPUTextureViewID GPUCreateTextureView_Vulkan(GPUDeviceID pDevice, const GPUTextureViewDescriptor* pDesc);
+GPU_API void GPUFreeTextureView_Vulkan(GPUTextureViewID pTextureView);
+GPU_API GPUTextureID GPUCreateTexture_Vulkan(GPUDeviceID device, const GPUTextureDescriptor* desc);
+GPU_API void GPUFreeTexture_Vulkan(GPUTextureID texture);
 
 // shader
-GPUShaderLibraryID GPUCreateShaderLibrary_Vulkan(GPUDeviceID pDevice, const GPUShaderLibraryDescriptor* pDesc);
-void GPUFreeShaderLibrary_Vulkan(GPUShaderLibraryID pShader);
-
-// pipeline
-GPURenderPipelineID GPUCreateRenderPipeline_Vulkan(GPUDeviceID pDevice, const GPURenderPipelineDescriptor* pDesc);
-void GPUFreeRenderPipeline_Vulkan(GPURenderPipelineID pPipeline);
+GPU_API GPUShaderLibraryID GPUCreateShaderLibrary_Vulkan(GPUDeviceID pDevice, const GPUShaderLibraryDescriptor* pDesc);
+GPU_API void GPUFreeShaderLibrary_Vulkan(GPUShaderLibraryID pShader);
 
 // rootsignature
-GPURootSignatureID GPUCreateRootSignature_Vulkan(GPUDeviceID device, const struct GPURootSignatureDescriptor* desc);
-void GPUFreeRootSignature_Vulkan(GPURootSignatureID RS);
-void CGPUUtil_InitRSParamTables(GPURootSignature* RS, const struct GPURootSignatureDescriptor* desc);
-void GPUUtil_FreeRSParamTables(GPURootSignature* RS);
+GPU_API GPURootSignatureID GPUCreateRootSignature_Vulkan(GPUDeviceID device, const struct GPURootSignatureDescriptor* desc);
+GPU_API void GPUFreeRootSignature_Vulkan(GPURootSignatureID RS);
+
+// pipeline
+GPU_API GPURenderPipelineID GPUCreateRenderPipeline_Vulkan(GPUDeviceID pDevice, const GPURenderPipelineDescriptor* pDesc);
+GPU_API void GPUFreeRenderPipeline_Vulkan(GPURenderPipelineID pPipeline);
 
 // command
 GPUCommandPoolID GPUCreateCommandPool_Vulkan(GPUQueueID queue);
@@ -192,7 +189,7 @@ typedef struct GPUDevice_Vulkan
 {
     GPUDevice spuer;
     VkDevice pDevice;
-    struct VkUtil_DescriptorPool* pDescriptorPool;
+    struct VulkanUtil_DescriptorPool* pDescriptorPool;
     struct VolkDeviceTable mVkDeviceTable;
     struct GPUVkPassTable* pPassTable;
     VmaAllocator pVmaAllocator;
@@ -215,50 +212,49 @@ typedef struct GPUSwapchain_Vulkan
     VkSwapchainKHR pVkSwapchain;
 } GPUSwapchain_Vulkan;
 
-// typedef struct VmaAllocation_T* VmaAllocation;
-// typedef struct GPUTexture_Vulkan
-// {
-//     GPUTexture super;
-//     VkImage pVkImage;
-//     union
-//     {
-//         VmaAllocation pVkAllocation;
-//         VkDeviceMemory pVkDeviceMemory;
-//     };
-// } GPUTexture_Vulkan;
+typedef struct GPUTexture_Vulkan
+{
+    GPUTexture super;
+    VkImage pVkImage;
+    union
+    {
+        VmaAllocation pVkAllocation;
+        VkDeviceMemory pVkDeviceMemory;
+    };
+} GPUTexture_Vulkan;
 
-// typedef struct GPUTextureView_Vulkan
-// {
-//     GPUTextureView super;
-//     VkImageView pVkRTVDSVDescriptor;
-//     VkImageView pVkSRVDescriptor;
-//     VkImageView pVkUAVDescriptor;
-// } GPUTextureView_Vulkan;
+typedef struct GPUTextureView_Vulkan
+{
+    GPUTextureView super;
+    VkImageView pVkRTVDSVDescriptor;
+    VkImageView pVkSRVDescriptor;
+    VkImageView pVkUAVDescriptor;
+} GPUTextureView_Vulkan;
 
-// typedef struct GPUShaderLibrary_Vulkan
-// {
-//     GPUShaderLibrary super;
-//     VkShaderModule pShader;
-//     struct SpvReflectShaderModule* pReflect;
-// } GPUShaderLibrary_Vulkan;
+typedef struct GPUShaderLibrary_Vulkan
+{
+    GPUShaderLibrary super;
+    VkShaderModule pShader;
+    struct SpvReflectShaderModule* pReflect;
+} GPUShaderLibrary_Vulkan;
 
-// typedef struct SetLayout_Vulkan
-// {
-//     VkDescriptorSetLayout pLayout;
-//     VkDescriptorUpdateTemplate pUpdateTemplate;
-//     uint32_t updateEntriesCount;
-//     VkDescriptorSet pEmptyDescSet;
-// } SetLayout_Vulkan;
+typedef struct SetLayout_Vulkan
+{
+    VkDescriptorSetLayout pLayout;
+    VkDescriptorUpdateTemplate pUpdateTemplate;
+    uint32_t updateEntriesCount;
+    VkDescriptorSet pEmptyDescSet;
+} SetLayout_Vulkan;
 
-// typedef struct GPURootSignature_Vulkan
-// {
-//     GPURootSignature super;
-//     VkPipelineLayout pPipelineLayout;
-//     SetLayout_Vulkan* pSetLayouts;
-//     VkDescriptorSetLayout* pVkSetLayouts;
-//     uint32_t setLayoutsCount;
-//     VkPushConstantRange* pPushConstantRanges;
-// } GPURootSignature_Vulkan;
+typedef struct GPURootSignature_Vulkan
+{
+    GPURootSignature super;
+    VkPipelineLayout pPipelineLayout;
+    SetLayout_Vulkan* pSetLayouts;
+    VkDescriptorSetLayout* pVkSetLayouts;
+    uint32_t setLayoutsCount;
+    VkPushConstantRange* pPushConstantRanges;
+} GPURootSignature_Vulkan;
 
 typedef struct VulkanRenderPassDescriptor
 {
@@ -274,11 +270,11 @@ typedef struct VulkanRenderPassDescriptor
     EGPUStoreAction stencilStoreOp;
 } VulkanRenderPassDescriptor;
 
-// typedef struct GPURenderPipeline_Vulkan
-// {
-//     GPURenderPipeline super;
-//     VkPipeline pPipeline;
-// } GPURenderPipeline_Vulkan;
+typedef struct GPURenderPipeline_Vulkan
+{
+    GPURenderPipeline super;
+    VkPipeline pPipeline;
+} GPURenderPipeline_Vulkan;
 
 // typedef struct GPUCommandPool_Vulkan
 // {
@@ -329,18 +325,18 @@ typedef struct VulkanFramebufferDesriptor
     uint32_t layers;
 } VulkanFramebufferDesriptor;
 
-// typedef struct GPUSampler_Vulkan
-// {
-//     GPUSampler super;
-//     VkSampler pSampler;
-// } GPUSampler_Vulkan;
+typedef struct GPUSampler_Vulkan
+{
+    GPUSampler super;
+    VkSampler pSampler;
+} GPUSampler_Vulkan;
 
-// typedef struct GPUDescriptorSet_Vulkan
-// {
-//     GPUDescriptorSet super;
-//     VkDescriptorSet pSet;
-//     union VkDescriptorUpdateData* pUpdateData;
-// } GPUDescriptorSet_Vulkan;
+typedef struct GPUDescriptorSet_Vulkan
+{
+    GPUDescriptorSet super;
+    VkDescriptorSet pSet;
+    union VkDescriptorUpdateData* pUpdateData;
+} GPUDescriptorSet_Vulkan;
 
 #ifdef __cplusplus
 }

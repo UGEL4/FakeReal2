@@ -31,4 +31,4 @@ target("FakeRealRuntime")
     add_includedirs(runtime_indluces_dir, {public = true})
     
     add_headerfiles("$(projectdir)/FakeRealRuntime/Source/**.h")
-    add_files("$(projectdir)/FakeRealRuntime/Source/**.cpp", "$(projectdir)/FakeRealRuntime/**.build.cpp")
+    add_files("$(projectdir)/FakeRealRuntime/Source/**.cpp", "$(projectdir)/FakeRealRuntime/**.build.cpp", "$(projectdir)/FakeRealRuntime/**/spirv_reflect.c")

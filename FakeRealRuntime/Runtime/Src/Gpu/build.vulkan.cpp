@@ -6,5 +6,5 @@
     #define VMA_IMPLEMENTATION
     #define VMA_STATIC_VULKAN_FUNCTIONS 0
     #define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
-    #include "Gpu/Backend/vma/vk_mem_alloc.h"
+    #include "Gpu/Backend/Vulkan/vma/vk_mem_alloc.h"
 #endif // GPU_USE_VULKAN

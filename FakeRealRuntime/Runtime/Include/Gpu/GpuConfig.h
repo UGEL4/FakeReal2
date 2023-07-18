@@ -26,7 +26,9 @@
     #endif
 #endif
 
-#define CGPU_NAME_HASH_SEED 8053064571610612741
+#define GPU_NAME_HASH_SEED 8053064571610612741
+#define GPU_HASH(buffer, size, seed) Hash64((buffer), (size), (seed))
+#define GPU_NAME_HASH(buffer, size) GPU_HASH((buffer), (size), GPU_NAME_HASH_SEED)
 
 #define GPU_SAFE_FREE(ptr) if (ptr) free(ptr);
 

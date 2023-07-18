@@ -93,45 +93,32 @@ GPU_API uint32_t GPUAcquireNextImage(GPUSwapchainID swapchain, const struct GPUA
 typedef uint32_t (*GPUProcAcquireNextImage)(GPUSwapchainID swapchain, const struct GPUAcquireNextDescriptor *desc);
 
 // texture & texture_view api
-GPUTextureViewID
-GPUCreateTextureView(GPUDeviceID pDevice,
-                     const struct GPUTextureViewDescriptor *pDesc);
-typedef GPUTextureViewID (*GPUProcCreateTextureView)(
-    GPUDeviceID pDevice, const struct GPUTextureViewDescriptor *pDesc);
-void GPUFreeTextureView(GPUTextureViewID pTextureView);
+GPU_API GPUTextureViewID GPUCreateTextureView(GPUDeviceID pDevice, const struct GPUTextureViewDescriptor *pDesc);
+typedef GPUTextureViewID (*GPUProcCreateTextureView)(GPUDeviceID pDevice, const struct GPUTextureViewDescriptor *pDesc);
+GPU_API void GPUFreeTextureView(GPUTextureViewID pTextureView);
 typedef void (*GPUProcFreeTextureView)(GPUTextureViewID pTextureView);
-GPUTextureID GPUCreateTexture(GPUDeviceID device,
-                              const struct GPUTextureDescriptor *desc);
-typedef GPUTextureID (*GPUProcCreateTexture)(GPUDeviceID device,
-                                             const struct GPUTextureDescriptor *desc);
-void GPUFreeTexture(GPUTextureID texture);
+GPU_API GPUTextureID GPUCreateTexture(GPUDeviceID device, const struct GPUTextureDescriptor *desc);
+typedef GPUTextureID (*GPUProcCreateTexture)(GPUDeviceID device, const struct GPUTextureDescriptor *desc);
+GPU_API void GPUFreeTexture(GPUTextureID texture);
 typedef void (*GPUProcFreeTexture)(GPUTextureID texture);
 
 // shader api
-GPUShaderLibraryID
-GPUCreateShaderLibrary(GPUDeviceID pDevice,
-                       const struct GPUShaderLibraryDescriptor *pDesc);
-typedef GPUShaderLibraryID (*GPUProcCreateShaderLibrary)(
-    GPUDeviceID pDevice, const struct GPUShaderLibraryDescriptor *pDesc);
-void GPUFreeShaderLibrary(GPUShaderLibraryID pShader);
+GPU_API GPUShaderLibraryID GPUCreateShaderLibrary(GPUDeviceID pDevice, const struct GPUShaderLibraryDescriptor *pDesc);
+typedef GPUShaderLibraryID (*GPUProcCreateShaderLibrary)(GPUDeviceID pDevice, const struct GPUShaderLibraryDescriptor *pDesc);
+GPU_API void GPUFreeShaderLibrary(GPUShaderLibraryID pShader);
 typedef void (*GPUProcFreeShaderLibrary)(GPUShaderLibraryID pShader);
 
-// pipeline
-GPURenderPipelineID
-GPUCreateRenderPipeline(GPUDeviceID pDevice,
-                        const struct GPURenderPipelineDescriptor *pDesc);
-typedef GPURenderPipelineID (*GPUProcCreateRenderPipeline)(
-    GPUDeviceID pDevice, const struct GPURenderPipelineDescriptor *pDesc);
-void GPUFreeRenderPipeline(GPURenderPipelineID pPipeline);
-typedef void (*GPUProcFreeRenderPipeline)(GPURenderPipelineID pPipeline);
-
-GPURootSignatureID
-GPUCreateRootSignature(GPUDeviceID device,
-                       const struct GPURootSignatureDescriptor *desc);
-typedef GPURootSignatureID (*GPUProcCreateRootSignature)(
-    GPUDeviceID device, const struct GPURootSignatureDescriptor *desc);
-void GPUFreeRootSignature(GPURootSignatureID RS);
+// root signature
+GPU_API GPURootSignatureID GPUCreateRootSignature(GPUDeviceID device, const struct GPURootSignatureDescriptor *desc);
+typedef GPURootSignatureID (*GPUProcCreateRootSignature)(GPUDeviceID device, const struct GPURootSignatureDescriptor *desc);
+GPU_API void GPUFreeRootSignature(GPURootSignatureID RS);
 typedef void (*GPUProcFreeRootSignature)(GPURootSignatureID RS);
+
+// pipeline
+GPU_API GPURenderPipelineID GPUCreateRenderPipeline(GPUDeviceID pDevice, const struct GPURenderPipelineDescriptor *pDesc);
+typedef GPURenderPipelineID (*GPUProcCreateRenderPipeline)(GPUDeviceID pDevice, const struct GPURenderPipelineDescriptor *pDesc);
+GPU_API void GPUFreeRenderPipeline(GPURenderPipelineID pPipeline);
+typedef void (*GPUProcFreeRenderPipeline)(GPURenderPipelineID pPipeline);
 
 // command
 GPUCommandPoolID GPUCreateCommandPool(GPUQueueID queue);
@@ -281,45 +268,51 @@ typedef void (*GPUProcUpdateDescriptorSet)(
     uint32_t count);
 
 typedef struct GPUProcTable {
-  // instance api
-  const GPUProcCreateInstance CreateInstance;
-  const GPUProcFreeInstance FreeInstance;
+    // instance api
+    const GPUProcCreateInstance CreateInstance;
+    const GPUProcFreeInstance FreeInstance;
 
-  // adapter api
-  const GPUProcEnumerateAdapters EnumerateAdapters;
+    // adapter api
+    const GPUProcEnumerateAdapters EnumerateAdapters;
 
-  // device api
-  const GPUProcCreateDevice CreateDevice;
-  const GPUProcFreeDevice FreeDevice;
+    // device api
+    const GPUProcCreateDevice CreateDevice;
+    const GPUProcFreeDevice FreeDevice;
 
-  // queue
-  const GPUProcGetQueue GetQueue;
-  const GPUProcFreeQueue FreeQueue;
-  const GPUProcSubmitQueue SubmitQueue;
-  const GPUProcWaitQueueIdle WaitQueueIdle;
-  const GPUProcQueuePresent QueuePresent;
+    // queue
+    const GPUProcGetQueue GetQueue;
+    const GPUProcFreeQueue FreeQueue;
+    const GPUProcSubmitQueue SubmitQueue;
+    const GPUProcWaitQueueIdle WaitQueueIdle;
+    const GPUProcQueuePresent QueuePresent;
+
+    // swapchain api
+    const GPUProcCreateSwapchain CreateSwapchain;
+    const GPUProcFreeSwapchain FreeSwapchain;
+    const GPUProcAcquireNextImage AcquireNextImage;
+
+    // texture & texture_view api
+    const GPUProcCreateTextureView CreateTextureView;
+    const GPUProcFreeTextureView FreeTextureView;
+    const GPUProcCreateTexture CreateTexture;
+    const GPUProcFreeTexture FreeTexture;
+
+    // shader
+    const GPUProcCreateShaderLibrary CreateShaderLibrary;
+    const GPUProcFreeShaderLibrary FreeShaderLibrary;
+
+    //rs
+    const GPUProcCreateRootSignature CreateRootSignature;
+    const GPUProcFreeRootSignature FreeRootSignature;
+
+    // pipeline
+    const GPUProcCreateRenderPipeline CreateRenderPipeline;
+    const GPUProcFreeRenderPipeline FreeRenderPipeline;
 } GPUProcTable;
-//   // swapchain api
-//   const GPUProcCreateSwapchain CreateSwapchain;
-//   const GPUProcFreeSwapchain FreeSwapchain;
-//   const GPUProcAcquireNextImage AcquireNextImage;
-
-//   // texture & texture_view api
-//   const GPUProcCreateTextureView CreateTextureView;
-//   const GPUProcFreeTextureView FreeTextureView;
-//   const GPUProcCreateTexture CreateTexture;
-//   const GPUProcFreeTexture FreeTexture;
-
-//   // shader
-//   const GPUProcCreateShaderLibrary CreateShaderLibrary;
-//   const GPUProcFreeShaderLibrary FreeShaderLibrary;
 
 //   // pipeline
 //   const GPUProcCreateRenderPipeline CreateRenderPipeline;
 //   const GPUProcFreeRenderPipeline FreeRenderPipeline;
-
-//   const GPUProcCreateRootSignature CreateRootSignature;
-//   const GPUProcFreeRootSignature FreeRootSignature;
 
 //   // command
 //   const GPUProcCreateCommandPool CreateCommandPool;
@@ -481,156 +474,93 @@ typedef struct GPUSwapchain
     uint32_t backBuffersCount;
 } GPUSwapchain;
 
-// typedef enum EGPUTextureDimension {
-//   GPU_TEX_DIMENSION_1D,
-//   GPU_TEX_DIMENSION_2D,
-//   GPU_TEX_DIMENSION_2DMS,
-//   GPU_TEX_DIMENSION_3D,
-//   GPU_TEX_DIMENSION_CUBE,
-//   GPU_TEX_DIMENSION_1D_ARRAY,
-//   GPU_TEX_DIMENSION_2D_ARRAY,
-//   GPU_TEX_DIMENSION_2DMS_ARRAY,
-//   GPU_TEX_DIMENSION_CUBE_ARRAY,
-//   GPU_TEX_DIMENSION_COUNT,
-//   GPU_TEX_DIMENSION_UNDEFINED,
-//   GPU_TEX_DIMENSION_MAX_ENUM_BIT = 0x7FFFFFFF
-// } EGPUTextureDimension;
+typedef struct GPUTextureDescriptor
+{
+    /// Texture creation flags (decides memory allocation strategy, sharing
+    /// access,...)
+    GPUTextureCreationFlags flags;
+    /// Optimized clear value (recommended to use this same value when clearing
+    /// the rendertarget)
+    GPUClearValue clear_value;
+    /// Width
+    uint32_t width;
+    /// Height
+    uint32_t height;
+    /// Depth (Should be 1 if not a mType is not TEXTURE_TYPE_3D)
+    uint32_t depth;
+    /// Texture array size (Should be 1 if texture is not a texture array or
+    /// cubemap)
+    uint32_t array_size;
+    ///  image format
+    EGPUFormat format;
+    /// Number of mip levels
+    uint32_t mip_levels;
+    /// Number of multisamples per pixel (currently Textures created with mUsage
+    /// TEXTURE_USAGE_SAMPLED_IMAGE only support CGPU_SAMPLE_COUNT_1)
+    EGPUSampleCount sample_count;
+    /// The image quality level. The higher the quality, the lower the
+    /// performance. The valid range is between zero and the value appropriate for
+    /// mSampleCount
+    uint32_t sample_quality;
+    /// Owner queue of the resource at creation
+    GPUQueueID owner_queue;
+    /// What state will the texture get created in
+    EGPUResourceState start_state;
+    /// Descriptor creation
+    GPUResourceTypes descriptors;
+    /// Memory Aliasing
+    uint32_t is_dedicated;
+    uint32_t is_aliasing;
+} GPUTextureDescriptor;
 
-// typedef enum EGPUTextureCreationFlag {
-//   /// Default flag (Texture will use default allocation strategy decided by the
-//   /// api specific allocator)
-//   GPU_TCF_NONE = 0,
-//   /// Texture will allocate its own memory (COMMITTED resource)
-//   /// Note that this flag is not restricted Commited/Dedicated Allocation
-//   /// Actually VMA/D3D12MA allocate dedicated memories with ALLOW_ALIAS flag
-//   /// with specific loacl heaps If the texture needs to be restricted
-//   /// Committed/Dedicated(thus you want to keep its priority high) Toogle
-//   /// is_dedicated flag in GPUTextureDescriptor
-//   GPU_TCF_OWN_MEMORY_BIT = 0x01,
-//   /// Texture will be allocated in memory which can be shared among multiple
-//   /// processes
-//   GPU_TCF_EXPORT_BIT = 0x02,
-//   /// Texture will be allocated in memory which can be shared among multiple
-//   /// gpus
-//   GPU_TCF_EXPORT_ADAPTER_BIT = 0x04,
-//   /// Use on-tile memory to store this texture
-//   GPU_TCF_ON_TILE = 0x08,
-//   /// Prevent compression meta data from generating (XBox)
-//   GPU_TCF_NO_COMPRESSION = 0x10,
-//   /// Force 2D instead of automatically determining dimension based on width,
-//   /// height, depth
-//   GPU_TCF_FORCE_2D = 0x20,
-//   /// Force 3D instead of automatically determining dimension based on width,
-//   /// height, depth
-//   GPU_TCF_FORCE_3D = 0x40,
-//   /// Display target
-//   GPU_TCF_ALLOW_DISPLAY_TARGET = 0x80,
-//   /// Create a normal map texture
-//   GPU_TCF_NORMAL_MAP = 0x100,
-//   /// Fragment mask
-//   GPU_TCF_FRAG_MASK = 0x200,
-//   ///
-//   GPU_TCF_USABLE_MAX = 0x40000,
-//   GPU_TCF_MAX_ENUM_BIT = 0x7FFFFFFF
-// } EGPUTextureCreationFlag;
-// typedef uint32_t GPUTextureCreationFlags;
+typedef struct GPUTexture
+{
+    GPUDeviceID pDevice;
+    uint64_t sizeInBytes;
+    EGPUSampleCount sampleCount : 8;
+    /// Current state of the buffer
+    uint32_t width : 24;
+    uint32_t height : 24;
+    uint32_t depth : 12;
+    uint32_t mipLevels : 6;
+    uint32_t arraySizeMinusOne : 12;
+    uint32_t format : 12;
+    /// Flags specifying which aspects (COLOR,DEPTH,STENCIL) are included in the
+    /// pVkImageView
+    uint32_t aspectMask : 4;
+    uint32_t nodeIndex : 4;
+    uint32_t isCube : 1;
+    uint32_t isDedicated : 1;
+    /// This value will be false if the underlying resource is not owned by the
+    /// texture (swapchain textures,...)
+    uint32_t ownsImage : 1;
+    /// In CGPU concept aliasing resource owns no memory
+    uint32_t isAliasing : 1;
+    uint32_t canAlias : 1;
+    uint32_t isImported : 1;
+    uint32_t canExport : 1;
+    void* nativeHandle;
+    uint64_t uniqueId;
+} GPUTexture;
 
-// typedef union GPUClearValue {
-//   struct {
-//     float r;
-//     float g;
-//     float b;
-//     float a;
-//   };
-//   struct {
-//     float depth;
-//     uint32_t stencil;
-//   };
-// } GPUClearValue;
+typedef struct GPUTextureViewDescriptor
+{
+    GPUTextureID pTexture;
+    EGPUFormat format;
+    EGPUTextureDimension dims;
+    uint32_t usages;
+    uint32_t aspectMask;
+    uint32_t baseMipLevel;
+    uint32_t mipLevelCount;
+    uint32_t baseArrayLayer;
+    uint32_t arrayLayerCount;
+} GPUTextureViewDescriptor;
 
-// typedef struct GPUTextureDescriptor {
-//   /// Texture creation flags (decides memory allocation strategy, sharing
-//   /// access,...)
-//   GPUTextureCreationFlags flags;
-//   /// Optimized clear value (recommended to use this same value when clearing
-//   /// the rendertarget)
-//   GPUClearValue clear_value;
-//   /// Width
-//   uint32_t width;
-//   /// Height
-//   uint32_t height;
-//   /// Depth (Should be 1 if not a mType is not TEXTURE_TYPE_3D)
-//   uint32_t depth;
-//   /// Texture array size (Should be 1 if texture is not a texture array or
-//   /// cubemap)
-//   uint32_t array_size;
-//   ///  image format
-//   EGPUFormat format;
-//   /// Number of mip levels
-//   uint32_t mip_levels;
-//   /// Number of multisamples per pixel (currently Textures created with mUsage
-//   /// TEXTURE_USAGE_SAMPLED_IMAGE only support CGPU_SAMPLE_COUNT_1)
-//   EGPUSampleCount sample_count;
-//   /// The image quality level. The higher the quality, the lower the
-//   /// performance. The valid range is between zero and the value appropriate for
-//   /// mSampleCount
-//   uint32_t sample_quality;
-//   /// Owner queue of the resource at creation
-//   GPUQueueID owner_queue;
-//   /// What state will the texture get created in
-//   EGPUResourceState start_state;
-//   /// Descriptor creation
-//   GPUResourceTypes descriptors;
-//   /// Memory Aliasing
-//   uint32_t is_dedicated;
-//   uint32_t is_aliasing;
-// } GPUTextureDescriptor;
-
-// typedef struct GPUTexture {
-//   GPUDeviceID pDevice;
-//   uint64_t sizeInBytes;
-//   EGPUSampleCount sampleCount : 8;
-//   /// Current state of the buffer
-//   uint32_t width : 24;
-//   uint32_t height : 24;
-//   uint32_t depth : 12;
-//   uint32_t mipLevels : 6;
-//   uint32_t arraySizeMinusOne : 12;
-//   uint32_t format : 12;
-//   /// Flags specifying which aspects (COLOR,DEPTH,STENCIL) are included in the
-//   /// pVkImageView
-//   uint32_t aspectMask : 4;
-//   uint32_t nodeIndex : 4;
-//   uint32_t isCube : 1;
-//   uint32_t isDedicated : 1;
-//   /// This value will be false if the underlying resource is not owned by the
-//   /// texture (swapchain textures,...)
-//   uint32_t ownsImage : 1;
-//   /// In CGPU concept aliasing resource owns no memory
-//   uint32_t isAliasing : 1;
-//   uint32_t canAlias : 1;
-//   uint32_t isImported : 1;
-//   uint32_t canExport : 1;
-//   void *nativeHandle;
-//   uint64_t uniqueId;
-// } GPUTexture;
-
-// typedef struct GPUTextureViewDescriptor {
-//   GPUTextureID pTexture;
-//   EGPUFormat format;
-//   EGPUTextureDimension dims;
-//   uint32_t usages;
-//   uint32_t aspectMask;
-//   uint32_t baseMipLevel;
-//   uint32_t mipLevelCount;
-//   uint32_t baseArrayLayer;
-//   uint32_t arrayLayerCount;
-// } GPUTextureViewDescriptor;
-
-// typedef struct GPUTextureView {
-//   GPUDeviceID pDevice;
-//   GPUTextureViewDescriptor desc;
-// } GPUTextureView;
+typedef struct GPUTextureView
+{
+    GPUDeviceID pDevice;
+    GPUTextureViewDescriptor desc;
+} GPUTextureView;
 
 // typedef struct GPUTextureSubresource {
 //   GPUTextureViewAspects aspects;
@@ -653,199 +583,218 @@ typedef struct GPUSwapchain
 //   GPUTextureSubresource dst_subresource;
 // } GPUTextureToTextureTransfer;
 
-// typedef struct GPUShaderLibraryDescriptor {
-//   const char8_t *pName;
-//   const uint32_t *code;
-//   uint32_t codeSize;
-//   EGPUShaderStage stage;
-//   bool reflectionOnly;
-// } GPUShaderLibraryDescriptor;
+// Shaders
+typedef struct GPUShaderLibraryDescriptor
+{
+    const char8_t* pName;
+    const uint32_t* code;
+    uint32_t codeSize;
+    EGPUShaderStage stage;
+    bool reflectionOnly;
+} GPUShaderLibraryDescriptor;
 
-// // Shaders
-// typedef struct GPUShaderResource {
-//   const char8_t *name;
-//   uint64_t name_hash;
-//   EGPUResourceType type;
-//   EGPUTextureDimension dim;
-//   uint32_t set;
-//   uint32_t binding;
-//   uint32_t size;
-//   uint32_t offset;
-//   GPUShaderStages stages;
-// } CGPUShaderResource;
+typedef struct GPUShaderResource
+{
+    const char8_t* name;
+    uint64_t name_hash;
+    EGPUResourceType type;
+    EGPUTextureDimension dim;
+    uint32_t set;
+    uint32_t binding;
+    uint32_t size;
+    uint32_t offset;
+    GPUShaderStages stages;
+} CGPUShaderResource;
 
-// typedef struct GPUVertexInput {
-//   const char8_t *name;
-//   const char8_t *semantics;
-//   EGPUFormat format;
-// } GPUVertexInput;
+typedef struct GPUShaderReflection
+{
+    const char8_t* entry_name;
+    EGPUShaderStage stage;
+    struct GPUVertexInput* vertex_inputs;
+    GPUShaderResource* shader_resources;
+    uint32_t vertex_inputs_count;
+    uint32_t shader_resources_count;
+    uint32_t thread_group_sizes[3];
+} GPUShaderReflection;
 
-// typedef struct GPUShaderReflection {
-//   const char8_t *entry_name;
-//   EGPUShaderStage stage;
-//   GPUVertexInput *vertex_inputs;
-//   GPUShaderResource *shader_resources;
-//   uint32_t vertex_inputs_count;
-//   uint32_t shader_resources_count;
-//   uint32_t thread_group_sizes[3];
-// } GPUShaderReflection;
+typedef struct GPUShaderLibrary
+{
+    GPUDeviceID pDevice;
+    char8_t* name;
+    GPUShaderReflection* entry_reflections;
+    uint32_t entrys_count;
+} CGPUShaderLibrary;
 
-// typedef struct GPUShaderLibrary {
-//   GPUDeviceID pDevice;
-//   char8_t *name;
-//   GPUShaderReflection *entry_reflections;
-//   uint32_t entrys_count;
-// } CGPUShaderLibrary;
+typedef struct GPUShaderEntryDescriptor
+{
+    GPUShaderLibraryID pLibrary;
+    const char8_t* entry;
+    EGPUShaderStage stage;
+    // ++ constant_specialization
+    // const CGPUConstantSpecialization* constants;
+    // uint32_t num_constants;
+    // -- constant_specialization
+} CGPUShaderEntryDescriptor;
 
-// typedef struct GPUShaderEntryDescriptor {
-//   GPUShaderLibraryID pLibrary;
-//   const char8_t *entry;
-//   EGPUShaderStage stage;
-//   // ++ constant_specialization
-//   // const CGPUConstantSpecialization* constants;
-//   // uint32_t num_constants;
-//   // -- constant_specialization
-// } CGPUShaderEntryDescriptor;
+typedef struct GPUVertexInput
+{
+    const char8_t* name;
+    const char8_t* semantics;
+    EGPUFormat format;
+} GPUVertexInput;
 
-// typedef struct GPUVertexAttribute {
-//   uint32_t arraySize;
-//   EGPUFormat format;
-//   uint32_t binding;
-//   uint32_t offset;
-//   uint32_t stride;
-//   EGPUVertexInputRate rate;
-// } GPUVertexAttribute;
+typedef struct GPURootSignatureDescriptor
+{
+    struct GPUShaderEntryDescriptor* shaders;
+    uint32_t shader_count;
+    const GPUSamplerID* static_samplers;
+    const char8_t* const* static_sampler_names;
+    uint32_t static_sampler_count;
+    const char8_t* const* push_constant_names;
+    uint32_t push_constant_count;
+    GPURootSignaturePoolID pool;
 
-// typedef struct GPUVertexLayout {
-//   uint32_t attributeCount;
-//   GPUVertexAttribute attributes[GPU_MAX_VERTEX_ATTRIBS];
-// } GPUVertexLayout;
+} GPURootSignatureDescriptor;
 
-// typedef struct GPURootSignatureDescriptor {
-//   struct GPUShaderEntryDescriptor *shaders;
-//   uint32_t shader_count;
-//   const GPUSamplerID *static_samplers;
-//   const char8_t *const *static_sampler_names;
-//   uint32_t static_sampler_count;
-//   const char8_t *const *push_constant_names;
-//   uint32_t push_constant_count;
-//   GPURootSignaturePoolID pool;
+typedef struct GPURootSignaturePool
+{
+    GPUDeviceID device;
+    EGPUPipelineType pipeline_type;
+} GPURootSignaturePool;
 
-// } GPURootSignatureDescriptor;
+typedef struct GPUParameterTable
+{
+    // This should be stored here because shader could be destoryed after RS
+    // creation
+    GPUShaderResource* resources;
+    uint32_t resources_count;
+    uint32_t set_index;
+} GPUParameterTable;
 
-// typedef struct GPUSamplerDescriptor {
-//   EGPUFilterType min_filter;
-//   EGPUFilterType mag_filter;
-//   EGPUMipMapMode mipmap_mode;
-//   EGPUAddressMode address_u;
-//   EGPUAddressMode address_v;
-//   EGPUAddressMode address_w;
-//   float mip_lod_bias;
-//   float max_anisotropy;
-//   EGPUCompareMode compare_func;
-// } GPUSamplerDescriptor;
+typedef struct GPURootSignature
+{
+    GPUDeviceID device;
+    GPUParameterTable* tables;
+    uint32_t table_count;
+    CGPUShaderResource* push_constants;
+    uint32_t push_constant_count;
+    CGPUShaderResource* static_samplers;
+    uint32_t static_sampler_count;
+    EGPUPipelineType pipeline_type;
+    GPURootSignaturePoolID pool;
+    GPURootSignatureID pool_sig;
+} GPURootSignature;
 
-// typedef struct GPUSampler {
-//   GPUDeviceID device;
-// } GPUSampler;
+typedef struct GPUSamplerDescriptor
+{
+    EGPUFilterType min_filter;
+    EGPUFilterType mag_filter;
+    EGPUMipMapMode mipmap_mode;
+    EGPUAddressMode address_u;
+    EGPUAddressMode address_v;
+    EGPUAddressMode address_w;
+    float mip_lod_bias;
+    float max_anisotropy;
+    EGPUCompareMode compare_func;
+} GPUSamplerDescriptor;
 
-// typedef struct GPURootSignaturePool {
-//   GPUDeviceID device;
-//   EGPUPipelineType pipeline_type;
-// } GPURootSignaturePool;
+typedef struct GPUSampler
+{
+    GPUDeviceID device;
+} GPUSampler;
 
-// typedef struct GPUParameterTable {
-//   // This should be stored here because shader could be destoryed after RS
-//   // creation
-//   GPUShaderResource *resources;
-//   uint32_t resources_count;
-//   uint32_t set_index;
-// } GPUParameterTable;
+typedef struct GPUDepthStateDesc
+{
+    bool depthTest;
+    bool depthWrite;
+    EGPUCompareMode depthFunc;
+    bool stencilTest;
+    uint8_t stencilReadMask;
+    uint8_t stencilWriteMask;
+    EGPUCompareMode stencilFrontFunc;
+    EGPUStencilOp stencilFrontFail;
+    EGPUStencilOp depthFrontFail;
+    EGPUStencilOp stencilFrontPass;
+    EGPUCompareMode stencilBackFunc;
+    EGPUStencilOp stencilBackFail;
+    EGPUStencilOp depthBackFail;
+    EGPUStencilOp stencilBackPass;
+} GPUDepthStateDesc;
 
-// typedef struct GPURootSignature {
-//   GPUDeviceID device;
-//   GPUParameterTable *tables;
-//   uint32_t table_count;
-//   CGPUShaderResource *push_constants;
-//   uint32_t push_constant_count;
-//   CGPUShaderResource *static_samplers;
-//   uint32_t static_sampler_count;
-//   EGPUPipelineType pipeline_type;
-//   GPURootSignaturePoolID pool;
-//   GPURootSignatureID pool_sig;
-// } GPURootSignature;
+typedef struct GPURasterizerStateDescriptor
+{
+    EGPUCullMode cullMode;
+    EGPUFillMode fillMode;
+    EGPUFrontFace frontFace;
+    int32_t depthBias;
+    float slopeScaledDepthBias;
+    bool enableMultiSample;
+    bool enableScissor;
+    bool enableDepthClamp;
+} GPURasterizerStateDescriptor;
 
-// typedef struct GPUDepthStateDesc {
-//   bool depthTest;
-//   bool depthWrite;
-//   EGPUCompareMode depthFunc;
-//   bool stencilTest;
-//   uint8_t stencilReadMask;
-//   uint8_t stencilWriteMask;
-//   EGPUCompareMode stencilFrontFunc;
-//   EGPUStencilOp stencilFrontFail;
-//   EGPUStencilOp depthFrontFail;
-//   EGPUStencilOp stencilFrontPass;
-//   EGPUCompareMode stencilBackFunc;
-//   EGPUStencilOp stencilBackFail;
-//   EGPUStencilOp depthBackFail;
-//   EGPUStencilOp stencilBackPass;
-// } GPUDepthStateDesc;
+typedef struct GPUBlendStateDescriptor
+{
+    /// Source blend factor per render target.
+    EGPUBlendConstant srcFactors[GPU_MAX_MRT_COUNT];
+    /// Destination blend factor per render target.
+    EGPUBlendConstant dstFactors[GPU_MAX_MRT_COUNT];
+    /// Source alpha blend factor per render target.
+    EGPUBlendConstant srcAlphaFactors[GPU_MAX_MRT_COUNT];
+    /// Destination alpha blend factor per render target.
+    EGPUBlendConstant dstAlphaFactors[GPU_MAX_MRT_COUNT];
+    /// Blend mode per render target.
+    EGPUBlendMode blendModes[GPU_MAX_MRT_COUNT];
+    /// Alpha blend mode per render target.
+    EGPUBlendMode blendAlphaModes[GPU_MAX_MRT_COUNT];
+    /// Write mask per render target.
+    int32_t masks[GPU_MAX_MRT_COUNT];
+    /// Set whether alpha to coverage should be enabled.
+    bool alphaTCoverage;
+    /// Set whether each render target has an unique blend function. When false
+    /// the blend function in slot 0 will be used for all render targets.
+    bool independentBlend;
+} GPUBlendStateDescriptor;
 
-// typedef struct GPURasterizerStateDescriptor {
-//   EGPUCullMode cullMode;
-//   EGPUFillMode fillMode;
-//   EGPUFrontFace frontFace;
-//   int32_t depthBias;
-//   float slopeScaledDepthBias;
-//   bool enableMultiSample;
-//   bool enableScissor;
-//   bool enableDepthClamp;
-// } GPURasterizerStateDescriptor;
+typedef struct GPUVertexAttribute
+{
+    uint32_t arraySize;
+    EGPUFormat format;
+    uint32_t binding;
+    uint32_t offset;
+    uint32_t stride;
+    EGPUVertexInputRate rate;
+} GPUVertexAttribute;
 
-// typedef struct GPUBlendStateDescriptor {
-//   /// Source blend factor per render target.
-//   EGPUBlendConstant srcFactors[GPU_MAX_MRT_COUNT];
-//   /// Destination blend factor per render target.
-//   EGPUBlendConstant dstFactors[GPU_MAX_MRT_COUNT];
-//   /// Source alpha blend factor per render target.
-//   EGPUBlendConstant srcAlphaFactors[GPU_MAX_MRT_COUNT];
-//   /// Destination alpha blend factor per render target.
-//   EGPUBlendConstant dstAlphaFactors[GPU_MAX_MRT_COUNT];
-//   /// Blend mode per render target.
-//   EGPUBlendMode blendModes[GPU_MAX_MRT_COUNT];
-//   /// Alpha blend mode per render target.
-//   EGPUBlendMode blendAlphaModes[GPU_MAX_MRT_COUNT];
-//   /// Write mask per render target.
-//   int32_t masks[GPU_MAX_MRT_COUNT];
-//   /// Set whether alpha to coverage should be enabled.
-//   bool alphaTCoverage;
-//   /// Set whether each render target has an unique blend function. When false
-//   /// the blend function in slot 0 will be used for all render targets.
-//   bool independentBlend;
-// } GPUBlendStateDescriptor;
+typedef struct GPUVertexLayout
+{
+    uint32_t attributeCount;
+    GPUVertexAttribute attributes[GPU_MAX_VERTEX_ATTRIBS];
+} GPUVertexLayout;
 
-// typedef struct GPURenderPipelineDescriptor {
-//   GPURootSignatureID pRootSignature;
-//   const GPUShaderEntryDescriptor *pVertexShader;
-//   const GPUShaderEntryDescriptor *pFragmentShader;
-//   const GPUVertexLayout *pVertexLayout;
-//   const GPUDepthStateDesc *pDepthState;
-//   const GPURasterizerStateDescriptor *pRasterizerState;
-//   const GPUBlendStateDescriptor *pBlendState;
+typedef struct GPURenderPipelineDescriptor
+{
+    GPURootSignatureID pRootSignature;
+    const GPUShaderEntryDescriptor* pVertexShader;
+    const GPUShaderEntryDescriptor* pFragmentShader;
+    const GPUVertexLayout* pVertexLayout;
+    const GPUDepthStateDesc* pDepthState;
+    const GPURasterizerStateDescriptor* pRasterizerState;
+    const GPUBlendStateDescriptor* pBlendState;
 
-//   EGPUSampleCount samplerCount;
-//   EGPUPrimitiveTopology primitiveTopology;
+    EGPUSampleCount samplerCount;
+    EGPUPrimitiveTopology primitiveTopology;
 
-//   EGPUFormat *pColorFormats;
-//   uint32_t renderTargetCount;
-//   EGPUFormat depthStencilFormat;
-// } GPURenderPipelineDescriptor;
+    EGPUFormat* pColorFormats;
+    uint32_t renderTargetCount;
+    EGPUFormat depthStencilFormat;
+} GPURenderPipelineDescriptor;
 
-// typedef struct GPURenderPipeline {
-//   GPUDeviceID pDevice;
-//   GPURootSignatureID pRootSignature;
-// } GPURenderPipeline;
+typedef struct GPURenderPipeline
+{
+    GPUDeviceID pDevice;
+    GPURootSignatureID pRootSignature;
+} GPURenderPipeline;
 
 // typedef struct GPUCommandPool {
 //   GPUQueueID queue;
@@ -892,22 +841,6 @@ typedef struct GPUCommandBuffer
 //   uint32_t render_target_count;
 // } GPURenderPassDescriptor;
 
-// typedef struct GPUTextureBarrier {
-//   GPUTextureID texture;
-//   EGPUResourceState src_state;
-//   EGPUResourceState dst_state;
-//   uint8_t queue_acquire;
-//   uint8_t queue_release;
-//   EGPUQueueType queue_type;
-//   /// Specifiy whether following barrier targets particular subresource
-//   uint8_t subresource_barrier;
-//   /// Following values are ignored if subresource_barrier is false
-//   uint8_t mip_level;
-//   uint16_t array_layer;
-//   uint8_t d3d12_begin_only;
-//   uint8_t d3d12_end_only;
-// } GPUTextureBarrier;
-
 // typedef struct GPUBufferDescriptor {
 //   uint64_t size;
 //   GPUResourceTypes descriptors; // bffer usage
@@ -934,23 +867,42 @@ typedef struct GPUCommandBuffer
 //   uint64_t memory_usage : 3;
 // } GPUBuffer;
 
-// typedef struct GPUBufferBarrier {
-//   GPUBufferID buffer;
-//   EGPUResourceState src_state;
-//   EGPUResourceState dst_state;
-//   uint8_t queue_acquire;
-//   uint8_t queue_release;
-//   EGPUQueueType queue_type;
-//   uint8_t d3d12_begin_only;
-//   uint8_t d3d12_end_only;
-// } GPUBufferBarrier;
+typedef struct GPUTextureBarrier
+{
+    GPUTextureID texture;
+    EGPUResourceState src_state;
+    EGPUResourceState dst_state;
+    uint8_t queue_acquire;
+    uint8_t queue_release;
+    EGPUQueueType queue_type;
+    /// Specifiy whether following barrier targets particular subresource
+    uint8_t subresource_barrier;
+    /// Following values are ignored if subresource_barrier is false
+    uint8_t mip_level;
+    uint16_t array_layer;
+    uint8_t d3d12_begin_only;
+    uint8_t d3d12_end_only;
+} GPUTextureBarrier;
 
-// typedef struct GPUResourceBarrierDescriptor {
-//   const GPUBufferBarrier *buffer_barriers;
-//   uint32_t buffer_barriers_count;
-//   const GPUTextureBarrier *texture_barriers;
-//   uint32_t texture_barriers_count;
-// } GPUResourceBarrierDescriptor;
+typedef struct GPUBufferBarrier
+{
+    GPUBufferID buffer;
+    EGPUResourceState src_state;
+    EGPUResourceState dst_state;
+    uint8_t queue_acquire;
+    uint8_t queue_release;
+    EGPUQueueType queue_type;
+    uint8_t d3d12_begin_only;
+    uint8_t d3d12_end_only;
+} GPUBufferBarrier;
+
+typedef struct GPUResourceBarrierDescriptor
+{
+    const GPUBufferBarrier* buffer_barriers;
+    uint32_t buffer_barriers_count;
+    const GPUTextureBarrier* texture_barriers;
+    uint32_t texture_barriers_count;
+} GPUResourceBarrierDescriptor;
 
 // typedef struct GPURenderPassEncoder {
 //   GPUDeviceID device;
@@ -977,15 +929,17 @@ typedef struct GPUQueuePresentDescriptor
 //   uint64_t size;
 // } GPUBufferToBufferTransfer;
 
-// typedef struct GPUDescriptorSetDescriptor {
-//   GPURootSignatureID root_signature;
-//   uint32_t set_index;
-// } GPUDescriptorSetDescriptor;
+typedef struct GPUDescriptorSetDescriptor
+{
+    GPURootSignatureID root_signature;
+    uint32_t set_index;
+} GPUDescriptorSetDescriptor;
 
-// typedef struct GPUDescriptorSet {
-//   GPURootSignatureID root_signature;
-//   uint32_t index;
-// } GPUDescriptorSet;
+typedef struct GPUDescriptorSet
+{
+    GPURootSignatureID root_signature;
+    uint32_t index;
+} GPUDescriptorSet;
 
 // typedef struct GPUDescriptorData {
 //   // Update Via Shader Reflection.
