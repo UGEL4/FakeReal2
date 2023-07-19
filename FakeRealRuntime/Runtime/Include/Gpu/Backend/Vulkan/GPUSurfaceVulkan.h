@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Gpu/Backend/vulkan/GPUVulkan.h"
+#include "Gpu/Backend/Vulkan/GPUVulkan.h"
 
 #ifdef __cplusplus
 extern "C" {

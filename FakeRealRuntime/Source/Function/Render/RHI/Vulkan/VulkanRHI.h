@@ -1,7 +1,7 @@
 #pragma once
 #include "Function/Render/RHI.h"
 #include <vulkan/vulkan.h>
-#include <vulkan/vk_mem_alloc.h>
+#include "Gpu/Backend/Vulkan/vma/vk_mem_alloc.h"
 #include <GLFW/glfw3.h>
 #include <vector>
 #include <functional>

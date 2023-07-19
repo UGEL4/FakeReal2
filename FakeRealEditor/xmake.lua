@@ -20,10 +20,10 @@ target("FakeRealEditor")
     add_cxxflags(project_cxflags)
     add_defines("UNICODE")
 
-    add_deps("FakeRealRuntime")
+    add_deps("OldFakeRealRuntime")
 
-    add_linkdirs(runtime_lib, vulkan_lib, glfw_lib)
-    add_links("FakeRealRuntime", "GLFW", "vulkan-1")
+    add_linkdirs(runtime_lib)
+    add_links("OldFakeRealRuntime")
     
     set_objectdir(objdir)
     set_targetdir(targetdir)

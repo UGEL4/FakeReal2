@@ -188,6 +188,54 @@ void InitRSParamTables(GPURootSignature* RS, const struct GPURootSignatureDescri
     }
 }
 
+void FreeRSParamTables(GPURootSignature* RS)
+{
+    if (RS->tables != NULL)
+    {
+        for (uint32_t i_set = 0; i_set < RS->table_count; i_set++)
+        {
+            GPUParameterTable* param_table = &RS->tables[i_set];
+            if (param_table->resources != NULL)
+            {
+                for (uint32_t i_binding = 0; i_binding < param_table->resources_count; i_binding++)
+                {
+                    GPUShaderResource* binding_to_free = &param_table->resources[i_binding];
+                    if (binding_to_free->name != NULL)
+                    {
+                        free((char8_t*)binding_to_free->name);
+                    }
+                }
+                free(param_table->resources);
+            }
+        }
+        free(RS->tables);
+    }
+    if (RS->push_constants != NULL)
+    {
+        for (uint32_t i = 0; i < RS->push_constant_count; i++)
+        {
+            GPUShaderResource* binding_to_free = RS->push_constants + i;
+            if (binding_to_free->name != NULL)
+            {
+                free((char8_t*)binding_to_free->name);
+            }
+        }
+        free(RS->push_constants);
+    }
+    if (RS->static_samplers != NULL)
+    {
+        for (uint32_t i = 0; i < RS->static_sampler_count; i++)
+        {
+            GPUShaderResource* binding_to_free = RS->static_samplers + i;
+            if (binding_to_free->name != NULL)
+            {
+                free((char8_t*)binding_to_free->name);
+            }
+        }
+        free(RS->static_samplers);
+    }
+}
+
 bool ShaderResourceIsRootConst(const struct GPUShaderResource* resource, const struct GPURootSignatureDescriptor* desc)
 {
     if (resource->type == GPU_RESOURCE_TYPE_PUSH_CONSTANT) return true;

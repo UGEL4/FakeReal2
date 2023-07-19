@@ -66,62 +66,54 @@ GPU_API GPURenderPipelineID GPUCreateRenderPipeline_Vulkan(GPUDeviceID pDevice, 
 GPU_API void GPUFreeRenderPipeline_Vulkan(GPURenderPipelineID pPipeline);
 
 // command
-GPUCommandPoolID GPUCreateCommandPool_Vulkan(GPUQueueID queue);
+GPU_API GPUCommandPoolID GPUCreateCommandPool_Vulkan(GPUQueueID queue);
 VkCommandPool AllocateTransientCommandPool(struct GPUDevice_Vulkan* D, GPUQueueID queue);
-void GPUFreeCommandPool_Vulkan(GPUCommandPoolID pool);
-void GPUResetCommandPool_Vulkan(GPUCommandPoolID pool);
-GPUCommandBufferID GPUCreateCommandBuffer_Vulkan(GPUCommandPoolID pool, const GPUCommandBufferDescriptor* desc);
-void GPUFreeCommandBuffer_Vulkan(GPUCommandBufferID cmd);
-void GPUCmdBegin_Vulkan(GPUCommandBufferID cmdBuffer);
-void GPUCmdEnd_Vulkan(GPUCommandBufferID cmdBuffer);
-void GPUCmdResourceBarrier_Vulkan(GPUCommandBufferID cmd, const GPUResourceBarrierDescriptor* desc);
-void GPUCmdTransferBufferToTexture_Vulkan(GPUCommandBufferID cmd, const struct GPUBufferToTextureTransfer* desc);
-void GPUCmdTransferBufferToBuffer_Vulkan(GPUCommandBufferID cmd, const struct GPUBufferToBufferTransfer* desc);
-void GPUCmdTransferTextureToTexture_Vulkan(GPUCommandBufferID cmd, const struct GPUTextureToTextureTransfer* desc);
+GPU_API void GPUFreeCommandPool_Vulkan(GPUCommandPoolID pool);
+GPU_API void GPUResetCommandPool_Vulkan(GPUCommandPoolID pool);
+GPU_API GPUCommandBufferID GPUCreateCommandBuffer_Vulkan(GPUCommandPoolID pool, const GPUCommandBufferDescriptor* desc);
+GPU_API void GPUFreeCommandBuffer_Vulkan(GPUCommandBufferID cmd);
+GPU_API void GPUCmdBegin_Vulkan(GPUCommandBufferID cmdBuffer);
+GPU_API void GPUCmdEnd_Vulkan(GPUCommandBufferID cmdBuffer);
+GPU_API void GPUCmdResourceBarrier_Vulkan(GPUCommandBufferID cmd, const GPUResourceBarrierDescriptor* desc);
+GPU_API void GPUCmdTransferBufferToTexture_Vulkan(GPUCommandBufferID cmd, const struct GPUBufferToTextureTransfer* desc);
+GPU_API void GPUCmdTransferBufferToBuffer_Vulkan(GPUCommandBufferID cmd, const struct GPUBufferToBufferTransfer* desc);
+GPU_API void GPUCmdTransferTextureToTexture_Vulkan(GPUCommandBufferID cmd, const struct GPUTextureToTextureTransfer* desc);
 
 // fence & semaphore
-GPUFenceID GPUCreateFence_Vulkan(GPUDeviceID device);
-void GPUFreeFence_Vulkan(GPUFenceID fence);
-void GPUWaitFences_Vulkan(const GPUFenceID* fences, uint32_t fenceCount);
-EGPUFenceStatus GPUQueryFenceStatus_Vulkan(GPUFenceID fence);
-GPUSemaphoreID GPUCreateSemaphore_Vulkan(GPUDeviceID device);
-void GPUFreeSemaphore_Vulkan(GPUSemaphoreID semaphore);
+GPU_API GPUFenceID GPUCreateFence_Vulkan(GPUDeviceID device);
+GPU_API void GPUFreeFence_Vulkan(GPUFenceID fence);
+GPU_API void GPUWaitFences_Vulkan(const GPUFenceID* fences, uint32_t fenceCount);
+GPU_API EGPUFenceStatus GPUQueryFenceStatus_Vulkan(GPUFenceID fence);
+GPU_API GPUSemaphoreID GPUCreateSemaphore_Vulkan(GPUDeviceID device);
+GPU_API void GPUFreeSemaphore_Vulkan(GPUSemaphoreID semaphore);
 
 // render pass
-GPURenderPassEncoderID GPUCmdBeginRenderPass_Vulkan(GPUCommandBufferID cmd, const struct GPURenderPassDescriptor* desc);
-void GPUCmdEndRenderPass_Vulkan(GPUCommandBufferID cmd, GPURenderPassEncoderID encoder);
-void GPURenderEncoderSetViewport_Vulkan(GPURenderPassEncoderID encoder, float x, float y, float width, float height, float min_depth, float max_depth);
-void GPURenderEncoderSetScissor_Vulkan(GPURenderPassEncoderID encoder, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
-void GPURenderEncoderBindPipeline_Vulkan(GPURenderPassEncoderID encoder, GPURenderPipelineID pipeline);
-void GPURenderEncoderDraw_Vulkan(GPURenderPassEncoderID encoder, uint32_t vertex_count, uint32_t first_vertex);
-void GPURenderEncoderDrawIndexed_Vulkan(GPURenderPassEncoderID encoder, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset);
-void GPURenderEncoderDrawIndexedInstanced_Vulkan(GPURenderPassEncoderID encoder, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
-void GPURenderEncoderBindVertexBuffers_Vulkan(GPURenderPassEncoderID encoder, uint32_t buffer_count,
-                                              const GPUBufferID* buffers, const uint32_t* strides, const uint32_t* offsets);
-void GPURenderEncoderBindIndexBuffer_Vulkan(GPURenderPassEncoderID encoder, GPUBufferID buffer, uint32_t offset, uint64_t indexStride);
-void GPURenderEncoderBindDescriptorSet_Vulkan(GPURenderPassEncoderID encoder, GPUDescriptorSetID set);
+GPU_API GPURenderPassEncoderID GPUCmdBeginRenderPass_Vulkan(GPUCommandBufferID cmd, const struct GPURenderPassDescriptor* desc);
+GPU_API void GPUCmdEndRenderPass_Vulkan(GPUCommandBufferID cmd, GPURenderPassEncoderID encoder);
+GPU_API void GPURenderEncoderSetViewport_Vulkan(GPURenderPassEncoderID encoder, float x, float y, float width, float height, float min_depth, float max_depth);
+GPU_API void GPURenderEncoderSetScissor_Vulkan(GPURenderPassEncoderID encoder, uint32_t x, uint32_t y, uint32_t width, uint32_t height);
+GPU_API void GPURenderEncoderBindPipeline_Vulkan(GPURenderPassEncoderID encoder, GPURenderPipelineID pipeline);
+GPU_API void GPURenderEncoderDraw_Vulkan(GPURenderPassEncoderID encoder, uint32_t vertex_count, uint32_t first_vertex);
+GPU_API void GPURenderEncoderDrawIndexed_Vulkan(GPURenderPassEncoderID encoder, uint32_t indexCount, uint32_t firstIndex, uint32_t vertexOffset);
+GPU_API void GPURenderEncoderDrawIndexedInstanced_Vulkan(GPURenderPassEncoderID encoder, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
+GPU_API void GPURenderEncoderBindVertexBuffers_Vulkan(GPURenderPassEncoderID encoder, uint32_t buffer_count, const GPUBufferID* buffers, const uint32_t* strides, const uint32_t* offsets);
+GPU_API void GPURenderEncoderBindIndexBuffer_Vulkan(GPURenderPassEncoderID encoder, GPUBufferID buffer, uint32_t offset, uint64_t indexStride);
+GPU_API void GPURenderEncoderBindDescriptorSet_Vulkan(GPURenderPassEncoderID encoder, GPUDescriptorSetID set);
 
 // buffer
-GPUBufferID GPUCreateBuffer_Vulkan(GPUDeviceID device, const GPUBufferDescriptor* desc);
-void GPUFreeBuffer_Vulkan(GPUBufferID buffer);
-void GPUMapBuffer_Vulkan(GPUBufferID buffer, const struct GPUBufferRange* range);
-void GPUUnmapBuffer_Vulkan(GPUBufferID buffer);
-void GPUTransferBufferToBuffer_Vulkan(GPUCommandBufferID cmd, const struct GPUBufferToBufferTransfer* desc);
+GPU_API GPUBufferID GPUCreateBuffer_Vulkan(GPUDeviceID device, const GPUBufferDescriptor* desc);
+GPU_API void GPUFreeBuffer_Vulkan(GPUBufferID buffer);
+GPU_API void GPUMapBuffer_Vulkan(GPUBufferID buffer, const struct GPUBufferRange* range);
+GPU_API void GPUUnmapBuffer_Vulkan(GPUBufferID buffer);
 
 // sampler
-GPUSamplerID GPUCreateSampler_Vulkan(GPUDeviceID device, const struct GPUSamplerDescriptor* desc);
-void GPUFreeSampler_Vulkan(GPUSamplerID sampler);
+GPU_API GPUSamplerID GPUCreateSampler_Vulkan(GPUDeviceID device, const struct GPUSamplerDescriptor* desc);
+GPU_API void GPUFreeSampler_Vulkan(GPUSamplerID sampler);
 
-GPUDescriptorSetID GPUCreateDescriptorSet_Vulkan(GPUDeviceID device, const struct GPUDescriptorSetDescriptor* desc);
-void GPUFreeDescriptorSet_Vulkan(GPUDescriptorSetID set);
-void GPUUpdateDescriptorSet_Vulkan(GPUDescriptorSetID set, const GPUDescriptorData* datas, uint32_t count);
-
-typedef union VkDescriptorUpdateData
-{
-    VkDescriptorImageInfo mImageInfo;
-    VkDescriptorBufferInfo mBufferInfo;
-    VkBufferView pBuferView;
-} VkDescriptorUpdateData;
+// descriptor set
+GPU_API GPUDescriptorSetID GPUCreateDescriptorSet_Vulkan(GPUDeviceID device, const struct GPUDescriptorSetDescriptor* desc);
+GPU_API void GPUFreeDescriptorSet_Vulkan(GPUDescriptorSetID set);
+GPU_API void GPUUpdateDescriptorSet_Vulkan(GPUDescriptorSetID set, const GPUDescriptorData* datas, uint32_t count);
 
 typedef struct GPUVulkanInstanceDescriptor
 {
@@ -276,11 +268,11 @@ typedef struct GPURenderPipeline_Vulkan
     VkPipeline pPipeline;
 } GPURenderPipeline_Vulkan;
 
-// typedef struct GPUCommandPool_Vulkan
-// {
-//     GPUCommandPool super;
-//     VkCommandPool pPool;
-// } GPUCommandPool_Vulkan;
+typedef struct GPUCommandPool_Vulkan
+{
+    GPUCommandPool super;
+    VkCommandPool pPool;
+} GPUCommandPool_Vulkan;
 
 typedef struct GPUCommandBuffer_Vulkan
 {
@@ -291,15 +283,15 @@ typedef struct GPUCommandBuffer_Vulkan
     uint32_t type;
 } GPUCommandBuffer_Vulkan;
 
-// typedef struct GPUBuffer_Vulkan
-// {
-//     GPUBuffer super;
-//     VkBuffer pVkBuffer;
-//     VkBufferView pVkStorageTexelView;
-//     VkBufferView pVkUniformTexelView;
-//     VmaAllocation pVkAllocation;
-//     uint64_t mOffset;
-// } GPUBuffer_Vulkan;
+typedef struct GPUBuffer_Vulkan
+{
+    GPUBuffer super;
+    VkBuffer pVkBuffer;
+    VkBufferView pVkStorageTexelView;
+    VkBufferView pVkUniformTexelView;
+    VmaAllocation pVkAllocation;
+    uint64_t mOffset;
+} GPUBuffer_Vulkan;
 
 typedef struct GPUFence_Vulkan
 {
@@ -337,6 +329,13 @@ typedef struct GPUDescriptorSet_Vulkan
     VkDescriptorSet pSet;
     union VkDescriptorUpdateData* pUpdateData;
 } GPUDescriptorSet_Vulkan;
+
+typedef union VkDescriptorUpdateData
+{
+    VkDescriptorImageInfo mImageInfo;
+    VkDescriptorBufferInfo mBufferInfo;
+    VkBufferView pBuferView;
+} VkDescriptorUpdateData;
 
 #ifdef __cplusplus
 }

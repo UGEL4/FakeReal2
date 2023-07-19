@@ -99,8 +99,8 @@ namespace FakeReal
 			barrier.image							= pImage;
 			barrier.oldLayout						= oldLayout;
 			barrier.newLayout						= newLayout;
-			barrier.srcQueueFamilyIndex				= VK_QUEUE_FAMILY_IGNORED;//²»ĞèÒª´«Êä¶ÓÁĞËùÓĞÈ¨£¬±ØĞëÉèÖÃÎªVK_QUEUE_FAMILY_IGNORED
-			barrier.dstQueueFamilyIndex				= VK_QUEUE_FAMILY_IGNORED;//²»ĞèÒª´«Êä¶ÓÁĞËùÓĞÈ¨£¬±ØĞëÉèÖÃÎªVK_QUEUE_FAMILY_IGNORED
+			barrier.srcQueueFamilyIndex				= VK_QUEUE_FAMILY_IGNORED;//ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÎªVK_QUEUE_FAMILY_IGNORED
+			barrier.dstQueueFamilyIndex				= VK_QUEUE_FAMILY_IGNORED;//ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÎªVK_QUEUE_FAMILY_IGNORED
 			barrier.subresourceRange.aspectMask		= aspectFlags;
 			barrier.subresourceRange.levelCount		= mipLevels;
 			barrier.subresourceRange.baseMipLevel	= 0;
@@ -258,7 +258,7 @@ namespace FakeReal
 		{
 			VkBufferImageCopy regions = {};
 			regions.bufferOffset					= 0;
-			regions.bufferRowLength					= 0;//bufferRowLengthºÍbufferImageHeight³ÉÔ±±äÁ¿ÓÃÓÚÖ¸¶¨Êı¾İÔÚÄÚ´æÖĞµÄ´æ·Å·½Ê½¡£Í¨¹ıÕâÁ½¸ö³ÉÔ±±äÁ¿ÎÒÃÇ¿ÉÒÔ¶ÔÃ¿ĞĞÍ¼ÏñÊı¾İÊ¹ÓÃ¶îÍâµÄ¿Õ¼ä½øĞĞ¶ÔÆë¡£½«ÕâÁ½¸ö³ÉÔ±±äÁ¿µÄÖµ¶¼ÉèÖÃÎª0£¬Êı¾İ½«»áÔÚÄÚ´æÖĞ±»½ô´Õ´æ·Å¡£
+			regions.bufferRowLength					= 0;//bufferRowLengthï¿½ï¿½bufferImageHeightï¿½ï¿½Ô±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ĞµÄ´ï¿½Å·ï¿½Ê½ï¿½ï¿½Í¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¿ï¿½ï¿½Ô¶ï¿½Ã¿ï¿½ï¿½Í¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½Ã¶ï¿½ï¿½ï¿½Ä¿Õ¼ï¿½ï¿½ï¿½Ğ¶ï¿½ï¿½ë¡£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª0ï¿½ï¿½ï¿½ï¿½ï¿½İ½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½Ğ±ï¿½ï¿½ï¿½ï¿½Õ´ï¿½Å¡ï¿½
 			regions.bufferImageHeight				= 0;
 			regions.imageExtent.width				= width;
 			regions.imageExtent.height				= height;
@@ -308,6 +308,12 @@ namespace FakeReal
 			textureFormat	= VK_FORMAT_R8G8B8A8_SRGB;
 		}
 		break;
+		default:
+		{
+			textureByteSize = width * height * 3;
+			textureFormat	= VK_FORMAT_R8G8B8_UNORM;
+		}
+		break;
 		}
 
 		VkBuffer pTempBuffer;
@@ -349,10 +355,10 @@ namespace FakeReal
 			&pAllocation,
 			nullptr
 		);
-		//±ä»»²¼¾Ö
+		//ï¿½ä»»ï¿½ï¿½ï¿½ï¿½
 		/*
-			ÕâÀïÎÒÃÇ´´½¨µÄÍ¼Ïñ¶ÔÏóÊ¹ÓÃVK_IMAGE_LAYOUT_UNDEFINED²¼¾Ö£¬ËùÒÔ×ª»»Í¼Ïñ²¼¾ÖÊ±Ó¦¸Ã½«VK_IMAGE_LAYOUT_UNDEFINEDÖ¸¶¨Îª¾É²¼¾Ö.
-			Òª×¢ÒâµÄÊÇÎÒÃÇÖ®ËùÒÔÕâÑùÉèÖÃÊÇÒòÎªÎÒÃÇ²»ĞèÒª¶ÁÈ¡¸´ÖÆ²Ù×÷Ö®Ç°µÄÍ¼ÏñÄÚÈİ¡£
+			ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç´ï¿½ï¿½ï¿½ï¿½ï¿½Í¼ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½VK_IMAGE_LAYOUT_UNDEFINEDï¿½ï¿½ï¿½Ö£ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Í¼ï¿½ñ²¼¾ï¿½Ê±Ó¦ï¿½Ã½ï¿½VK_IMAGE_LAYOUT_UNDEFINEDÖ¸ï¿½ï¿½Îªï¿½É²ï¿½ï¿½ï¿½.
+			Òª×¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½Ç²ï¿½ï¿½ï¿½Òªï¿½ï¿½È¡ï¿½ï¿½ï¿½Æ²ï¿½ï¿½ï¿½Ö®Ç°ï¿½ï¿½Í¼ï¿½ï¿½ï¿½ï¿½ï¿½İ¡ï¿½
 		*/
 		TransitionImageLayout(
 			pRhi, pImage, 

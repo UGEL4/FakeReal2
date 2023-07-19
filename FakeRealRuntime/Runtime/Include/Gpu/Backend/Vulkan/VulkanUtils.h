@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include "Gpu/Backend/vulkan/GPUVulkan.h"
+#include "Gpu/Backend/Vulkan/GPUVulkan.h"
 #include "Gpu/shader-reflections/spirv/spirv_reflect.h"
 
 #ifdef __cplusplus
@@ -36,6 +36,7 @@ VkSampleCountFlagBits VulkanUtil_SampleCountToVk(EGPUSampleCount sampleCount);
 VkCompareOp VulkanUtil_CompareOpToVk(EGPUCompareMode compareMode);
 VkStencilOp VulkanUtil_StencilOpToVk(EGPUStencilOp op);
 VkBufferUsageFlags VulkanUtil_DescriptorTypesToImageUsage(GPUResourceTypes descriptors);
+VkBufferUsageFlags VulkanUtil_DescriptorTypesToBufferUsage(GPUResourceTypes descriptors, bool texel);
 VkFormatFeatureFlags VulkanUtil_ImageUsageToFormatFeatures(VkImageUsageFlags usage);
 
 void VulkanUtil_InitializeShaderReflection(GPUDeviceID device, GPUShaderLibrary_Vulkan* S, const struct GPUShaderLibraryDescriptor* desc);
@@ -46,8 +47,16 @@ VkDescriptorType VulkanUtil_TranslateResourceType(EGPUResourceType type);
 VkAccessFlags VulkanUtil_ResourceStateToVkAccessFlags(EGPUResourceState state);
 
 void VulkanUtil_ConsumeDescriptorSets(VulkanUtil_DescriptorPool* pool, const VkDescriptorSetLayout* pLayouts, VkDescriptorSet* pSets, uint32_t setsNum);
+void VulkanUtil_ReturnDescriptorSets(struct VulkanUtil_DescriptorPool* pPool, VkDescriptorSet* pSets, uint32_t setsNum);
 
 uint32_t VulkanUtil_BitSizeOfBlock(EGPUFormat format);
+
+VkImageLayout VulkanUtil_ResourceStateToImageLayout(EGPUResourceState usage);
+VkPipelineStageFlags VulkanUtil_DeterminePipelineStageFlags(GPUAdapter_Vulkan* A, VkAccessFlags accessFlags, EGPUQueueType queue_type);
+
+VkFilter VulkanUtil_TranslateFilterType(EGPUFilterType type);
+VkSamplerMipmapMode VulkanUtil_TranslateMipMapMode(EGPUMipMapMode mode);
+VkSamplerAddressMode VulkanUtil_TranslateAddressMode(EGPUAddressMode mode);
 
 #define GPU_VK_DESCRIPTOR_TYPE_RANGE_SIZE (VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT + 1)
 static const VkDescriptorPoolSize gDescriptorPoolSizes[GPU_VK_DESCRIPTOR_TYPE_RANGE_SIZE] = {
@@ -157,6 +166,17 @@ static const VkAttachmentLoadOp gVkAttachmentLoadOpTranslator[GPU_LOAD_ACTION_CO
 static const VkAttachmentStoreOp gVkAttachmentStoreOpTranslator[GPU_STORE_ACTION_COUNT] = {
     VK_ATTACHMENT_STORE_OP_STORE,
     VK_ATTACHMENT_STORE_OP_DONT_CARE
+};
+
+static const VkCompareOp gVkCompareOpTranslator[GPU_CMP_COUNT] = {
+    VK_COMPARE_OP_NEVER,
+    VK_COMPARE_OP_LESS,
+    VK_COMPARE_OP_EQUAL,
+    VK_COMPARE_OP_LESS_OR_EQUAL,
+    VK_COMPARE_OP_GREATER,
+    VK_COMPARE_OP_NOT_EQUAL,
+    VK_COMPARE_OP_GREATER_OR_EQUAL,
+    VK_COMPARE_OP_ALWAYS,
 };
 
 #ifdef __cplusplus

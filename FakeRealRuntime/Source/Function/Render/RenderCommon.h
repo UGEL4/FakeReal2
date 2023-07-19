@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-#include <vulkan/vk_mem_alloc.h>
+#include "Gpu/Backend/Vulkan/vma/vk_mem_alloc.h"
 #include "Core/Math/Matrix.h"
 #include "Function/Render/RenderType.h"
 

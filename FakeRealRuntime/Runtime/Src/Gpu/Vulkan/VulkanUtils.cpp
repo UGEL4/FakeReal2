@@ -427,6 +427,7 @@ VkCompareOp VulkanUtil_CompareOpToVk(EGPUCompareMode compareMode)
             return VK_COMPARE_OP_GREATER_OR_EQUAL;
         case GPU_CMP_ALWAYS:
             return VK_COMPARE_OP_ALWAYS;
+        default: break;
     }
     return VK_COMPARE_OP_NEVER;
 }
@@ -451,6 +452,7 @@ VkStencilOp VulkanUtil_StencilOpToVk(EGPUStencilOp op)
             return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
         case GPU_STENCIL_OP_DECR_SAT:
             return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
+        default: break;
     }
     return VK_STENCIL_OP_KEEP;
 }
@@ -462,6 +464,44 @@ VkBufferUsageFlags VulkanUtil_DescriptorTypesToImageUsage(GPUResourceTypes descr
         result |= VK_IMAGE_USAGE_SAMPLED_BIT;
     if (GPU_RESOURCE_TYPE_RW_TEXTURE == (descriptors & GPU_RESOURCE_TYPE_RW_TEXTURE))
         result |= VK_IMAGE_USAGE_STORAGE_BIT;
+    return result;
+}
+
+VkBufferUsageFlags VulkanUtil_DescriptorTypesToBufferUsage(GPUResourceTypes descriptors, bool texel)
+{
+    VkBufferUsageFlags result = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    if (descriptors & GPU_RESOURCE_TYPE_UNIFORM_BUFFER)
+    {
+        result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    }
+    if (descriptors & GPU_RESOURCE_TYPE_RW_BUFFER)
+    {
+        result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        if (texel) result |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
+    }
+    if (descriptors & GPU_RESOURCE_TYPE_BUFFER)
+    {
+        result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        if (texel) result |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+    }
+    if (descriptors & GPU_RESOURCE_TYPE_INDEX_BUFFER)
+    {
+        result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    }
+    if (descriptors & GPU_RESOURCE_TYPE_VERTEX_BUFFER)
+    {
+        result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    }
+    if (descriptors & GPU_RESOURCE_TYPE_INDIRECT_BUFFER)
+    {
+        result |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+    }
+#ifdef ENABLE_RAYTRACING
+    if (descriptors & CGPU_RESOURCE_TYPE_RAY_TRACING)
+    {
+        result |= VK_BUFFER_USAGE_RAY_TRACING_BIT_NV;
+    }
+#endif
     return result;
 }
 
@@ -738,6 +778,15 @@ void VulkanUtil_ConsumeDescriptorSets(VulkanUtil_DescriptorPool* pool, const VkD
     assert(pool->Device->mVkDeviceTable.vkAllocateDescriptorSets(pool->Device->pDevice, &setsAllocInfo, pSets) == VK_SUCCESS);
 }
 
+void VulkanUtil_ReturnDescriptorSets(struct VulkanUtil_DescriptorPool* pPool, VkDescriptorSet* pSets, uint32_t setsNum)
+{
+    // TODO: It is possible to avoid using that flag by updating descriptor sets instead of deleting them.
+    // The application can keep track of recycled descriptor sets and re-use one of them when a new one is requested.
+    // Reference: https://arm-software.github.io/vulkan_best_practice_for_mobile_developers/samples/performance/descriptor_management/descriptor_management_tutorial.html
+    GPUDevice_Vulkan* D = (GPUDevice_Vulkan*)pPool->Device;
+    D->mVkDeviceTable.vkFreeDescriptorSets(D->pDevice, pPool->pVkDescPool, setsNum, pSets);
+}
+
 uint32_t VulkanUtil_BitSizeOfBlock(EGPUFormat format)
 {
     switch (format)
@@ -750,4 +799,156 @@ uint32_t VulkanUtil_BitSizeOfBlock(EGPUFormat format)
         default: break;
     }
     return 0;
+}
+
+VkImageLayout VulkanUtil_ResourceStateToImageLayout(EGPUResourceState usage)
+{
+    if (usage & GPU_RESOURCE_STATE_COPY_SOURCE)
+        return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+
+    if (usage & GPU_RESOURCE_STATE_COPY_DEST)
+        return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+
+    if (usage & GPU_RESOURCE_STATE_RENDER_TARGET)
+        return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    if (usage & GPU_RESOURCE_STATE_RESOLVE_DEST)
+        return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    if (usage & GPU_RESOURCE_STATE_DEPTH_WRITE)
+        return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    if (usage & GPU_RESOURCE_STATE_UNORDERED_ACCESS)
+        return VK_IMAGE_LAYOUT_GENERAL;
+
+    if (usage & GPU_RESOURCE_STATE_SHADER_RESOURCE)
+        return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    if (usage & GPU_RESOURCE_STATE_PRESENT)
+        return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    if (usage == GPU_RESOURCE_STATE_COMMON)
+        return VK_IMAGE_LAYOUT_GENERAL;
+
+    if (usage == GPU_RESOURCE_STATE_SHADING_RATE_SOURCE)
+        return VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+
+    return VK_IMAGE_LAYOUT_UNDEFINED;
+}
+
+VkPipelineStageFlags VulkanUtil_DeterminePipelineStageFlags(GPUAdapter_Vulkan* A, VkAccessFlags accessFlags, EGPUQueueType queue_type)
+{
+    VkPipelineStageFlags flags = 0;
+
+    switch (queue_type)
+    {
+        case GPU_QUEUE_TYPE_GRAPHICS: {
+            if ((accessFlags & (VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT)) != 0)
+                flags |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+
+            if ((accessFlags & (VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT)) != 0)
+            {
+                flags |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+                flags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+                /*if (A->adapterDetail.support_geom_shader)
+                {
+                    flags |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+                }
+                if (A->adapterDetail.support_tessellation)
+                {
+                    flags |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
+                    flags |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
+                }*/
+                flags |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+#ifdef ENABLE_RAYTRACING
+                if (pRenderer->mVulkan.mRaytracingExtension)
+                {
+                    flags |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;
+                }
+#endif
+            }
+            if ((accessFlags & VK_ACCESS_INPUT_ATTACHMENT_READ_BIT) != 0)
+                flags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+            if ((accessFlags & (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)) != 0)
+                flags |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+            if ((accessFlags & (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)) != 0)
+                flags |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+            break;
+        }
+        case GPU_QUEUE_TYPE_COMPUTE: {
+            if ((accessFlags & (VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT)) != 0 ||
+                (accessFlags & VK_ACCESS_INPUT_ATTACHMENT_READ_BIT) != 0 ||
+                (accessFlags & (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)) != 0 ||
+                (accessFlags & (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)) != 0)
+                return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+
+            if ((accessFlags & (VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT)) != 0)
+                flags |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+            break;
+        }
+        case GPU_QUEUE_TYPE_TRANSFER:
+            return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+        default:
+            break;
+    }
+    // Compatible with both compute and graphics queues
+    if ((accessFlags & VK_ACCESS_INDIRECT_COMMAND_READ_BIT) != 0)
+        flags |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
+
+    if ((accessFlags & (VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT)) != 0)
+        flags |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+    if ((accessFlags & (VK_ACCESS_HOST_READ_BIT | VK_ACCESS_HOST_WRITE_BIT)) != 0)
+        flags |= VK_PIPELINE_STAGE_HOST_BIT;
+
+    if (flags == 0)
+        flags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
+    return flags;
+}
+
+VkFilter VulkanUtil_TranslateFilterType(EGPUFilterType type)
+{
+    switch (type)
+    {
+        case GPU_FILTER_TYPE_LINEAR:
+            return VK_FILTER_LINEAR;
+        case GPU_FILTER_TYPE_NEAREST:
+            return VK_FILTER_NEAREST;
+        default:
+            return VK_FILTER_LINEAR;
+    }
+}
+
+VkSamplerMipmapMode VulkanUtil_TranslateMipMapMode(EGPUMipMapMode mode)
+{
+    switch (mode)
+    {
+        case GPU_MIPMAP_MODE_LINEAR:
+            return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        case GPU_MIPMAP_MODE_NEAREST:
+            return VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        default:
+            return VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    }
+}
+
+VkSamplerAddressMode VulkanUtil_TranslateAddressMode(EGPUAddressMode mode)
+{
+    switch (mode)
+    {
+        case GPU_ADDRESS_MODE_MIRROR:
+            return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+        case GPU_ADDRESS_MODE_REPEAT:
+            return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        case GPU_ADDRESS_MODE_CLAMP_TO_EDGE:
+            return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        case GPU_ADDRESS_MODE_CLAMP_TO_BORDER:
+            return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+        default:
+            return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    }
 }

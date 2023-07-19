@@ -52,7 +52,7 @@ template <typename T, typename... Args>
 T* GPUNew(Args&&... args)
 {
     void* ptr = calloc(1, sizeof(T));
-    return GPUNewPlaced(ptr, std::forward<Args>(args)...);
+    return new (ptr) T(std::forward<Args>(args)...);
 }
 
 template <typename T>
@@ -60,7 +60,7 @@ void GPUDelete(T* obj)
 {
     if (obj)
     {
-        GPUDeletePlaced(obj);
+        obj->~T();
         free(obj);
     }
 }
