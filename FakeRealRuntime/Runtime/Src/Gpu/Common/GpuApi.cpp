@@ -84,7 +84,7 @@ void GPUFreeDevice(GPUDeviceID pDevice)
 
 GPUSurfaceID GPUCreateSurfaceFromNativeView(GPUInstanceID pInstance, void *view)
 {
-    #if defined(_WIN64)
+#if defined(_WIN64)
     return GPUCreateSurfaceFromHWND(pInstance, (HWND)view);
 #endif
 
@@ -108,6 +108,14 @@ GPUSurfaceID GPUCreateSurfaceFromHWND(GPUInstanceID pInstance, HWND window)
     return pInstance->pSurfaceProcTable->CreateSurfaceFromHWND(pInstance, window);
 }
 #endif
+
+uint32_t GPUQueryQueueCount(const GPUAdapterID pAdapter, const EGPUQueueType queueType)
+{
+    assert(pAdapter && "Null gpu adapter!");
+    assert(pAdapter->pProcTableCache && "No ProcTableCach!");
+    assert(pAdapter->pProcTableCache->QueryQueueCount && "QueryQueueCount not loaded!");
+    return pAdapter->pProcTableCache->QueryQueueCount(pAdapter, queueType);
+}
 
 GPUQueueID GPUGetQueue(GPUDeviceID pDevice, EGPUQueueType queueType, uint32_t queueIndex)
 {

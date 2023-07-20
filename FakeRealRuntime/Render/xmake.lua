@@ -1,9 +1,11 @@
 local runtime_include     = "$(projectdir)/FakeRealRuntime/Runtime/Include"
-local render_indluces_dir = {"$(projectdir)/FakeRealRuntime/Render/Include", runtime_include}
+local glfw_include        = "$(projectdir)/3rdparty/GLFW/include"
+local render_indluces_dir = {"$(projectdir)/FakeRealRuntime/Render/Include", runtime_include, glfw_include}
 
 local targetdir = "$(projectdir)/bin/" .. output_dir .. "/Render"
 local objdir    = "$(projectdir)/bin-init/" .. output_dir .. "/Render"
 local runtime_lib_dir = "$(projectdir)/bin/" .. output_dir .. "/Runtime"
+local glfw_lib        = "$(projectdir)/bin/" .. output_dir .. "/GLFW"
 target("Render")
     set_kind("static")
     set_languages("cxx20")
@@ -13,8 +15,8 @@ target("Render")
 
     add_deps("Runtime")
 
-    add_linkdirs(runtime_lib_dir)
-    add_links("Runtime")
+    add_linkdirs(runtime_lib_dir, glfw_lib)
+    add_links("Runtime", "GLFW")
 
     set_objectdir(objdir)
     set_targetdir(targetdir)

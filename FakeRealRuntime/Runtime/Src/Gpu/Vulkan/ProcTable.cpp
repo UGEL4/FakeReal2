@@ -6,6 +6,7 @@ const GPUProcTable vkTable = {
     .EnumerateAdapters                 = &GPUEnumerateAdapters_Vulkan,
     .CreateDevice                      = &GPUCreateDevice_Vulkan,
     .FreeDevice                        = &GPUFreeDevice_Vulkan,
+    .QueryQueueCount                   = &GPUQueryQueueCount_Vulkan,
     .GetQueue                          = &GPUGetQueue_Vulkan,
     .FreeQueue                         = &GPUFreeQueue_Vulkan,
     .SubmitQueue                       = &GPUSubmitQueue_Vulkan,

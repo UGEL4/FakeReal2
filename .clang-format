@@ -7,6 +7,8 @@ ObjCBlockIndentWidth: 4
 ContinuationIndentWidth: 0
 MaxEmptyLinesToKeep: 1
 
+NamespaceIndentation: All
+
 AllowShortIfStatementsOnASingleLine: true
 AllowShortBlocksOnASingleLine: true
 

@@ -56,6 +56,8 @@ GPU_API void GPUFreeDevice(GPUDeviceID pDevice);
 typedef void (*GPUProcFreeDevice)(GPUDeviceID pDevice);
 
 // queue
+GPU_API uint32_t GPUQueryQueueCount(const GPUAdapterID pAdapter, const EGPUQueueType queueType);
+typedef uint32_t (*GPUProcQueryQueueCount)(const GPUAdapterID pAdapter, const EGPUQueueType queueType);
 GPU_API GPUQueueID GPUGetQueue(GPUDeviceID pDevice, EGPUQueueType queueType, uint32_t queueIndex);
 typedef GPUQueueID (*GPUProcGetQueue)(GPUDeviceID pDevice, EGPUQueueType queueType, uint32_t queueIndex);
 GPU_API void GPUFreeQueue(GPUQueueID queue);
@@ -213,6 +215,7 @@ typedef struct GPUProcTable {
     const GPUProcFreeDevice FreeDevice;
 
     // queue
+    const GPUProcQueryQueueCount QueryQueueCount;
     const GPUProcGetQueue GetQueue;
     const GPUProcFreeQueue FreeQueue;
     const GPUProcSubmitQueue SubmitQueue;
