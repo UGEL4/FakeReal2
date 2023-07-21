@@ -1,7 +1,7 @@
 #include "Gpu/Backend/Vulkan/VulkanUtils.h"
 #include <new>
 #include <memory>
-#include "Core/Hash/hash.h"
+#include "Utils/Hash/hash.h"
 
 void VulkanUtil_SelectValidationLayers(GPUInstance_Vulkan* pInstance, const char** instanceLayers, uint32_t layersCount)
 {

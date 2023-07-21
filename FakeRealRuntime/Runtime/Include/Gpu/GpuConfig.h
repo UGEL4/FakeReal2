@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Platform/Config.h"
-#include "Core/Base/Macro.h"
+#include "Utils/Macro.h"
 
 #define GPU_USE_VULKAN
 

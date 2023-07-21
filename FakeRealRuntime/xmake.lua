@@ -36,3 +36,4 @@
 includes("Source/xmake.lua")
 includes("Runtime/xmake.lua")
 includes("Render/xmake.lua")
+includes("RenderGraph/xmake.lua")
