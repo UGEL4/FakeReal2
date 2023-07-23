@@ -3,7 +3,7 @@
 #include "Log/LogSystem.h"
 
 #define LOG_HELPER(LEVEL, ...) \
-	PrintLog(LEVEL, "[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
+	LogSystem::PrintLog(LEVEL, "[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
     //g_logSystem.Log(LEVEL, "[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
 
 #define LOG_INFO(...) LOG_HELPER(LogLevel::info, __VA_ARGS__);

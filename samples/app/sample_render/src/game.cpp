@@ -13,6 +13,7 @@ Game::~Game()
 
 void Game::Initialize()
 {
+    LogSystem::Initialize();
     LOG_INFO("Game::Initialize");
     mWindowSystem = new WindowSystem();
     WindowCreateInfo winCreateInfo {};
@@ -31,6 +32,7 @@ void Game::Finalize()
         delete mWindowSystem;
         mWindowSystem = nullptr;
     }
+    LogSystem::Finalize();
 }
 
 void Game::Run()

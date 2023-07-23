@@ -1,8 +1,6 @@
 #pragma once
 #define FMT_CONSTEVAL //clang in c++2020 bug
-#include <cstdint>
 #include "spdlog/spdlog.h"
-#include <stdexcept>
 #include "Utils/BaseDefine.h"
 #include "Platform/Config.h"
 
@@ -19,7 +17,9 @@ namespace FakeReal
     class RUNTIME_API LogSystem
     {
     public:
-        static LogSystem& Instance();
+        // must call this two api!
+        static void Initialize();
+        static void Finalize();
 
         ~LogSystem();
     private:
@@ -59,20 +59,14 @@ namespace FakeReal
             throw std::runtime_error(format_str);
         }
 
+        template <typename... Args>
+        static void PrintLog(FakeReal::LogLevel level, Args&&... args)
+        {
+            FakeReal::LogSystem::s_Instance->Log(level, std::forward<Args>(args)...);
+        }
+
     private:
         SharedPtr<spdlog::logger> mLogger;
+        static LogSystem* s_Instance;
     };
-
-    template <typename... Args>
-    RUNTIME_API void PrintLog(FakeReal::LogLevel level, Args&&... args)
-    {
-        // FakeReal::g_logSystem.Log(level, std::forward<Args>(args)...);
-        FakeReal::LogSystem::Instance().Log(level, std::forward<Args>(args)...);
-    }
 } // namespace FakeReal
-
-
-/* {
-        //FakeReal::g_logSystem.Log(level, std::forward<Args>(args)...);
-    FakeReal::LogSystem::Instance().Log(level, std::forward<Args>(args)...);
-} */

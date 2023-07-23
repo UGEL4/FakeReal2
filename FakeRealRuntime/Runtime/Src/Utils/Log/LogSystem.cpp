@@ -3,14 +3,26 @@
 #include <spdlog/async_logger.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <iostream>
+#include "Platform/Memory.h"
 
 namespace FakeReal
 {
-    LogSystem& LogSystem::Instance()
+    LogSystem* LogSystem::s_Instance = nullptr;
+
+    void LogSystem::Initialize()
     {
-        static LogSystem g_instance;
-        return g_instance;
+        void* ptr = calloc(1, sizeof(LogSystem));
+        LogSystem::s_Instance = new (ptr) LogSystem();
+    }
+
+    void LogSystem::Finalize()
+    {
+        if (LogSystem::s_Instance)
+        {
+            LogSystem::s_Instance->~LogSystem();
+            free(LogSystem::s_Instance);
+            LogSystem::s_Instance = nullptr;
+        }
     }
 
     LogSystem::LogSystem()
