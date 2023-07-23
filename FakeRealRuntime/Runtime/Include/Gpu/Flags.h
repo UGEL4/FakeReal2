@@ -459,6 +459,19 @@ static inline bool FormatUtil_IsDepthStencilFormat(EGPUFormat const fmt)
     return false;
 }
 
+static inline bool FormatUtil_IsDepthOnlyFormat(EGPUFormat const fmt)
+{
+    switch (fmt)
+    {
+        case GPU_FORMAT_D16_UNORM:
+        case GPU_FORMAT_D32_SFLOAT:
+            return true;
+        default:
+            return false;
+    }
+    return false;
+}
+
 #ifdef __cplusplus
 }
 #endif

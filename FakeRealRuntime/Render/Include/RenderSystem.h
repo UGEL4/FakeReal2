@@ -18,6 +18,13 @@ namespace FakeReal
 
     class RenderDevice;
     class IRenderPrimitivePass;
+    class IRenderEffect;
+
+    namespace render_graph
+    {
+        class RenderGraph;
+    }
+
     class RENDER_API RenderSystem
     {
     public:
@@ -26,12 +33,16 @@ namespace FakeReal
 
         void Initialize(RenderDeviceInfo info);
         void Shutdown();
-        void Tick();
+        void Tick(FakeReal::render_graph::RenderGraph* pRenderGraph);
 
         void RegisterRenderPass(IRenderPrimitivePass* pass);
+        void RemoveRenderPass(IRenderPrimitivePass* pass);
+        void RegisterRenderEffect(IRenderEffect* effect);
+        void RemoveRenderEffect(IRenderEffect* effect);
 
     private:
         RenderDevice* m_pRenderDevice;
         std::vector<IRenderPrimitivePass*> mPasses;
+        std::vector<IRenderEffect*> mResources;
     };
 }

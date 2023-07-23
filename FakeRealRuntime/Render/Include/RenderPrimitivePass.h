@@ -2,9 +2,18 @@
 
 namespace FakeReal
 {
+    namespace render_graph
+    {
+        class RenderGraph;
+    }
+} // namespace FakeReal
+
+namespace FakeReal
+{
     typedef struct RenderPrimitivePassContext
     {
         class RenderSystem* pRenderSystem;
+        FakeReal::render_graph::RenderGraph* pRenderGraph;
     } RenderPrimitivePassContext;
 
     class IRenderPrimitivePass
@@ -18,4 +27,4 @@ namespace FakeReal
         virtual void Execute(const RenderPrimitivePassContext* context) = 0;
         virtual void PostUpdate(const RenderPrimitivePassContext* context) = 0;
     };
-}
+} // namespace FakeReal

@@ -67,7 +67,7 @@ struct EqualTo<GPUDescriptorData>
 };
 
 /////////////////////////
-GPU_API GPUBindTableID GPUCreateBindTable(GPUDeviceID device, const GPUBindTableDescriptor* desc);
-GPU_API void GPUFreeBindTable(GPUBindTableID table);
-GPU_API void GPUBindTableUpdate(GPUBindTableID table, const GPUDescriptorData* datas, uint32_t count);
-GPU_API void GPURenderEncoderBindBindTable(GPURenderPassEncoderID encoder, GPUBindTableID table);
+RUNTIME_EXTERN_C GPU_API GPUBindTableID GPUCreateBindTable(GPUDeviceID device, const GPUBindTableDescriptor* desc);
+RUNTIME_EXTERN_C GPU_API void GPUFreeBindTable(GPUBindTableID table);
+RUNTIME_EXTERN_C GPU_API void GPUBindTableUpdate(GPUBindTableID table, const GPUDescriptorData* datas, uint32_t count);
+RUNTIME_EXTERN_C GPU_API void GPURenderEncoderBindBindTable(GPURenderPassEncoderID encoder, GPUBindTableID table);

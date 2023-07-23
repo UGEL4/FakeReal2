@@ -3,6 +3,7 @@
 #include "Config.h"
 #include "DependencyGraph.h"
 #include "Gpu/GpuApi.h"
+#include "Gpu/GpuBindTable.h"
 #include <string>
 #include <functional>
 #include <span>
@@ -404,7 +405,7 @@ namespace FakeReal
         struct RENDER_GRAPH_API RenderPassContext : public PassContext
         {
             GPURenderPassEncoderID m_pEncoder;
-            const struct GPUBindTable* m_pBindTable;
+            const GPUBindTable* m_pBindTable;
         };
 
         struct RENDER_GRAPH_API CopyPassContext : public PassContext

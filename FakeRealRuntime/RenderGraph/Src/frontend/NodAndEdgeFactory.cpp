@@ -18,8 +18,9 @@ namespace FakeReal
                 {
                     if (pool.second)
                     {
-                        pool.second->~factory_pool_t();
-                        free(pool.second);
+                        /* pool.second->~factory_pool_t();
+                        free(pool.second); */
+                        Delete(pool.second);
                     }
                 }
             }
@@ -97,8 +98,9 @@ namespace FakeReal
         {
             if (factory)
             {
-                factory->~NodeAndEdgeFactory();
-                free(factory);
+                /* factory->~NodeAndEdgeFactory();
+                free(factory); */
+                Delete(factory);
             }
         }
     } // namespace render_graph

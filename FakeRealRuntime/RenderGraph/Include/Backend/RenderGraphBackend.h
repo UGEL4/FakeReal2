@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Frontend/RenderGraph.h"
-#include "Gpu/GpuBindTable.h"
 #include "Backend/TexturePool.h"
 #include "Backend/TextureViewPool.h"
 #include "Backend/BufferPool.h"
