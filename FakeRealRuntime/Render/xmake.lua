@@ -16,7 +16,7 @@ target("Render")
     add_defines("UNICODE")
 
     --add_deps("Runtime")
-    add_deps("RenderGraph")
+    add_deps("RenderGraph", "GLFW")
 
     add_linkdirs(glfw_lib, render_graph_lib)
     add_links("GLFW", "RenderGraph")

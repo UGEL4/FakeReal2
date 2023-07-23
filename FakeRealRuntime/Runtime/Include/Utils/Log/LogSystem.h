@@ -19,8 +19,11 @@ namespace FakeReal
     class RUNTIME_API LogSystem
     {
     public:
-        LogSystem();
+        static LogSystem& Instance();
+
         ~LogSystem();
+    private:
+        LogSystem();
     public:
         template <typename... Args>
         void Log(LogLevel level, Args&&... args)
@@ -61,5 +64,15 @@ namespace FakeReal
     };
 
     template <typename... Args>
-    RUNTIME_API void PrintLog(LogLevel level, Args&&... args);
+    RUNTIME_API void PrintLog(FakeReal::LogLevel level, Args&&... args)
+    {
+        // FakeReal::g_logSystem.Log(level, std::forward<Args>(args)...);
+        FakeReal::LogSystem::Instance().Log(level, std::forward<Args>(args)...);
+    }
 } // namespace FakeReal
+
+
+/* {
+        //FakeReal::g_logSystem.Log(level, std::forward<Args>(args)...);
+    FakeReal::LogSystem::Instance().Log(level, std::forward<Args>(args)...);
+} */

@@ -4,7 +4,7 @@
 
 #define LOG_HELPER(LEVEL, ...) \
 	PrintLog(LEVEL, "[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
-    //.m_pLogSystem->Log(LEVEL, "[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
+    //g_logSystem.Log(LEVEL, "[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
 
 #define LOG_INFO(...) LOG_HELPER(LogLevel::info, __VA_ARGS__);
 #define LOG_DEBUG(...) LOG_HELPER(LogLevel::debug, __VA_ARGS__);

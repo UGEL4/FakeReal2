@@ -1,1 +1,1 @@
-#include "Utils/Log/LogSystem.h"
+#include "Log/LogSystem.cpp"

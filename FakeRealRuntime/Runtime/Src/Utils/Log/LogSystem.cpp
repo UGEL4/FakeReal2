@@ -7,6 +7,12 @@
 
 namespace FakeReal
 {
+    LogSystem& LogSystem::Instance()
+    {
+        static LogSystem g_instance;
+        return g_instance;
+    }
+
     LogSystem::LogSystem()
     {
         spdlog::init_thread_pool(8192, 1);
@@ -27,11 +33,5 @@ namespace FakeReal
     {
         mLogger->flush();
         spdlog::drop_all();
-    }
-
-    template <typename... Args>
-    void PrintLog(LogLevel level, Args&&... args)
-    {
-        //todo: log
     }
 } // namespace FakeReal
