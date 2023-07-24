@@ -1,4 +1,4 @@
-#pragma omce
+#pragma once
 
 #include "Config.h"
 #include <memory>
@@ -39,6 +39,11 @@ namespace FakeReal
         void RemoveRenderPass(IRenderPrimitivePass* pass);
         void RegisterRenderEffect(IRenderEffect* effect);
         void RemoveRenderEffect(IRenderEffect* effect);
+
+        RenderDevice* GetRenderDevice() const
+        {
+            return m_pRenderDevice;
+        }
 
     private:
         RenderDevice* m_pRenderDevice;

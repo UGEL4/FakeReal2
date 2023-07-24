@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Config.h"
+#include "RGConfig.h"
 #include "DependencyGraph.h"
 #include "Gpu/GpuApi.h"
 #include "Gpu/GpuBindTable.h"
