@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string_view>
+#include <type_traits>
 #include <unordered_map>
 #include <tuple>
 
@@ -133,27 +134,11 @@ inline constexpr void ForEachTuple(Tuple&& tuple, Fn&& fn)
                   std::make_index_sequence<N>{});
 }
 
-template <bool atomic, typename V, typename Fn, typename Tuple>
-inline static constexpr void __for_each_field_impl(Tuple&& tup, V&& value, Fn&& fn)
-{
-    ForEachTuple(std::forward<Tuple>(tup),
-                 [&value, &fn](auto&& field_schema) {
-                     using ClassName_C = std::decay_t<decltype(value.*(field_schema.ptr))>;
-                     if constexpr (!isAtomic<ClassName_C>() && atomic)
-                     {
-                         static_assert(HasMember_AllFields<ClassInfo<ClassName_C>>::value);
-                         SClass<ClassName_C>::ForEachFieldAtomic(std::forward<ClassName_C>(value.*(field_schema.ptr)), fn);
-                         constexpr int leng = std::tuple_size(ClassInfo<ClassName_C>::all_static_fields());
-                         if constexpr (leng > 0)
-                         {
-                             static_assert(has_member_all_static_fields<ClassInfo<ClassName_C>>::value);
-                             SClass<ClassName_C>::ForEachStaticFieldAtomic(fn);
-                         }
-                     }
-                     else
-                         fn(value.*(field_schema.ptr), field_schema.info);
-                 });
-}
+template <typename T, std::enable_if_t<!std::is_pointer_v<T>, int> = 0>
+static constexpr bool IsAtomic() { return false; }
+
+template <typename T, std::enable_if_t<std::is_pointer_v<T>, int> = 0>
+static constexpr bool IsAtomic() { return true; }
 
 template <typename T>
 struct FClass
@@ -169,5 +154,27 @@ struct FClass
         {
             func();
         }
+    }
+
+    template <bool atomic, typename V, typename Fn, typename Tuple>
+    inline static constexpr void __for_each_field_impl(Tuple&& tup, V&& value, Fn&& fn)
+    {
+        ForEachTuple(std::forward<Tuple>(tup),
+                     [&value, &fn](auto&& field_schema) {
+                         using ClassName_C = std::decay_t<decltype(value.*(field_schema.ptr))>;
+                         if constexpr (!isAtomic<ClassName_C>() && atomic)
+                         {
+                             /* static_assert(HasMember_AllFields<ClassInfo<ClassName_C>>::value);
+                             FClass<ClassName_C>::ForEachFieldAtomic(std::forward<ClassName_C>(value.*(field_schema.ptr)), fn);
+                             constexpr int leng = std::tuple_size(ClassInfo<ClassName_C>::all_static_fields());
+                             if constexpr (leng > 0)
+                             {
+                                 static_assert(has_member_all_static_fields<ClassInfo<ClassName_C>>::value);
+                                 FClass<ClassName_C>::ForEachStaticFieldAtomic(fn);
+                             } */
+                         }
+                         else
+                            fn(value.*(field_schema.ptr), field_schema.info);
+                     });
     }
 };
