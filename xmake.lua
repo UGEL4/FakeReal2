@@ -72,5 +72,6 @@ includes("xmake/3rdparty/glfw.lua")
 includes("xmake/3rdparty/boost.lua")
 includes("FakeRealRuntime/xmake.lua")
 includes("FakeRealEditor/xmake.lua")
+includes("MateParser/xmake.lua")
 
 includes("samples/app/sample_render/xmake.lua")

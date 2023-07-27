@@ -2,7 +2,7 @@
 
 #include <string_view>
 #include <type_traits>
-#include <unordered_map>
+#include "constexpr_map.h"
 #include <tuple>
 
 namespace FakeReal::reflection
@@ -34,6 +34,17 @@ namespace FakeReal::reflection
     }
 } // namespace FakeReal::reflection
 
+#define FIELD_INFO(name, Class, map, ...)\
+    static struct name##_info\
+    {\
+        constexpr name##_info() = default;\
+        constexpr static const FieldWithMeta<detail::____map_size<decltype(map)>::value> info = \
+        FieldWithMeta<detail::____map_size<decltype(map)>::value>(#name, \
+        FakeReal::reflection::decay_type_name<decltype(std::declval<Class>().name)>(), \
+        offsetof(Class, name), map);\
+        decltype(&Class::name) ptr = &Class::name;\
+    };
+
 struct Field
 {
     constexpr Field(const std::string_view name, const std::string_view type, uint32_t offset)
@@ -49,7 +60,7 @@ template <int N>
 struct FieldWithMeta : public Field
 {
     constexpr FieldWithMeta(const std::string_view name, const std::string_view type, uint32_t offset,
-                            const std::unordered_map<std::string_view, std::string_view>& m)
+                            const detail::map_c<detail::element_hash<std::string_view, std::string_view>, N>& m)
         : Field(name, type, offset)
         , mMetas(m)
     {
@@ -60,7 +71,7 @@ struct FieldWithMeta : public Field
         return N;
     }
 
-    const std::unordered_map<std::string_view, std::string_view>& mMetas;
+    const detail::map_c<detail::element_hash<std::string_view, std::string_view>, N>& mMetas;
 };
 
 template <>
