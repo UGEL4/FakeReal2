@@ -15,8 +15,21 @@ void main()
 	vec4 albedo = subpassLoad(inputAlbedo);
 	float depth	= subpassLoad(inputDepth).r;
 
+	float metallic = 0;
+	float roughness = 1;
+	float ao = 1.0;
+	vec3 view = normalize(vec3(0.0, 0.0, 2.0) - worldPos);
+	albedo = vec4(0.5, 0.0, 0.0, 1.0);
+	//vec3 TestCookTorranceBRDF(vec3 worldPos, vec3 view, vec3 normal, vec3 albedo, float roughness, float metallic)
+	vec3 Lo = TestCookTorranceBRDF(ubo.model, worldPos, view, normalize(normal), albedo.rgb, roughness, metallic);
+	vec3 ambient = vec3(0.1) * albedo.rgb * ao;
+    vec3 color = ambient + Lo;
+
+    color = color / (color + vec3(1.0));
+    color = pow(color, vec3(1.0/2.2));  
+	outColor = vec4(color, 1.0);
 	// Ambient part
 	vec3 fragcolor = albedo.rgb;
 	//vec3 fragcolor = vec3(depth, depth, depth);
-	outColor = vec4(fragcolor, 1.0);
+	//outColor = vec4(fragcolor, 1.0);
 }
