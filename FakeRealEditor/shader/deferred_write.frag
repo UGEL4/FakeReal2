@@ -13,6 +13,6 @@ layout(location = 2) out vec4 outAlbedo;
 void main()
 {
 	outPosition = vec4(inWorldPos, 1.0);
-	outNormal = vec4(inColor, 1.0);
-	outAlbedo = texture(TexSampler, inTexCoord);
+	outNormal   = vec4(1.0);
+	outAlbedo   = texture(TexSampler, inTexCoord);
 }

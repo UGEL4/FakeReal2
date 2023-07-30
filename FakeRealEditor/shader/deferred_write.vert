@@ -17,8 +17,9 @@ layout(location = 2) out vec3 outWorldPos;
 
 void main()
 {
-	gl_Position = ubo.proj * ubo.view * ubo.model * vec4(position, 1.0);
-	outColor = color;
-	outTexCoord = texCoord;
-	outWorldPos = vec3(ubo.model * vec4(position, 1.0));
+	vec4 worldPos = ubo.model * vec4(position, 1.0);
+	gl_Position   = ubo.proj * ubo.view * worldPos;
+	outColor      = color;
+	outTexCoord   = texCoord;
+	outWorldPos   = worldPos.xyz;
 }

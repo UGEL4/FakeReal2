@@ -114,9 +114,9 @@ namespace FakeReal
 
 			VkViewport viewport{};
 			viewport.x = 0.0f;
-			viewport.y = 0.0f;
+			viewport.y = (float)m_pVulkanRhi->mSwapchainImageExtent.height;
 			viewport.width	= (float)m_pVulkanRhi->mSwapchainImageExtent.width;
-			viewport.height = (float)m_pVulkanRhi->mSwapchainImageExtent.height;
+			viewport.height = -(float)m_pVulkanRhi->mSwapchainImageExtent.height;
 			viewport.minDepth = 0.0f;
 			viewport.maxDepth = 1.0f;
 
@@ -480,7 +480,7 @@ namespace FakeReal
 		rasterizationStateInfo.rasterizerDiscardEnable	= VK_FALSE;
 		rasterizationStateInfo.polygonMode				= VK_POLYGON_MODE_FILL;
 		rasterizationStateInfo.lineWidth				= 1.f;
-		rasterizationStateInfo.frontFace				= VK_FRONT_FACE_CLOCKWISE;
+		rasterizationStateInfo.frontFace				= VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizationStateInfo.cullMode					= VK_CULL_MODE_BACK_BIT;
 		rasterizationStateInfo.depthClampEnable			= VK_FALSE;
 		rasterizationStateInfo.depthBiasEnable			= VK_FALSE;
@@ -830,13 +830,14 @@ namespace FakeReal
 		auto currTime = std::chrono::high_resolution_clock::now();
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currTime - startTime).count();
 
-		static glm::mat4 m = glm::translate(glm::mat4(1.f), { 0.f, 5.f, -5.f });
+		static glm::mat4 m = glm::translate(glm::mat4(1.f), { 0.f, -2.f, 0.f });
 
 		UniformBufferObj ubo = {};
 		//ubo.model = glm::rotate(m, glm::radians(10.f) * time, { 1.f, 1.f, 0.f });
-		ubo.model = glm::rotate(m, glm::radians(180.f), { 0.f, 0.f, 1.f });
-		ubo.view = glm::lookAt(glm::vec3(0.f, 0.f, 2.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
-		ubo.proj = glm::perspective(glm::radians(45.f), (float)mFrameBuffer.width / mFrameBuffer.height, 0.1f, 1000.f);
+		//ubo.model = glm::rotate(m, glm::radians(0.f), { 0.f, 0.f, 1.f });
+		ubo.model = glm::rotate(m, glm::radians(45.f), { 0.f, 1.f, 0.f });
+		ubo.view = glm::lookAt(glm::vec3(0.f, 0.f, 5.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+		ubo.proj = glm::perspective(glm::radians(90.f), (float)mFrameBuffer.width / mFrameBuffer.height, 0.1f, 1000.f);
 		//ubo.proj[1][1] *= -1;
 
 		void* pData;
