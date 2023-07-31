@@ -76,3 +76,4 @@ includes("MateParser/xmake.lua")
 includes("AssimpModelTool/xmake.lua")
 
 includes("samples/app/sample_render/xmake.lua")
+includes("samples/simple_gpu/xmake.lua")

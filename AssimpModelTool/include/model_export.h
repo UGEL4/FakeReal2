@@ -13,8 +13,8 @@ struct Vertex
 
 struct TextureDate
 {
-    std::string_view url;
-    std::string_view typeName;
+    std::string url;
+    std::string typeName;
 };
 
 struct MeshData
@@ -25,9 +25,12 @@ struct MeshData
     std::vector<TextureDate> specular;
     std::vector<TextureDate> metalness;
     std::vector<TextureDate> roughness;
+    std::vector<TextureDate> normal;
+    uint32_t materialIndex;
 };
 
-void ExportModel(std::string_view file);
+void ExportModel(std::string_view file, std::string_view outFile);
 void ProcessNode(const struct aiNode* node);
 void ProcessMesh(const struct aiMesh* mesh);
 void LoadTexture(const aiMaterial* material, aiTextureType type, std::vector<TextureDate>& tex, std::string_view typeName);
+void SaveFile(const std::string_view filePath);

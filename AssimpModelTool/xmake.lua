@@ -2,7 +2,8 @@ target("assimp_model_tool")
     set_kind("binary")
     set_languages("cxx20")
 
-    add_deps("OldFakeRealRuntime")
+    add_defines("UNICODE")
+    -- add_deps("OldFakeRealRuntime")
 
     --[[ add_linkdirs("$(projectdir)/bin/" .. output_dir .. "/FakeRealRuntime")
     add_links("OldFakeRealRuntime") ]]
