@@ -606,6 +606,23 @@ void GPUFreeBuffer(GPUBufferID buffer)
     buffer->device->pProcTableCache->FreeBuffer(buffer);
 }
 
+void GPUMapBuffer(GPUBufferID buffer, const struct GPUBufferRange* range)
+{
+    assert(buffer && "Null gpu buffer!");
+    assert(range && "Null gpu buffer range!");
+    assert(buffer->device && "Null gpu device!");
+    assert(buffer->device->pProcTableCache->MapBuffer && "MapBuffer not loaded!");
+    buffer->device->pProcTableCache->MapBuffer(buffer, range);
+}
+
+void GPUUnmapBuffer(GPUBufferID buffer)
+{
+    assert(buffer && "Null gpu buffer!");
+    assert(buffer->device && "Null gpu device!");
+    assert(buffer->device->pProcTableCache->UnmapBuffer && "UnmapBuffer not loaded!");
+    buffer->device->pProcTableCache->UnmapBuffer(buffer);
+}
+
 GPUSamplerID GPUCreateSampler(GPUDeviceID device, const struct GPUSamplerDescriptor* desc)
 {
     assert(device && "Null gpu device!");
