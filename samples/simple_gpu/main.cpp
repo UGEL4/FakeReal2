@@ -8,6 +8,8 @@
 #include "Frontend/RenderGraph.h"
 #include "model.hpp"
 #include "Utils/Log/LogSystem.h"
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
 static int WIDTH = 1080;
 static int HEIGHT = 1080;
@@ -434,41 +436,26 @@ void NormalRenderSimple()
     GPUQueueSubmitDescriptor index_cpy_submit = { .cmds = &cmds[0], .cmds_count = 1 };
     GPUSubmitQueue(pGraphicQueue, &index_cpy_submit);
     GPUWaitQueueIdle(pGraphicQueue);
-
-    //uniform
-    GPUBufferDescriptor uniform_buffer{};
-    uniform_buffer.size         = sizeof(TEXTURE_DATA);
-    uniform_buffer.flags        = GPU_BCF_OWN_MEMORY_BIT;
-    uniform_buffer.descriptors  = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
-    uniform_buffer.memory_usage = GPU_MEM_USAGE_GPU_ONLY;
-    GPUBufferID uniformBuffer   = GPUCreateBuffer(device, &uniform_buffer);
-    //copy
-    memcpy(uploadBuffer->cpu_mapped_address, indices.data(), sizeof(uint32_t) * (uint32_t)indices.size());
-    GPUResetCommandPool(pools[0]);
-    GPUCmdBegin(cmds[0]);
-    {
-        GPUBufferToBufferTransfer trans_buffer_desc{};
-        trans_buffer_desc.size       = sizeof(indices);
-        trans_buffer_desc.src        = uploadBuffer;
-        trans_buffer_desc.src_offset = 0;
-        trans_buffer_desc.dst        = uniformBuffer;
-        trans_buffer_desc.dst_offset = 0;
-        GPUCmdTransferBufferToBuffer(cmds[0], &trans_buffer_desc);
-        GPUBufferBarrier index_barrier{};
-        index_barrier.buffer    = indexBuffer;
-        index_barrier.src_state = GPU_RESOURCE_STATE_COPY_DEST;
-        index_barrier.dst_state = GPU_RESOURCE_STATE_UNORDERED_ACCESS;
-        GPUResourceBarrierDescriptor index_rs_barrer{};
-        index_rs_barrer.buffer_barriers        = &index_barrier;
-        index_rs_barrer.buffer_barriers_count = 1;
-        GPUCmdResourceBarrier(cmds[0], &index_rs_barrer);
-    }
-    GPUCmdEnd(cmds[0]);
-    GPUQueueSubmitDescriptor index_cpy_submit = { .cmds = &cmds[0], .cmds_count = 1 };
-    GPUSubmitQueue(pGraphicQueue, 
-
     GPUFreeBuffer(uploadBuffer);
     // end upload resources
+
+    struct UniformBuffer
+    {
+        glm::mat4 model;
+        glm::mat4 view;
+        glm::mat4 proj;
+    };
+    //uniform
+    GPUBufferDescriptor uniform_buffer{};
+    uniform_buffer.size         = sizeof(UniformBuffer);
+    uniform_buffer.flags        = GPU_BCF_NONE;
+    uniform_buffer.descriptors  = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
+    uniform_buffer.memory_usage = GPU_MEM_USAGE_CPU_TO_GPU;
+    GPUBufferID uniformBuffer   = GPUCreateBuffer(device, &uniform_buffer);
+    GPUDescriptorSetDescriptor set1_desc{};
+    set1_desc.root_signature = pRS;
+    set1_desc.set_index      = 1;
+    GPUDescriptorSetID set1  = GPUCreateDescriptorSet(device, &set1_desc);
 
     // update descriptorset
     GPUDescriptorData desc_data[2] = {};
@@ -477,11 +464,21 @@ void NormalRenderSimple()
     desc_data[0].binding_type = GPU_RESOURCE_TYPE_TEXTURE;
     desc_data[0].count             = 1;
     desc_data[0].textures     = &textureView;
-    desc_data[1].name              = u8"texSamp";
+   /*  desc_data[1].name              = u8"texSamp";
     desc_data[1].samplers      = &texture_sampler;
-    desc_data[1].count             = 1;
+    desc_data[1].count             = 1; */
+    desc_data[1].name = u8"ubo";
+    desc_data[1].binding = 0;
+    desc_data[1].binding_type = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
+    desc_data[1].count = 1;
+    desc_data[1].buffers = &uniformBuffer;
     GPUUpdateDescriptorSet(set, desc_data, 1);
-    //GPUUpdateDescriptorSet(set_1, desc_data + 1, 1);
+    GPUUpdateDescriptorSet(set1, desc_data + 1, 1);
+
+    UniformBuffer ubo{};
+    ubo.model = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, -10.f));
+    ubo.view  = glm::lookAt(glm::vec3(0.f, 0.f, 5.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+    ubo.proj  = glm::perspective(glm::radians(90.f), (float)WIDTH / HEIGHT, 0.1f, 1000.f);
 
     //render loop begin
     uint32_t backbufferIndex = 0;
@@ -500,6 +497,13 @@ void NormalRenderSimple()
         }
         else
         {
+            GPUBufferRange rang{};
+            rang.offset = 0;
+            rang.size   = sizeof(UniformBuffer);
+            GPUMapBuffer(uniformBuffer, &rang);
+            memcpy(uniformBuffer->cpu_mapped_address, &ubo, sizeof(UniformBuffer));
+            GPUUnmapBuffer(uniformBuffer);
+
             GPUAcquireNextDescriptor acq_desc{};
             acq_desc.signal_semaphore        = presentSemaphore;
             backbufferIndex                  = GPUAcquireNextImage(pSwapchain, &acq_desc);
@@ -599,6 +603,7 @@ void NormalRenderSimple()
     //GPUFreeDescriptorSet(set_1);
     GPUFreeTextureView(textureView);
     GPUFreeTexture(texture);
+    GPUFreeBuffer(uniformBuffer);
     GPUFreeBuffer(vertexBuffer);
     GPUFreeBuffer(indexBuffer);
    /*  GPUFreeCommandBuffer(cmd);

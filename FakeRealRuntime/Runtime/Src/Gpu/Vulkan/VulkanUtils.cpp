@@ -237,16 +237,16 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanUtil_DebugUtilsCallback(VkDebugUtilsMessage
     switch (messageSeverity)
     {
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-            GPU_LOG_INFO("Vulkan validation verbose layer:\n", pCallbackData->pMessage);
+            GPU_LOG_INFO("Vulkan validation verbose layer:{}\n", pCallbackData->pMessage);
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-            GPU_LOG_INFO("Vulkan validation info layer:\n", pCallbackData->pMessage);
+            GPU_LOG_INFO("Vulkan validation info layer:{}\n", pCallbackData->pMessage);
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-            GPU_LOG_WARNING("Vulkan validation warning layer:\n", pCallbackData->pMessage);
+            GPU_LOG_WARNING("Vulkan validation warning layer:{}\n", pCallbackData->pMessage);
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-            GPU_LOG_ERROR("Vulkan validation error layer:\n", pCallbackData->pMessage);
+            GPU_LOG_ERROR("Vulkan validation error layer:{}\n", pCallbackData->pMessage);
             break;
         default:
             return VK_TRUE;

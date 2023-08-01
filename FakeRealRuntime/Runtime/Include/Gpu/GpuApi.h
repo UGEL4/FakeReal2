@@ -188,6 +188,11 @@ GPU_API GPUBufferID GPUCreateBuffer(GPUDeviceID device, const struct GPUBufferDe
 typedef GPUBufferID (*GPUProcCreateBuffer)(GPUDeviceID device, const struct GPUBufferDescriptor *desc);
 GPU_API void GPUFreeBuffer(GPUBufferID buffer);
 typedef void (*GPUProcFreeBuffer)(GPUBufferID buffer);
+GPU_API void GPUMapBuffer(GPUBufferID buffer, const struct GPUBufferRange* range);
+typedef void (*GPUProcMapBuffer)(GPUBufferID buffer, const struct GPUBufferRange* range);
+GPU_API void GPUUnmapBuffer(GPUBufferID buffer);
+typedef void (*GPUProcUnmapBuffer)(GPUBufferID buffer);
+
 
 // sampler
 GPU_API GPUSamplerID GPUCreateSampler(GPUDeviceID device, const struct GPUSamplerDescriptor *desc);
@@ -281,6 +286,8 @@ typedef struct GPUProcTable {
     // buffer
     const GPUProcCreateBuffer CreateBuffer;
     const GPUProcFreeBuffer FreeBuffer;
+    const GPUProcMapBuffer MapBuffer;
+    const GPUProcUnmapBuffer UnmapBuffer;
 
     // sampler
     const GPUProcCreateSampler CreateSampler;
