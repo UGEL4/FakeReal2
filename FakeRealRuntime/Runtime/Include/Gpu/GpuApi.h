@@ -193,7 +193,6 @@ typedef void (*GPUProcMapBuffer)(GPUBufferID buffer, const struct GPUBufferRange
 GPU_API void GPUUnmapBuffer(GPUBufferID buffer);
 typedef void (*GPUProcUnmapBuffer)(GPUBufferID buffer);
 
-
 // sampler
 GPU_API GPUSamplerID GPUCreateSampler(GPUDeviceID device, const struct GPUSamplerDescriptor *desc);
 typedef GPUSamplerID (*GPUProcCreateSampler)(GPUDeviceID device, const struct GPUSamplerDescriptor *desc);
