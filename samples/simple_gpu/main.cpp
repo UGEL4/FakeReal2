@@ -8,6 +8,7 @@
 #include "Frontend/RenderGraph.h"
 #include "model.hpp"
 #include "Utils/Log/LogSystem.h"
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
@@ -331,8 +332,14 @@ void NormalRenderSimple()
         { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f },
         { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f }
     };*/
+    Vertex vertices[] = {
+        { -0.5f, 0.5f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f },
+        { -0.5f, -0.5f, 0.f, 0.f, 1.f, 0.f, 0.f, 1.f },
+        { 0.5f, -0.5f, 0.f, 1.f, 0.f, 1.f, 1.f, 1.f },
+        { 0.5f, 0.5f, 0.f, 0.f, 0.f, 1.f, 1.f, 0.f }
+    };
 
-    std::vector<Vertex> vertices = Sphere::GenSphereVertices();
+    //std::vector<Vertex> vertices = Sphere::GenSphereVertices();
     // start upload resources
     GPUBufferDescriptor upload_buffer{};
     upload_buffer.size         = sizeof(TEXTURE_DATA);
@@ -375,7 +382,7 @@ void NormalRenderSimple()
     vertex_desc.memory_usage = GPU_MEM_USAGE_GPU_ONLY;
     GPUBufferID vertexBuffer = GPUCreateBuffer(device, &vertex_desc);
     //COPY
-    memcpy(uploadBuffer->cpu_mapped_address, vertices.data(), sizeof(Vertex) * (uint32_t)vertices.size());
+    memcpy(uploadBuffer->cpu_mapped_address, vertices, sizeof(vertices));
     GPUResetCommandPool(pools[0]);
     GPUCmdBegin(cmds[0]);
     {
@@ -401,10 +408,10 @@ void NormalRenderSimple()
     GPUWaitQueueIdle(pGraphicQueue);
 
     //index buffer
-    /* uint16_t indices[] = {
+    uint16_t indices[] = {
         0, 1, 2, 0, 2, 3
-    }; */
-    std::vector<uint32_t> indices = Sphere::GenSphereIndices();
+    };
+    //std::vector<uint32_t> indices = Sphere::GenSphereIndices();
     GPUBufferDescriptor index_desc{};
     index_desc.size         = sizeof(indices);
     index_desc.flags        = GPU_BCF_OWN_MEMORY_BIT;
@@ -412,7 +419,7 @@ void NormalRenderSimple()
     index_desc.memory_usage = GPU_MEM_USAGE_GPU_ONLY;
     GPUBufferID indexBuffer = GPUCreateBuffer(device, &index_desc);
     //copy
-    memcpy(uploadBuffer->cpu_mapped_address, indices.data(), sizeof(uint32_t) * (uint32_t)indices.size());
+    memcpy(uploadBuffer->cpu_mapped_address, indices, sizeof(indices));
     GPUResetCommandPool(pools[0]);
     GPUCmdBegin(cmds[0]);
     {
@@ -444,6 +451,7 @@ void NormalRenderSimple()
         glm::mat4 model;
         glm::mat4 view;
         glm::mat4 proj;
+        glm::vec4 color;
     };
     //uniform
     GPUBufferDescriptor uniform_buffer{};
@@ -452,10 +460,6 @@ void NormalRenderSimple()
     uniform_buffer.descriptors  = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
     uniform_buffer.memory_usage = GPU_MEM_USAGE_CPU_TO_GPU;
     GPUBufferID uniformBuffer   = GPUCreateBuffer(device, &uniform_buffer);
-    GPUDescriptorSetDescriptor set1_desc{};
-    set1_desc.root_signature = pRS;
-    set1_desc.set_index      = 1;
-    GPUDescriptorSetID set1  = GPUCreateDescriptorSet(device, &set1_desc);
 
     // update descriptorset
     GPUDescriptorData desc_data[2] = {};
@@ -468,17 +472,22 @@ void NormalRenderSimple()
     desc_data[1].samplers      = &texture_sampler;
     desc_data[1].count             = 1; */
     desc_data[1].name = u8"ubo";
-    desc_data[1].binding = 0;
+    desc_data[1].binding = 1;
     desc_data[1].binding_type = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
     desc_data[1].count = 1;
     desc_data[1].buffers = &uniformBuffer;
-    GPUUpdateDescriptorSet(set, desc_data, 1);
-    GPUUpdateDescriptorSet(set1, desc_data + 1, 1);
+    GPUUpdateDescriptorSet(set, desc_data, 2);
+    //GPUUpdateDescriptorSet(set_1, desc_data + 1, 1);
 
+    static glm::mat4 m = glm::translate(glm::mat4(1.f), { 0.f, 0.f, 0.f });
     UniformBuffer ubo{};
-    ubo.model = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, -10.f));
-    ubo.view  = glm::lookAt(glm::vec3(0.f, 0.f, 5.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
-    ubo.proj  = glm::perspective(glm::radians(90.f), (float)WIDTH / HEIGHT, 0.1f, 1000.f);
+    ubo.model = m;
+    ubo.view  = glm::lookAt(glm::vec3(0.f, 0.f, 10.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+    ubo.proj  = glm::perspective(glm::radians(30.f), (float)WIDTH / HEIGHT, 0.1f, 1000.f);
+    ubo.color = glm::vec4(1.f, 0.f, 1.f, 1.f);
+    /* ubo.proj[1][1] *= -1;
+    ubo.proj[2][2] *= 0.5f;
+    ubo.proj[2][3] *= 0.5f; */
 
     //render loop begin
     uint32_t backbufferIndex = 0;
@@ -538,8 +547,8 @@ void NormalRenderSimple()
                 render_pass_desc.render_target_count = 1;
                 GPURenderPassEncoderID encoder       = GPUCmdBeginRenderPass(cmd, &render_pass_desc);
                 {
-                    GPURenderEncoderSetViewport(encoder, 0.f, (float)backbuffer->height, (float)backbuffer->width,
-                                                -(float)backbuffer->height, 0.f, 1.f);
+                    GPURenderEncoderSetViewport(encoder, 0.f, 0, (float)backbuffer->width,
+                                                (float)backbuffer->height, 0.f, 1.f);
                     GPURenderEncoderSetScissor(encoder, 0, 0, backbuffer->width,
                                                backbuffer->height);
                     GPURenderEncoderBindPipeline(encoder, pipeline);

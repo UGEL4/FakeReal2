@@ -5,6 +5,7 @@ GPUTextureViewID GPUCreateTextureView_Vulkan(GPUDeviceID pDevice, const GPUTextu
 {
     GPUDevice_Vulkan* pVkDevice           = (GPUDevice_Vulkan*)pDevice;
     GPUTextureView_Vulkan* pVkTextureView = (GPUTextureView_Vulkan*)_aligned_malloc(sizeof(GPUTextureView_Vulkan), alignof(GPUTextureView_Vulkan));
+    memset(pVkTextureView, 0, sizeof(GPUTextureView_Vulkan));
 
     GPUTexture_Vulkan* pVkTexture = (GPUTexture_Vulkan*)pDesc->pTexture;
 

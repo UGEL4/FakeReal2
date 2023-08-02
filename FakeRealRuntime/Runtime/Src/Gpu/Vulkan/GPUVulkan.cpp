@@ -2063,12 +2063,23 @@ GPUBufferID GPUCreateBuffer_Vulkan(GPUDeviceID device, const GPUBufferDescriptor
     }
 
     GPUBuffer_Vulkan* buffer = (GPUBuffer_Vulkan*)_aligned_malloc(sizeof(GPUBuffer_Vulkan), _alignof(GPUBuffer_Vulkan));
+    memset(buffer, 0, sizeof(GPUBuffer_Vulkan));
     buffer->pVkBuffer                = pBuffer;
     buffer->pVkAllocation            = allocation;
     buffer->super.cpu_mapped_address = alloc_info.pMappedData;
     buffer->super.size               = desc->size;
     buffer->super.descriptors        = desc->descriptors;
     buffer->super.memory_usage       = desc->memory_usage;
+
+    // Setup Descriptors
+    if ((desc->descriptors & GPU_RESOURCE_TYPE_UNIFORM_BUFFER) || (desc->descriptors & GPU_RESOURCE_TYPE_BUFFER) ||
+        (desc->descriptors & GPU_RESOURCE_TYPE_RW_BUFFER))
+    {
+        if ((desc->descriptors & GPU_RESOURCE_TYPE_BUFFER) || (desc->descriptors & GPU_RESOURCE_TYPE_RW_BUFFER))
+        {
+            buffer->mOffset = desc->element_stride * desc->first_element;
+        }
+    }
 
     GPUQueue_Vulkan* Q = (GPUQueue_Vulkan*)desc->owner_queue;
     if (Q && pBuffer != VK_NULL_HANDLE && allocation != VK_NULL_HANDLE)

@@ -813,6 +813,12 @@ typedef struct GPUBufferDescriptor
     EGPUFormat format;
     EGPUResourceState start_state; /// What state will the buffer get created in
     GPUBufferCreationFlags flags;
+    /// Index of the first element accessible by the SRV/UAV (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
+    uint64_t first_element;
+    /// Number of elements in the buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
+    uint64_t elemet_count;
+    /// Size of each element (in bytes) in the buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
+    uint64_t element_stride;
     GPUQueueID owner_queue; /// Owner queue of the resource at creation
     bool prefer_on_device;
     bool prefer_on_host;
