@@ -270,14 +270,14 @@ void NormalRenderSimple()
     vertexLayout.attributes[2]  = { 1, GPU_FORMAT_R32G32_SFLOAT, 0, sizeof(float) * 6, sizeof(float) * 2, GPU_INPUT_RATE_VERTEX };
     // renderpipeline
     GPURasterizerStateDescriptor rasterizerState = {
-    .cullMode = GPU_CULL_MODE_BACK,
-    .fillMode = GPU_FILL_MODE_SOLID,
-    .frontFace = GPU_FRONT_FACE_CCW,
-    .depthBias = 0,
-    .slopeScaledDepthBias = 0.f,
-    .enableMultiSample = false,
-    .enableScissor = false,
-    .enableDepthClamp = false
+        .cullMode             = GPU_CULL_MODE_BACK,
+        .fillMode             = GPU_FILL_MODE_SOLID,
+        .frontFace            = GPU_FRONT_FACE_CCW,
+        .depthBias            = 0,
+        .slopeScaledDepthBias = 0.f,
+        .enableMultiSample    = false,
+        .enableScissor        = false,
+        .enableDepthClamp     = false
     };
     GPURenderPipelineDescriptor pipelineDesc{};
     pipelineDesc.pRootSignature    = pRS;
@@ -332,14 +332,34 @@ void NormalRenderSimple()
         { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f },
         { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f }
     };*/
-    Vertex vertices[] = {
-        { -0.5f, 0.5f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f },
-        { -0.5f, -0.5f, 0.f, 0.f, 1.f, 0.f, 0.f, 1.f },
-        { 0.5f, -0.5f, 0.f, 1.f, 0.f, 1.f, 1.f, 1.f },
-        { 0.5f, 0.5f, 0.f, 0.f, 0.f, 1.f, 1.f, 0.f }
-    };
+    /* std::vector<Vertex> vertices = {
+        {-0.5, -0.5,  0.5,   0.0,  0.0,  1.0,  0.0, 0.0 },
+        { 0.5, -0.5,  0.5,   0.0,  0.0,  1.0,  1.0, 0.0 },
+        { 0.5,  0.5,  0.5,   0.0,  0.0,  1.0,  1.0, 1.0 },
+        {-0.5,  0.5,  0.5,   0.0,  0.0,  1.0,  0.0, 1.0 },
+        { 0.5, -0.5, -0.5,   0.0,  0.0, -1.0,  0.0, 0.0 },
+        {-0.5, -0.5, -0.5,   0.0,  0.0, -1.0,  1.0, 0.0 },
+        {-0.5,  0.5, -0.5,   0.0,  0.0, -1.0,  1.0, 1.0 },
+        { 0.5,  0.5, -0.5,   0.0,  0.0, -1.0,  0.0, 1.0 },
+        {-0.5, -0.5,  0.5,  -1.0,  0.0,  0.0,  1.0, 0.0 },
+        {-0.5,  0.5,  0.5,  -1.0,  0.0,  0.0,  1.0, 1.0 },
+        {-0.5,  0.5, -0.5,  -1.0,  0.0,  0.0,  0.0, 1.0 },
+        {-0.5, -0.5, -0.5,  -1.0,  0.0,  0.0,  0.0, 0.0 },
+        { 0.5, -0.5,  0.5,   1.0,  0.0,  0.0,	  0.0, 0.0 },
+        { 0.5, -0.5, -0.5,   1.0,  0.0,  0.0,	  1.0, 0.0 },
+        { 0.5,  0.5, -0.5,   1.0,  0.0,  0.0,	  1.0, 1.0 },
+        { 0.5,  0.5,  0.5,   1.0,  0.0,  0.0,	  0.0, 1.0 },
+        {-0.5, -0.5, -0.5,   0.0, -1.0,  0.0,  0.0, 0.0 },
+        { 0.5, -0.5, -0.5,   0.0, -1.0,  0.0,  1.0, 0.0 },
+        { 0.5, -0.5,  0.5,   0.0, -1.0,  0.0,  1.0, 1.0 },
+        {-0.5, -0.5,  0.5,   0.0, -1.0,  0.0,  0.0, 1.0 },
+        {-0.5,  0.5,  0.5,   0.0,  1.0,  0.0,  0.0, 0.0 },
+        { 0.5,  0.5,  0.5,   0.0,  1.0,  0.0,  1.0, 0.0 },
+        { 0.5,  0.5, -0.5,   0.0,  1.0,  0.0,  1.0, 1.0 },
+        {-0.5,  0.5, -0.5,   0.0,  1.0,  0.0,  0.0, 1.0 }
+    }; */
 
-    //std::vector<Vertex> vertices = Sphere::GenSphereVertices();
+    std::vector<Vertex> vertices = Sphere::GenCubeVertices();
     // start upload resources
     GPUBufferDescriptor upload_buffer{};
     upload_buffer.size         = sizeof(TEXTURE_DATA);
@@ -376,18 +396,18 @@ void NormalRenderSimple()
 
     //vertex buffer
     GPUBufferDescriptor vertex_desc{};
-    vertex_desc.size         = sizeof(vertices);
+    vertex_desc.size         = sizeof(Vertex) * vertices.size();
     vertex_desc.flags        = GPU_BCF_OWN_MEMORY_BIT;
     vertex_desc.descriptors  = GPU_RESOURCE_TYPE_VERTEX_BUFFER;
     vertex_desc.memory_usage = GPU_MEM_USAGE_GPU_ONLY;
     GPUBufferID vertexBuffer = GPUCreateBuffer(device, &vertex_desc);
     //COPY
-    memcpy(uploadBuffer->cpu_mapped_address, vertices, sizeof(vertices));
+    memcpy(uploadBuffer->cpu_mapped_address, &vertices[0], sizeof(Vertex) * vertices.size());
     GPUResetCommandPool(pools[0]);
     GPUCmdBegin(cmds[0]);
     {
         GPUBufferToBufferTransfer trans_verticex_buffer_desc{};
-        trans_verticex_buffer_desc.size       = sizeof(vertices);
+        trans_verticex_buffer_desc.size       = sizeof(Vertex) * vertices.size();
         trans_verticex_buffer_desc.src        = uploadBuffer;
         trans_verticex_buffer_desc.src_offset = 0;
         trans_verticex_buffer_desc.dst        = vertexBuffer;
@@ -408,23 +428,28 @@ void NormalRenderSimple()
     GPUWaitQueueIdle(pGraphicQueue);
 
     //index buffer
-    uint16_t indices[] = {
-        0, 1, 2, 0, 2, 3
-    };
-    //std::vector<uint32_t> indices = Sphere::GenSphereIndices();
+    /* uint16_t indices[] = {
+        0, 1, 2, 2, 3, 0,
+        4, 5, 6, 6, 7, 4,
+        8, 9, 10, 10, 11, 8,
+        12, 13, 14, 14, 15, 12,
+        16, 17, 18, 18, 19, 16,
+        20, 21, 22, 22, 23, 20
+    }; */
+    std::vector<uint32_t> indices = Sphere::GenCubeIndices();
     GPUBufferDescriptor index_desc{};
-    index_desc.size         = sizeof(indices);
+    index_desc.size         = sizeof(uint32_t) * indices.size();
     index_desc.flags        = GPU_BCF_OWN_MEMORY_BIT;
     index_desc.descriptors  = GPU_RESOURCE_TYPE_INDEX_BUFFER;
     index_desc.memory_usage = GPU_MEM_USAGE_GPU_ONLY;
     GPUBufferID indexBuffer = GPUCreateBuffer(device, &index_desc);
     //copy
-    memcpy(uploadBuffer->cpu_mapped_address, indices, sizeof(indices));
+    memcpy(uploadBuffer->cpu_mapped_address, indices.data(), sizeof(uint32_t) * indices.size());
     GPUResetCommandPool(pools[0]);
     GPUCmdBegin(cmds[0]);
     {
         GPUBufferToBufferTransfer trans_index_buffer_desc{};
-        trans_index_buffer_desc.size       = sizeof(indices);
+        trans_index_buffer_desc.size       = sizeof(uint32_t) * indices.size();
         trans_index_buffer_desc.src        = uploadBuffer;
         trans_index_buffer_desc.src_offset = 0;
         trans_index_buffer_desc.dst        = indexBuffer;
@@ -452,6 +477,8 @@ void NormalRenderSimple()
         glm::mat4 view;
         glm::mat4 proj;
         glm::vec4 color;
+        glm::vec4 viewPos;
+        glm::vec4 lightPos;
     };
     //uniform
     GPUBufferDescriptor uniform_buffer{};
@@ -463,32 +490,31 @@ void NormalRenderSimple()
 
     // update descriptorset
     GPUDescriptorData desc_data[2] = {};
-    desc_data[0].name         = u8"tex"; // shader sampler2D`s name
-    desc_data[0].binding      = 0;
-    desc_data[0].binding_type = GPU_RESOURCE_TYPE_TEXTURE;
+    desc_data[0].name              = u8"tex"; // shader sampler2D`s name
+    desc_data[0].binding           = 0;
+    desc_data[0].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
     desc_data[0].count             = 1;
-    desc_data[0].textures     = &textureView;
-   /*  desc_data[1].name              = u8"texSamp";
-    desc_data[1].samplers      = &texture_sampler;
-    desc_data[1].count             = 1; */
-    desc_data[1].name = u8"ubo";
-    desc_data[1].binding = 1;
+    desc_data[0].textures          = &textureView;
+    /*  desc_data[1].name              = u8"texSamp";
+     desc_data[1].samplers      = &texture_sampler;
+     desc_data[1].count             = 1; */
+    desc_data[1].name         = u8"ubo";
+    desc_data[1].binding      = 1;
     desc_data[1].binding_type = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
-    desc_data[1].count = 1;
-    desc_data[1].buffers = &uniformBuffer;
+    desc_data[1].count        = 1;
+    desc_data[1].buffers      = &uniformBuffer;
     GPUUpdateDescriptorSet(set, desc_data, 2);
     //GPUUpdateDescriptorSet(set_1, desc_data + 1, 1);
 
     static glm::mat4 m = glm::translate(glm::mat4(1.f), { 0.f, 0.f, 0.f });
     UniformBuffer ubo{};
-    ubo.model = m;
-    ubo.view  = glm::lookAt(glm::vec3(0.f, 0.f, 10.f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
-    ubo.proj  = glm::perspective(glm::radians(30.f), (float)WIDTH / HEIGHT, 0.1f, 1000.f);
-    ubo.color = glm::vec4(1.f, 0.f, 1.f, 1.f);
-    /* ubo.proj[1][1] *= -1;
-    ubo.proj[2][2] *= 0.5f;
-    ubo.proj[2][3] *= 0.5f; */
-
+    ubo.viewPos  = glm::vec4(-2.f, 0.f, 2.f, 1.f);
+    ubo.model    = glm::rotate(m, glm::radians(0.f), glm::vec3(0.f, 1.f, 0.f));
+    ubo.view     = glm::lookAt(glm::vec3(ubo.viewPos.x, ubo.viewPos.y, ubo.viewPos.z), glm::vec3(0.f, 0.f, 0.5f), glm::vec3(0.f, 1.f, 0.f));
+    ubo.proj     = glm::perspective(glm::radians(90.f), (float)WIDTH / HEIGHT, 0.1f, 1000.f);
+    ubo.color    = glm::vec4(1.f, 0.f, 1.f, 1.f);
+    ubo.lightPos = glm::vec4(2.f, 0.f, 1.f, 1.f);
+    //ubo.proj[1][1] *= -1;
     //render loop begin
     uint32_t backbufferIndex = 0;
     bool exit = false;
@@ -547,20 +573,24 @@ void NormalRenderSimple()
                 render_pass_desc.render_target_count = 1;
                 GPURenderPassEncoderID encoder       = GPUCmdBeginRenderPass(cmd, &render_pass_desc);
                 {
-                    GPURenderEncoderSetViewport(encoder, 0.f, 0, (float)backbuffer->width,
-                                                (float)backbuffer->height, 0.f, 1.f);
+                    GPURenderEncoderSetViewport(encoder, 0.f, (float)backbuffer->width,
+                                                (float)backbuffer->width,
+                                                -(float)backbuffer->height, 
+                                                0.f, 1.f);
                     GPURenderEncoderSetScissor(encoder, 0, 0, backbuffer->width,
                                                backbuffer->height);
                     GPURenderEncoderBindPipeline(encoder, pipeline);
                     //bind vertexbuffer
                     uint32_t stride = sizeof(Vertex);
                     GPURenderEncoderBindVertexBuffers(encoder, 1, &vertexBuffer, &stride, nullptr);
-                    GPURenderEncoderBindIndexBuffer(encoder, indexBuffer, 0, sizeof(uint16_t));
+                    uint32_t indexStride = sizeof(decltype(indices)::value_type);
+                    GPURenderEncoderBindIndexBuffer(encoder, indexBuffer, 0, indexStride);
                     //bind descriptor ste
                     GPURenderEncoderBindDescriptorSet(encoder, set);
                     //GPURenderEncoderDraw(encoder, 3, 0);
                     //GPURenderEncoderDrawIndexed(encoder, sizeof(indices) / sizeof(uint16_t), 0, 0);
-                    GPURenderEncoderDrawIndexedInstanced(encoder, sizeof(indices) / sizeof(uint16_t), 1, 0, 0, 0);
+                    uint32_t indexCount = indices.size();
+                    GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, 0, 0, 0);
                 }
                 GPUCmdEndRenderPass(cmd, encoder);
 
