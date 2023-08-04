@@ -239,18 +239,59 @@ void NormalRenderSimple()
     GPUShaderLibraryID pFShader = GPUCreateShaderLibrary(device, &fShaderDesc);
     free(vShaderCode);
     free(fShaderCode);
-    GPUShaderEntryDescriptor shaderEntries[2] = {0};
+
+    uint32_t* normal_vShaderCode;
+    uint32_t normal_vSize = 0;
+    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/normal_geom.vert", &normal_vShaderCode, &normal_vSize, EGPUBackend::GPUBackend_Vulkan);
+    uint32_t* normal_fShaderCode;
+    uint32_t normal_fSize = 0;
+    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/normal_geom.frag", &normal_fShaderCode, &normal_fSize, EGPUBackend::GPUBackend_Vulkan);
+    uint32_t* normal_gShaderCode;
+    uint32_t normal_gSize = 0;
+    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/normal_geom.geom", &normal_gShaderCode, &normal_gSize, EGPUBackend::GPUBackend_Vulkan);
+    GPUShaderLibraryDescriptor normal_vShaderDesc{};
+    normal_vShaderDesc.pName    = u8"normal_vertex_shader";
+    normal_vShaderDesc.code     = normal_vShaderCode;
+    normal_vShaderDesc.codeSize = normal_vSize;
+    normal_vShaderDesc.stage    = GPU_SHADER_STAGE_VERT;
+    GPUShaderLibraryDescriptor normal_fShaderDesc{};
+    normal_fShaderDesc.pName    = u8"normal_fragment_shader";
+    normal_fShaderDesc.code     = normal_fShaderCode;
+    normal_fShaderDesc.codeSize = normal_fSize;
+    normal_fShaderDesc.stage    = GPU_SHADER_STAGE_FRAG;
+    GPUShaderLibraryDescriptor normal_gShaderDesc{};
+    normal_gShaderDesc.pName    = u8"normal_geometry_shader";
+    normal_gShaderDesc.code     = normal_gShaderCode;
+    normal_gShaderDesc.codeSize = normal_gSize;
+    normal_gShaderDesc.stage    = GPU_SHADER_STAGE_GEOM;
+    GPUShaderLibraryID pNVShader = GPUCreateShaderLibrary(device, &normal_vShaderDesc);
+    GPUShaderLibraryID pNFShader = GPUCreateShaderLibrary(device, &normal_fShaderDesc);
+    GPUShaderLibraryID pNGShader = GPUCreateShaderLibrary(device, &normal_gShaderDesc);
+    free(normal_vShaderCode);
+    free(normal_fShaderCode);
+    free(normal_gShaderCode);
+
+    GPUShaderEntryDescriptor shaderEntries[5] = {0};
     shaderEntries[0].stage                    = GPU_SHADER_STAGE_VERT;
     shaderEntries[0].entry                    = u8"main";
     shaderEntries[0].pLibrary                 = pVShader;
     shaderEntries[1].stage                    = GPU_SHADER_STAGE_FRAG;
     shaderEntries[1].entry                    = u8"main";
     shaderEntries[1].pLibrary                 = pFShader;
+    shaderEntries[2].stage                    = GPU_SHADER_STAGE_VERT;
+    shaderEntries[2].entry                    = u8"main";
+    shaderEntries[2].pLibrary                 = pNVShader;
+    shaderEntries[3].stage                    = GPU_SHADER_STAGE_FRAG;
+    shaderEntries[3].entry                    = u8"main";
+    shaderEntries[3].pLibrary                 = pNFShader;
+    shaderEntries[4].stage                    = GPU_SHADER_STAGE_GEOM;
+    shaderEntries[4].entry                    = u8"main";
+    shaderEntries[4].pLibrary                 = pNGShader;
 
     //create root signature
     GPURootSignatureDescriptor rootRSDesc     = {};
     rootRSDesc.shaders                        = shaderEntries;
-    rootRSDesc.shader_count                   = 2;
+    rootRSDesc.shader_count                   = 5;
     rootRSDesc.static_sampler_names           = &sampler_name;
     rootRSDesc.static_sampler_count           = 1;
     rootRSDesc.static_samplers                = &texture_sampler;
@@ -261,6 +302,11 @@ void NormalRenderSimple()
     set_desc.root_signature = pRS;
     set_desc.set_index      = 0;
     GPUDescriptorSetID set  = GPUCreateDescriptorSet(device, &set_desc);
+    //create normal descriptorset
+    GPUDescriptorSetDescriptor normal_set_desc{};
+    normal_set_desc.root_signature = pRS;
+    normal_set_desc.set_index      = 1;
+    GPUDescriptorSetID normal_set  = GPUCreateDescriptorSet(device, &normal_set_desc);
 
     //vertex layout
     GPUVertexLayout vertexLayout{};
@@ -271,7 +317,7 @@ void NormalRenderSimple()
     // renderpipeline
     GPURasterizerStateDescriptor rasterizerState = {
         .cullMode             = GPU_CULL_MODE_BACK,
-        .fillMode             = GPU_FILL_MODE_SOLID,
+        .fillMode             = GPU_FILL_MODE_WIREFRAME,
         .frontFace            = GPU_FRONT_FACE_CCW,
         .depthBias            = 0,
         .slopeScaledDepthBias = 0.f,
@@ -291,6 +337,16 @@ void NormalRenderSimple()
     GPURenderPipelineID pipeline   = GPUCreateRenderPipeline(device, &pipelineDesc);
     GPUFreeShaderLibrary(pVShader);
     GPUFreeShaderLibrary(pFShader);
+
+    //normal pipeline
+    GPURenderPipelineDescriptor normal_pipelineDesc = pipelineDesc;
+    normal_pipelineDesc.pVertexShader     = &shaderEntries[2];
+    normal_pipelineDesc.pFragmentShader   = &shaderEntries[3];
+    normal_pipelineDesc.pGeometryShader   = &shaderEntries[4];
+    GPURenderPipelineID normal_pipeline   = GPUCreateRenderPipeline(device, &normal_pipelineDesc);
+    GPUFreeShaderLibrary(pNVShader);
+    GPUFreeShaderLibrary(pNFShader);
+    GPUFreeShaderLibrary(pNGShader);
     // end create renderpipeline
 
     //create command objs
@@ -303,63 +359,10 @@ void NormalRenderSimple()
         cmdDesc.isSecondary = false;
         cmds[i] = GPUCreateCommandBuffer(pools[i], &cmdDesc);
     }
-    /* GPUCommandPoolID pool = GPUCreateCommandPool(pGraphicQueue);
-    GPUCommandBufferDescriptor cmdDesc{};
-    cmdDesc.isSecondary = false;
-    GPUCommandBufferID cmd = GPUCreateCommandBuffer(pool, &cmdDesc); */
 
     //create semaphore
     GPUSemaphoreID presentSemaphore = GPUCreateSemaphore(device);
 
-    /* struct Vertex {
-        float x;
-        float y;
-        float z;
-        float r;
-        float g;
-        float b;
-        float u;
-        float v;
-    };
-    Vertex vertices[] = {
-        { -0.5f, 0.5f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f },
-        { -0.5f, -0.5f, 0.f, 0.f, 1.f, 0.f, 0.f, 1.f },
-        { 0.5f, -0.5f, 0.f, 1.f, 0.f, 1.f, 1.f, 1.f },
-        { 0.5f, 0.5f, 0.f, 0.f, 0.f, 1.f, 1.f, 0.f }
-    }; */
-    /*Vertex vertices[] = {
-        { 1.f, 0.f, 0.f, 0.f, 0.f, 1.f },
-        { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f },
-        { 0.f, 0.f, 0.f, 0.f, 0.f, 0.f }
-    };*/
-    /* std::vector<Vertex> vertices = {
-        {-0.5, -0.5,  0.5,   0.0,  0.0,  1.0,  0.0, 0.0 },
-        { 0.5, -0.5,  0.5,   0.0,  0.0,  1.0,  1.0, 0.0 },
-        { 0.5,  0.5,  0.5,   0.0,  0.0,  1.0,  1.0, 1.0 },
-        {-0.5,  0.5,  0.5,   0.0,  0.0,  1.0,  0.0, 1.0 },
-        { 0.5, -0.5, -0.5,   0.0,  0.0, -1.0,  0.0, 0.0 },
-        {-0.5, -0.5, -0.5,   0.0,  0.0, -1.0,  1.0, 0.0 },
-        {-0.5,  0.5, -0.5,   0.0,  0.0, -1.0,  1.0, 1.0 },
-        { 0.5,  0.5, -0.5,   0.0,  0.0, -1.0,  0.0, 1.0 },
-        {-0.5, -0.5,  0.5,  -1.0,  0.0,  0.0,  1.0, 0.0 },
-        {-0.5,  0.5,  0.5,  -1.0,  0.0,  0.0,  1.0, 1.0 },
-        {-0.5,  0.5, -0.5,  -1.0,  0.0,  0.0,  0.0, 1.0 },
-        {-0.5, -0.5, -0.5,  -1.0,  0.0,  0.0,  0.0, 0.0 },
-        { 0.5, -0.5,  0.5,   1.0,  0.0,  0.0,	  0.0, 0.0 },
-        { 0.5, -0.5, -0.5,   1.0,  0.0,  0.0,	  1.0, 0.0 },
-        { 0.5,  0.5, -0.5,   1.0,  0.0,  0.0,	  1.0, 1.0 },
-        { 0.5,  0.5,  0.5,   1.0,  0.0,  0.0,	  0.0, 1.0 },
-        {-0.5, -0.5, -0.5,   0.0, -1.0,  0.0,  0.0, 0.0 },
-        { 0.5, -0.5, -0.5,   0.0, -1.0,  0.0,  1.0, 0.0 },
-        { 0.5, -0.5,  0.5,   0.0, -1.0,  0.0,  1.0, 1.0 },
-        {-0.5, -0.5,  0.5,   0.0, -1.0,  0.0,  0.0, 1.0 },
-        {-0.5,  0.5,  0.5,   0.0,  1.0,  0.0,  0.0, 0.0 },
-        { 0.5,  0.5,  0.5,   0.0,  1.0,  0.0,  1.0, 0.0 },
-        { 0.5,  0.5, -0.5,   0.0,  1.0,  0.0,  1.0, 1.0 },
-        {-0.5,  0.5, -0.5,   0.0,  1.0,  0.0,  0.0, 1.0 }
-    }; */
-
-    std::vector<Vertex> vertices = Sphere::GenCubeVertices();
     // start upload resources
     GPUBufferDescriptor upload_buffer{};
     upload_buffer.size         = sizeof(TEXTURE_DATA);
@@ -395,6 +398,8 @@ void NormalRenderSimple()
     GPUWaitQueueIdle(pGraphicQueue);
 
     //vertex buffer
+    std::vector<Vertex> vertices = Sphere::GenCubeVertices();
+    //std::vector<Vertex> vertices = Sphere::GenSphereVertices();
     GPUBufferDescriptor vertex_desc{};
     vertex_desc.size         = sizeof(Vertex) * vertices.size();
     vertex_desc.flags        = GPU_BCF_OWN_MEMORY_BIT;
@@ -428,15 +433,8 @@ void NormalRenderSimple()
     GPUWaitQueueIdle(pGraphicQueue);
 
     //index buffer
-    /* uint16_t indices[] = {
-        0, 1, 2, 2, 3, 0,
-        4, 5, 6, 6, 7, 4,
-        8, 9, 10, 10, 11, 8,
-        12, 13, 14, 14, 15, 12,
-        16, 17, 18, 18, 19, 16,
-        20, 21, 22, 22, 23, 20
-    }; */
     std::vector<uint32_t> indices = Sphere::GenCubeIndices();
+    //std::vector<uint32_t> indices = Sphere::GenSphereIndices();
     GPUBufferDescriptor index_desc{};
     index_desc.size         = sizeof(uint32_t) * indices.size();
     index_desc.flags        = GPU_BCF_OWN_MEMORY_BIT;
@@ -508,13 +506,51 @@ void NormalRenderSimple()
 
     static glm::mat4 m = glm::translate(glm::mat4(1.f), { 0.f, 0.f, 0.f });
     UniformBuffer ubo{};
-    ubo.viewPos  = glm::vec4(-2.f, 0.f, 2.f, 1.f);
+    ubo.viewPos  = glm::vec4(1.f, 0.f, 5.f, 1.f);
     ubo.model    = glm::rotate(m, glm::radians(0.f), glm::vec3(0.f, 1.f, 0.f));
     ubo.view     = glm::lookAt(glm::vec3(ubo.viewPos.x, ubo.viewPos.y, ubo.viewPos.z), glm::vec3(0.f, 0.f, 0.5f), glm::vec3(0.f, 1.f, 0.f));
     ubo.proj     = glm::perspective(glm::radians(90.f), (float)WIDTH / HEIGHT, 0.1f, 1000.f);
-    ubo.color    = glm::vec4(1.f, 0.f, 1.f, 1.f);
-    ubo.lightPos = glm::vec4(2.f, 0.f, 1.f, 1.f);
+    ubo.color    = glm::vec4(0.f, 1.f, 1.f, 1.f);
+    ubo.lightPos = glm::vec4(0.f, 0.f, 8.f, 1.f);
     //ubo.proj[1][1] *= -1;
+
+    struct NormalUniformBuffer
+    {
+        glm::mat4 model;
+        glm::mat4 view;
+        //glm::mat4 proj;
+    };
+    GPUBufferDescriptor normal_uniform_buffer{};
+    normal_uniform_buffer.size         = sizeof(UniformBuffer);
+    normal_uniform_buffer.flags        = GPU_BCF_NONE;
+    normal_uniform_buffer.descriptors  = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
+    normal_uniform_buffer.memory_usage = GPU_MEM_USAGE_CPU_TO_GPU;
+    GPUBufferID normal_uniformBuffer   = GPUCreateBuffer(device, &normal_uniform_buffer);
+
+    GPUBufferDescriptor normal_geom_uniform_buffer{};
+    normal_geom_uniform_buffer.size         = sizeof(glm::mat4);
+    normal_geom_uniform_buffer.flags        = GPU_BCF_NONE;
+    normal_geom_uniform_buffer.descriptors  = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
+    normal_geom_uniform_buffer.memory_usage = GPU_MEM_USAGE_CPU_TO_GPU;
+    GPUBufferID normal_geom_uniformBuffer   = GPUCreateBuffer(device, &normal_geom_uniform_buffer);
+    // update descriptorset
+    GPUDescriptorData normal_desc_data[2] = {};
+    normal_desc_data[0].name              = u8"nv_ubo";
+    normal_desc_data[0].binding           = 0;
+    normal_desc_data[0].binding_type      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
+    normal_desc_data[0].count             = 1;
+    normal_desc_data[0].buffers           = &normal_uniformBuffer;
+    normal_desc_data[1].name              = u8"ng_ubo";
+    normal_desc_data[1].binding           = 1;
+    normal_desc_data[1].binding_type      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
+    normal_desc_data[1].count             = 1;
+    normal_desc_data[1].buffers           = &normal_geom_uniformBuffer;
+    GPUUpdateDescriptorSet(normal_set, normal_desc_data, 2);
+    NormalUniformBuffer normal_ubo{};
+    normal_ubo.model = ubo.model;
+    normal_ubo.view  = ubo.view;
+    glm::mat4 geom_projection = ubo.proj;
+
     //render loop begin
     uint32_t backbufferIndex = 0;
     bool exit = false;
@@ -538,6 +574,19 @@ void NormalRenderSimple()
             GPUMapBuffer(uniformBuffer, &rang);
             memcpy(uniformBuffer->cpu_mapped_address, &ubo, sizeof(UniformBuffer));
             GPUUnmapBuffer(uniformBuffer);
+
+            GPUBufferRange normal_rang{};
+            normal_rang.offset = 0;
+            normal_rang.size   = sizeof(NormalUniformBuffer);
+            GPUMapBuffer(normal_uniformBuffer, &normal_rang);
+            memcpy(normal_uniformBuffer->cpu_mapped_address, &normal_ubo, sizeof(NormalUniformBuffer));
+            GPUUnmapBuffer(normal_uniformBuffer);
+
+            normal_rang.offset = 0;
+            normal_rang.size   = sizeof(glm::mat4);
+            GPUMapBuffer(normal_geom_uniformBuffer, &normal_rang);
+            memcpy(normal_geom_uniformBuffer->cpu_mapped_address, &geom_projection[0][0], sizeof(glm::mat4));
+            GPUUnmapBuffer(normal_geom_uniformBuffer);
 
             GPUAcquireNextDescriptor acq_desc{};
             acq_desc.signal_semaphore        = presentSemaphore;
@@ -573,7 +622,7 @@ void NormalRenderSimple()
                 render_pass_desc.render_target_count = 1;
                 GPURenderPassEncoderID encoder       = GPUCmdBeginRenderPass(cmd, &render_pass_desc);
                 {
-                    GPURenderEncoderSetViewport(encoder, 0.f, (float)backbuffer->width,
+                    GPURenderEncoderSetViewport(encoder, 0.f, (float)backbuffer->height,
                                                 (float)backbuffer->width,
                                                 -(float)backbuffer->height, 
                                                 0.f, 1.f);
@@ -590,6 +639,10 @@ void NormalRenderSimple()
                     //GPURenderEncoderDraw(encoder, 3, 0);
                     //GPURenderEncoderDrawIndexed(encoder, sizeof(indices) / sizeof(uint16_t), 0, 0);
                     uint32_t indexCount = indices.size();
+                    GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, 0, 0, 0);
+
+                    GPURenderEncoderBindPipeline(encoder, normal_pipeline);
+                    GPURenderEncoderBindDescriptorSet(encoder, normal_set);
                     GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, 0, 0, 0);
                 }
                 GPUCmdEndRenderPass(cmd, encoder);

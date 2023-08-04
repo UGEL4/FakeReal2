@@ -691,6 +691,7 @@ typedef struct GPURenderPipelineDescriptor
     GPURootSignatureID pRootSignature;
     const GPUShaderEntryDescriptor* pVertexShader;
     const GPUShaderEntryDescriptor* pFragmentShader;
+    const GPUShaderEntryDescriptor* pGeometryShader;
     const GPUVertexLayout* pVertexLayout;
     const GPUDepthStateDesc* pDepthState;
     const GPURasterizerStateDescriptor* pRasterizerState;

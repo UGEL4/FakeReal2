@@ -56,10 +56,11 @@ layout(location = 4) in vec4 inViewPos;
 layout(location = 5) in vec4 inlightPos;
 void main()
 {
-    /* vec4 albedo     = texture(sampler2D(tex, texSamp), inUV);
+    //vec4 albedo     = texture(sampler2D(tex, texSamp), inUV);
+    vec4 albedo     = inColor;
     vec3 N          = normalize(inNormal);
     float metallic  = 0.0;
-    float roughness = 0.0;
+    float roughness = 1.0;
     float ao        = 1.0;
     vec3 view       = normalize(inViewPos.xyz - inWorldPos);
 
@@ -97,9 +98,9 @@ void main()
     vec3 color 	 = ambient + Lo;
     color        = color / (color + vec3(1.0));
     color        = pow(color, vec3(1.0 / 2.2));
-    outColor     = vec4(color, 1.0); */
+    outColor     = vec4(color, 1.0);
 
-    outColor = vec4(inColor.rgb, 1.0);
+    //outColor = vec4(inColor.rgb, 1.0);
     //outClor = texture(tex, outUv);
     //outClor = albedo;
 }

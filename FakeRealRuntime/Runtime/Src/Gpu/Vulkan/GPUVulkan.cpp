@@ -1903,6 +1903,7 @@ void GPURenderEncoderSetScissor_Vulkan(GPURenderPassEncoderID encoder, uint32_t 
     scissor.offset = { (int32_t)x, (int32_t)y };
     scissor.extent = { width, height };
     D->mVkDeviceTable.vkCmdSetScissor(CMD->pVkCmd, 0, 1, &scissor);
+    D->mVkDeviceTable.vkCmdSetLineWidth(CMD->pVkCmd, 5.f);
 }
 
 void GPURenderEncoderBindPipeline_Vulkan(GPURenderPassEncoderID encoder, GPURenderPipelineID pipeline)
