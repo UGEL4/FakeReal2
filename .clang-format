@@ -42,6 +42,7 @@ IndentPPDirectives: BeforeHash
 
 BreakBeforeBraces: Custom
 BraceWrapping:
+  AfterCaseLabel: true
   AfterClass: true
   AfterStruct: true
   AfterEnum: true

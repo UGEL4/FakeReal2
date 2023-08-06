@@ -44,42 +44,57 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 }
 
 layout(set = 0, binding = 0) uniform texture2D tex;
-layout(set = 0, binding = 2) uniform sampler texSamp; //static sampler
+layout(set = 0, binding = 3) uniform sampler texSamp; //static sampler
+layout(set = 0, binding = 1) uniform UniformBufferObj
+{
+    mat4 model;
+    mat4 view;
+    mat4 proj;
+    vec4 viewPos;
+}ubo;
 
 layout(location = 0) out vec4 outColor;
 
 layout(location = 0) in vec3 inWorldPos;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inUV;
-layout(location = 3) in vec4 inColor;
-layout(location = 4) in vec4 inViewPos;
-layout(location = 5) in vec4 inlightPos;
+
+layout(set = 1, binding = 0) uniform PBRMaterialParam
+{
+    float metallic;
+    float roughness;
+    float ao;
+    float padding;
+} PBRMat;
+
+const int MAX_LIGHT_NUM = 4;
+layout(set = 1, binding = 1) uniform LightParam
+{
+    vec4 lightColor[MAX_LIGHT_NUM];
+    vec4 lightPos[MAX_LIGHT_NUM];
+} Lights;
+
 void main()
 {
     //vec4 albedo     = texture(sampler2D(tex, texSamp), inUV);
-    vec4 albedo     = inColor;
+    vec4 albedo     = vec4(1.0, 0.0, 0.0, 1.0);
     vec3 N          = normalize(inNormal);
-    float metallic  = 0.0;
-    float roughness = 1.0;
-    float ao        = 1.0;
-    vec3 view       = normalize(inViewPos.xyz - inWorldPos);
+    vec3 view       = normalize(ubo.viewPos.xyz - inWorldPos);
 
-    vec3 lightPos   = inlightPos.xyz;
-    vec3 lightColor = vec3(1000.0, 0.0, 0.0);
     vec3 F0 = vec3(0.04);
-    F0      = mix(F0, albedo.rgb, metallic);
+    F0      = mix(F0, albedo.rgb, PBRMat.metallic);
     vec3 Lo = vec3(0.0);
     for (int i = 0; i < 1; i++)
     {
-        vec3 L = normalize(lightPos - inWorldPos);
-        vec3 H = normalize(view + L);
-        float dis = length(lightPos - inWorldPos);
+        vec3 L            = normalize(Lights.lightPos[i].xyz - inWorldPos);
+        vec3 H            = normalize(view + L);
+        float dis         = length(Lights.lightPos[i].xyz - inWorldPos);
         float attenuation = 1.0 / (dis * dis);
-        vec3 radiance = lightColor * attenuation;
+        vec3 radiance     = Lights.lightColor[i].xyz * attenuation;
 
         // Cook-Torrance BRDF
-        float NDF = DistributionGGX(N, H, roughness);
-        float G   = GeometrySmith(N, view, L, roughness);
+        float NDF = DistributionGGX(N, H, PBRMat.roughness);
+        float G   = GeometrySmith(N, view, L, PBRMat.roughness);
         vec3 F    = fresnelSchlick(clamp(dot(H, view), 0.0, 1.0), F0);
 
         vec3 numerator    = NDF * G * F;
@@ -88,17 +103,18 @@ void main()
 
         vec3 Ks = F;
         vec3 Kd = vec3(1.0) - Ks;
-        Kd *= (1.0 - metallic);
+        Kd *= (1.0 - PBRMat.metallic);
 
         float NdotL = max(dot(N, L), 0.0);
 
         Lo += (Kd * albedo.rgb / PI + specular) * radiance * NdotL;
     }
-    vec3 ambient = vec3(0.03) * albedo.rgb * ao;
+    vec3 ambient = vec3(0.03) * albedo.rgb * PBRMat.ao;
     vec3 color 	 = ambient + Lo;
     color        = color / (color + vec3(1.0));
     color        = pow(color, vec3(1.0 / 2.2));
     outColor     = vec4(color, 1.0);
+    //outColor     = vec4(Lights.lightColor[1].xyz, 1.0);
 
     //outColor = vec4(inColor.rgb, 1.0);
     //outClor = texture(tex, outUv);

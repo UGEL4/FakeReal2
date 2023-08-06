@@ -462,6 +462,7 @@ void GPUFreeDevice_Vulkan(GPUDeviceID pDevice)
     }
 
     pVkDevice->mVkDeviceTable.vkDestroyDescriptorPool(pVkDevice->pDevice, pVkDevice->pDescriptorPool->pVkDescPool, GLOBAL_VkAllocationCallbacks);
+    vmaDestroyAllocator(pVkDevice->pVmaAllocator);
     vkDestroyDevice(pVkDevice->pDevice, GLOBAL_VkAllocationCallbacks);
     GPUDelete(pVkDevice->pPassTable);
     GPU_SAFE_FREE(pVkDevice->pDescriptorPool);
@@ -1225,16 +1226,57 @@ GPURenderPipelineID GPUCreateRenderPipeline_Vulkan(GPUDeviceID pDevice, const GP
     vertexInputInfo.pVertexAttributeDescriptions    = pAttribDesc;
 
     // shader stage
-    uint32_t shaderStagCount = 2;
-    DECLARE_ZERO_VAL(VkPipelineShaderStageCreateInfo, shaderStage, shaderStagCount);
-    shaderStage[0].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shaderStage[0].stage  = VK_SHADER_STAGE_VERTEX_BIT;
-    shaderStage[0].module = ((GPUShaderLibrary_Vulkan*)(pDesc->pVertexShader->pLibrary))->pShader;
-    shaderStage[0].pName  = (const char*)pDesc->pVertexShader->entry;
-    shaderStage[1].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shaderStage[1].stage  = VK_SHADER_STAGE_FRAGMENT_BIT;
-    shaderStage[1].module = ((GPUShaderLibrary_Vulkan*)(pDesc->pFragmentShader->pLibrary))->pShader;
-    shaderStage[1].pName  = (const char*)pDesc->pFragmentShader->entry;
+    uint32_t shaderStagCount = 0;
+    DECLARE_ZERO_VAL(VkPipelineShaderStageCreateInfo, shaderStage, 5);
+    for (uint32_t i = 0; i < 5; i++)
+    {
+        EGPUShaderStage mask               = (EGPUShaderStage)(1 << i);
+        shaderStage[i].sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStage[i].pName               = VK_NULL_HANDLE;
+        shaderStage[i].flags               = 0;
+        shaderStage[i].pSpecializationInfo = VK_NULL_HANDLE;
+        switch (mask)
+        {
+            case GPU_SHADER_STAGE_VERT:
+            {
+                if (pDesc->pVertexShader)
+                {
+                    shaderStage[shaderStagCount].stage  = VK_SHADER_STAGE_VERTEX_BIT;
+                    shaderStage[shaderStagCount].module = ((GPUShaderLibrary_Vulkan*)(pDesc->pVertexShader->pLibrary))->pShader;
+                    shaderStage[shaderStagCount].pName  = (const char*)pDesc->pVertexShader->entry;
+                    shaderStagCount++;
+                }
+            }
+            break;
+            case GPU_SHADER_STAGE_FRAG:
+            {
+                if (pDesc->pFragmentShader)
+                {
+                    shaderStage[shaderStagCount].stage  = VK_SHADER_STAGE_FRAGMENT_BIT;
+                    shaderStage[shaderStagCount].module = ((GPUShaderLibrary_Vulkan*)(pDesc->pFragmentShader->pLibrary))->pShader;
+                    shaderStage[shaderStagCount].pName  = (const char*)pDesc->pFragmentShader->entry;
+                    shaderStagCount++;
+                }
+            }
+            break;
+            case GPU_SHADER_STAGE_GEOM:
+            {
+                if (pDesc->pGeometryShader)
+                {
+                    shaderStage[shaderStagCount].stage  = VK_SHADER_STAGE_GEOMETRY_BIT;
+                    shaderStage[shaderStagCount].module = ((GPUShaderLibrary_Vulkan*)(pDesc->pGeometryShader->pLibrary))->pShader;
+                    shaderStage[shaderStagCount].pName  = (const char*)pDesc->pGeometryShader->entry;
+                    shaderStagCount++;
+                }
+            }
+            break;
+            case GPU_SHADER_STAGE_TESC: break;
+            case GPU_SHADER_STAGE_TESE: break;
+            default:
+                assert(false && "Shader Stage not supported!");
+                break;
+        }
+    }
 
     // Viewport state
     VkPipelineViewportStateCreateInfo viewPort{};
@@ -1903,7 +1945,7 @@ void GPURenderEncoderSetScissor_Vulkan(GPURenderPassEncoderID encoder, uint32_t 
     scissor.offset = { (int32_t)x, (int32_t)y };
     scissor.extent = { width, height };
     D->mVkDeviceTable.vkCmdSetScissor(CMD->pVkCmd, 0, 1, &scissor);
-    D->mVkDeviceTable.vkCmdSetLineWidth(CMD->pVkCmd, 5.f);
+    //D->mVkDeviceTable.vkCmdSetLineWidth(CMD->pVkCmd, 5.f);
 }
 
 void GPURenderEncoderBindPipeline_Vulkan(GPURenderPassEncoderID encoder, GPURenderPipelineID pipeline)

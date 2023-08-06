@@ -11,10 +11,11 @@ layout (location = 0) out VS_OUT {
     vec3 normal;
 } vs_out;
 
-layout (set = 1, binding = 0) uniform UBO 
+layout (set = 0, binding = 2) uniform UBO
 {
-	mat4 model;
+    mat4 model;
     mat4 view;
+    mat4 projection;
 } nv_ubo;
 
 void main(void){

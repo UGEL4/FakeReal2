@@ -2,6 +2,8 @@
 #include <string_view>
 #include <vector>
 #include <cmath>
+#include <array>
+#include <glm/vec4.hpp>
 
 struct Vertex
 {
@@ -32,11 +34,23 @@ private:
 
 struct Sphere
 {
+    // j [0, pi],  i [0, 2pi]
+    // x = r * sin(j) * cos(i); y = r * cos(j); z = r * sin(j) * sin(i)
+
+    static std::array<float, 3> Normalize(float x, float y, float z)
+    {
+        float length = sqrt(x * x + y * y + z * z);
+        float div = 1.f / length;
+        x *= div;
+        y *= div;
+        z *= div;
+        return {x, y, z};
+    }
+    static constexpr const uint32_t SPHERE_DIV = 64;
+    static constexpr const float PI            = 3.14159265359f;
     static std::vector<Vertex> GenSphereVertices()
     {
         std::vector<Vertex> vertices;
-        const float PI      = 3.14159265359f;
-        uint32_t SPHERE_DIV = 10;
         // Generate coordinates
         for (uint32_t j = 0; j <= SPHERE_DIV; j++)
         {
@@ -56,6 +70,9 @@ struct Sphere
                 v.nx = v.x;
                 v.ny = v.y;
                 v.nz = v.z;
+                std::array<float, 3> n = Normalize(v.x, v.y, v.z);
+                v.u = std::atan2(n[0], n[2]) / (2 * PI) + 0.5f;
+                v.v = n[1] * 0.5f + 0.5f;
                 vertices.emplace_back(v);
             }
         }
@@ -65,14 +82,19 @@ struct Sphere
     static std::vector<uint32_t> GenSphereIndices()
     {
         std::vector<uint32_t> indices;
-        uint32_t SPHERE_DIV = 10;
         for (uint32_t j = 0; j < SPHERE_DIV; j++)
         {
           for (uint32_t i = 0; i < SPHERE_DIV; i++)
           {
             uint32_t p1 = j * (SPHERE_DIV + 1) + i;
             uint32_t p2 = p1 + (SPHERE_DIV + 1);
-
+            /*
+              p1     p1+1
+                |``/|
+                | / |
+                |/__|
+              p2     p2+1
+            */
             indices.push_back(p1);
             indices.push_back(p2);
             indices.push_back(p1 + 1);
@@ -129,4 +151,19 @@ struct Sphere
         };
         return indeces;
     }
+};
+
+struct PBRMaterialParam
+{
+    float metallic;
+    float roughness;
+    float ao;
+    float padding;
+};
+
+constexpr const int MAX_LIGHT_NUM = 4;
+struct LightParam
+{
+    glm::vec4 lightColor[MAX_LIGHT_NUM];
+    glm::vec4 lightPos[MAX_LIGHT_NUM];
 };
