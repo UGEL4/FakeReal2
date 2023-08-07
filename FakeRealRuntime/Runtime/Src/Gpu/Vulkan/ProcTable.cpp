@@ -53,6 +53,7 @@ const GPUProcTable vkTable = {
     .RenderEncoderBindVertexBuffers    = &GPURenderEncoderBindVertexBuffers_Vulkan,
     .RenderEncoderBindIndexBuffer      = &GPURenderEncoderBindIndexBuffer_Vulkan,
     .RenderEncoderBindDescriptorSet    = &GPURenderEncoderBindDescriptorSet_Vulkan,
+    .RenderEncoderPushConstant         = &GPURenderEncoderPushConstant_Vulkan,
     .CreateBuffer                      = &GPUCreateBuffer_Vulkan,
     .FreeBuffer                        = &GPUFreeBuffer_Vulkan,
     .MapBuffer                         = &GPUMapBuffer_Vulkan,

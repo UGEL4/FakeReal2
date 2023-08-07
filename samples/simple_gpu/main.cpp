@@ -521,7 +521,7 @@ void NormalRenderSimple()
 
     static glm::mat4 m = glm::translate(glm::mat4(1.f), { 0.f, 0.f, 0.f });
     UniformBuffer ubo{};
-    ubo.viewPos  = glm::vec4(0.f, 0.f, 3.f, 1.f);
+    ubo.viewPos  = glm::vec4(0.f, 0.f, 10.f, 1.f);
     ubo.model    = glm::rotate(m, glm::radians(0.f), glm::vec3(0.f, 1.f, 0.f));
     ubo.view     = glm::lookAt(glm::vec3(ubo.viewPos.x, ubo.viewPos.y, ubo.viewPos.z), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
     ubo.proj     = glm::perspective(glm::radians(90.f), (float)WIDTH / HEIGHT, 0.1f, 1000.f);
@@ -573,14 +573,15 @@ void NormalRenderSimple()
     }
 
     // light
-    lightInfo.lightPos[0]   = glm::vec4(-2.f, 0.f, 3.f, 1.f);
-    lightInfo.lightPos[1]   = glm::vec4(-2.f, 0.f, 3.f, 1.f);
-    lightInfo.lightPos[2]   = glm::vec4(-2.f, 0.f, 3.f, 1.f);
-    lightInfo.lightPos[3]   = glm::vec4(-2.f, 0.f, 3.f, 1.f);
-    lightInfo.lightColor[0] = glm::vec4(300.f, 600.f, 300.f, 1.f);
-    lightInfo.lightColor[1] = glm::vec4(300.f, 300.f, 300.f, 1.f);
-    lightInfo.lightColor[2] = glm::vec4(300.f, 300.f, 300.f, 1.f);
-    lightInfo.lightColor[3] = glm::vec4(300.f, 300.f, 300.f, 1.f);
+    const float p = 15.0f;
+    lightInfo.lightPos[0]   = glm::vec4(-p, p * 0.5f, p * 0.4f, 1.f);
+    lightInfo.lightPos[1]   = glm::vec4(-p, -p * 0.5f, p * 0.4f, 1.f);
+    lightInfo.lightPos[2]   = glm::vec4(p, p * 0.5f, p * 0.4f, 1.f);
+    lightInfo.lightPos[3]   = glm::vec4(p, -p * 0.5f, p * 0.4f, 1.f);
+    lightInfo.lightColor[0] = glm::vec4(1000.f, 1000.f, 1000.f, 1.f);
+    lightInfo.lightColor[1] = glm::vec4(1000.f, 1000.f, 1000.f, 1.f);
+    lightInfo.lightColor[2] = glm::vec4(1000.f, 1000.f, 1000.f, 1.f);
+    lightInfo.lightColor[3] = glm::vec4(1000.f, 1000.f, 1000.f, 1.f);
     GPUBufferRange rang{};
     rang.offset = 0;
     rang.size   = sizeof(LightParam);
@@ -596,9 +597,6 @@ void NormalRenderSimple()
     GPUUnmapBuffer(pbrMaterialUniformBuffer);
 
     //render loop begin
-    int nrRows                           = 7;
-    int nrColumns                        = 7;
-    float spacing                        = 2.5f;
     constexpr const bool visualizeNormal = false;
     uint32_t backbufferIndex             = 0;
     bool exit                            = false;
@@ -682,7 +680,22 @@ void NormalRenderSimple()
                     //GPURenderEncoderDraw(encoder, 3, 0);
                     //GPURenderEncoderDrawIndexed(encoder, sizeof(indices) / sizeof(uint16_t), 0, 0);
                     uint32_t indexCount = indices.size();
-                    GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, 0, 0, 0);
+                    //GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, 0, 0, 0);
+
+                    for (uint32_t y = 0; y < 7; y++)
+                    {
+                        for (uint32_t x = 0; x < 7; x++)
+                        {
+                            glm::vec4 pos = glm::vec4(float(x - (7 / 2.0f)) * 2.5f, float(y - (7 / 2.0f)) * 2.5f, 0.f, 1.f);
+                            PushConstant push_constant{};
+                            push_constant.objOffsetPos = pos;
+                            push_constant.ao           = 1.f;
+                            push_constant.metallic     = glm::clamp((float)y / (float)(7), 0.1f, 1.0f);
+                            push_constant.roughness    = glm::clamp((float)x / (float)(7), 0.05f, 1.0f);
+                            GPURenderEncoderPushConstant(encoder, pRS, &push_constant);
+                            GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, 0, 0, 0);
+                        }
+                    }
 
                     if constexpr (visualizeNormal)
                     {

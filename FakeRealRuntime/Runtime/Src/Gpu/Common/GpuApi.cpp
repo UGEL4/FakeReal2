@@ -583,6 +583,16 @@ void GPURenderEncoderBindDescriptorSet(GPURenderPassEncoderID encoder, GPUDescri
     encoder->device->pProcTableCache->RenderEncoderBindDescriptorSet(encoder, set);
 }
 
+void GPURenderEncoderPushConstant(GPURenderPassEncoderID encoder, GPURootSignatureID rs, void* data)
+{
+    assert(encoder && "Null renderpass encoder!");
+    assert(encoder->device && "Null gpu device!");
+    assert(rs && "Null root signature!");
+    assert(data && "Null push constant data!");
+    assert(encoder->device->pProcTableCache->RenderEncoderPushConstant && "RenderEncoderPushConstant not loaded!");
+    encoder->device->pProcTableCache->RenderEncoderPushConstant(encoder, rs, data);
+}
+
 GPUBufferID GPUCreateBuffer(GPUDeviceID device, const GPUBufferDescriptor* desc)
 {
     assert(device && "Null gpu device!");

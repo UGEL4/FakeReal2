@@ -10,6 +10,22 @@ struct Vertex
     float x, y, z;
     float nx, ny, nz;
     float u, v;
+
+    bool operator ==(const Vertex& other) const
+    {
+        return (x == other.x && y == other.y && z == other.z && nx == other.nx && ny == other.ny && nz == other.nz && u == other.u && v == other.v);
+    }
+};
+
+struct MeshData
+{
+    std::vector<Vertex> vertices;
+    std::vector<uint32_t> indices;
+};
+
+struct SubMesh
+{
+    
 };
 
 struct Mesh
@@ -166,4 +182,13 @@ struct LightParam
 {
     glm::vec4 lightColor[MAX_LIGHT_NUM];
     glm::vec4 lightPos[MAX_LIGHT_NUM];
+};
+
+struct PushConstant
+{
+    glm::vec4 objOffsetPos;
+    float metallic;
+    float roughness;
+    float ao;
+    float padding;
 };

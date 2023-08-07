@@ -182,6 +182,8 @@ GPU_API void GPURenderEncoderBindIndexBuffer(GPURenderPassEncoderID encoder, GPU
 typedef void (*GPUProcRenderEncoderBindIndexBuffer)(GPURenderPassEncoderID encoder, GPUBufferID buffer, uint32_t offset, uint64_t indexStride);
 GPU_API void GPURenderEncoderBindDescriptorSet(GPURenderPassEncoderID encoder, GPUDescriptorSetID set);
 typedef void (*GPUProcRenderEncoderBindDescriptorSet)(GPURenderPassEncoderID encoder, GPUDescriptorSetID set);
+GPU_API void GPURenderEncoderPushConstant(GPURenderPassEncoderID encoder, GPURootSignatureID rs, void* data);
+typedef void (*GPUProcRenderEncoderPushConstant)(GPURenderPassEncoderID encoder, GPURootSignatureID rs, void* data);
 
 // buffer
 GPU_API GPUBufferID GPUCreateBuffer(GPUDeviceID device, const struct GPUBufferDescriptor *desc);
@@ -281,6 +283,7 @@ typedef struct GPUProcTable {
     const GPUProcRenderEncoderBindVertexBuffers RenderEncoderBindVertexBuffers;
     const GPUProcRenderEncoderBindIndexBuffer RenderEncoderBindIndexBuffer;
     const GPUProcRenderEncoderBindDescriptorSet RenderEncoderBindDescriptorSet;
+    const GPUProcRenderEncoderPushConstant RenderEncoderPushConstant;
 
     // buffer
     const GPUProcCreateBuffer CreateBuffer;

@@ -79,7 +79,7 @@ void ProcessMesh(const aiMesh* mesh)
         LoadTexture(material, aiTextureType_SPECULAR, meshData.specular, "texture_specular");
         //LoadTexture(material, aiTextureType_METALNESS, meshData.specular, "texture_metalness");
         //LoadTexture(material, aiTextureType_DIFFUSE_ROUGHNESS, meshData.specular, "texture_roughness");
-        LoadTexture(material, aiTextureType_HEIGHT, meshData.normal, "texture_normal");
+        LoadTexture(material, aiTextureType_NORMALS, meshData.normal, "texture_normal");
     }
 
     g_meshes.emplace_back(meshData);
@@ -154,7 +154,7 @@ void SaveFile(const std::string_view filePath)
                 c++;
             }
         }
-        out << "\n            ]\n";
+        out << "\n            ],\n";
 
         //texture
         out <<"            \"mTexture\": {\n";

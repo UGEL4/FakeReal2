@@ -1055,18 +1055,17 @@ GPURootSignatureID GPUCreateRootSignature_Vulkan(GPUDeviceID device, const struc
     }
     // Push constants
     // Collect push constants count
-    /* if (RS->super.push_constant_count > 0)
+    if (RS->super.push_constant_count > 0)
     {
-        RS->pPushConstRanges = (VkPushConstantRange*)cgpu_calloc(RS->super.push_constant_count, sizeof(VkPushConstantRange));
+        RS->pPushConstantRanges = (VkPushConstantRange*)calloc(RS->super.push_constant_count, sizeof(VkPushConstantRange));
         // Create Vk Objects
         for (uint32_t i_const = 0; i_const < RS->super.push_constant_count; i_const++)
         {
-            RS->pPushConstRanges[i_const].stageFlags =
-            VkUtil_TranslateShaderUsages(RS->super.push_constants[i_const].stages);
-            RS->pPushConstRanges[i_const].size   = RS->super.push_constants[i_const].size;
-            RS->pPushConstRanges[i_const].offset = RS->super.push_constants[i_const].offset;
+            RS->pPushConstantRanges[i_const].stageFlags = VulkanUtil_TranslateShaderUsages(RS->super.push_constants[i_const].stages);
+            RS->pPushConstantRanges[i_const].size       = RS->super.push_constants[i_const].size;
+            RS->pPushConstantRanges[i_const].offset     = RS->super.push_constants[i_const].offset;
         }
-    }*/
+    }
     // Record Descriptor Sets
     RS->pVkSetLayouts = (VkDescriptorSetLayout*)malloc(set_count * sizeof(VkDescriptorSetLayout));
     for (uint32_t i_set = 0; i_set < set_count; i_set++)
@@ -1082,7 +1081,7 @@ GPURootSignatureID GPUCreateRootSignature_Vulkan(GPUDeviceID device, const struc
         .setLayoutCount         = set_count,
         .pSetLayouts            = RS->pVkSetLayouts,
         .pushConstantRangeCount = RS->super.push_constant_count,
-        //.pPushConstantRanges    = RS->pPushConstRanges
+        .pPushConstantRanges    = RS->pPushConstantRanges
     };
     assert(D->mVkDeviceTable.vkCreatePipelineLayout(D->pDevice, &pipeline_info, GLOBAL_VkAllocationCallbacks, &RS->pPipelineLayout) == VK_SUCCESS);
     // Create Update Templates
@@ -2039,6 +2038,14 @@ void GPURenderEncoderBindDescriptorSet_Vulkan(GPURenderPassEncoderID encoder, GP
                                               S->super.index, 1, &S->pSet,
                                               // TODO: Dynamic Offset
                                               0, NULL);
+}
+
+void GPURenderEncoderPushConstant_Vulkan(GPURenderPassEncoderID encoder, GPURootSignatureID rs, void* data)
+{
+    GPUCommandBuffer_Vulkan* Cmd = (GPUCommandBuffer_Vulkan*)encoder;
+    GPUDevice_Vulkan* D          = (GPUDevice_Vulkan*)Cmd->super.device;
+    GPURootSignature_Vulkan* RS  = (GPURootSignature_Vulkan*)rs;
+    D->mVkDeviceTable.vkCmdPushConstants(Cmd->pVkCmd, RS->pPipelineLayout, RS->pPushConstantRanges[0].stageFlags, 0, RS->pPushConstantRanges[0].size, data);
 }
 
 GPUBufferID GPUCreateBuffer_Vulkan(GPUDeviceID device, const GPUBufferDescriptor* desc)
