@@ -775,7 +775,8 @@ void VulkanUtil_ConsumeDescriptorSets(VulkanUtil_DescriptorPool* pool, const VkD
     setsAllocInfo.descriptorPool     = pool->pVkDescPool;
     setsAllocInfo.descriptorSetCount = setsNum;
     setsAllocInfo.pSetLayouts        = pLayouts;
-    assert(pool->Device->mVkDeviceTable.vkAllocateDescriptorSets(pool->Device->pDevice, &setsAllocInfo, pSets) == VK_SUCCESS);
+    VkResult rs = pool->Device->mVkDeviceTable.vkAllocateDescriptorSets(pool->Device->pDevice, &setsAllocInfo, pSets);
+    assert(rs == VK_SUCCESS);
 }
 
 void VulkanUtil_ReturnDescriptorSets(struct VulkanUtil_DescriptorPool* pPool, VkDescriptorSet* pSets, uint32_t setsNum)

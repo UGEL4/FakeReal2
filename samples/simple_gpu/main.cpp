@@ -297,13 +297,13 @@ void NormalRenderSimple()
     rootRSDesc.static_sampler_names       = &sampler_name;
     rootRSDesc.static_sampler_count       = 1;
     rootRSDesc.static_samplers            = &texture_sampler;
-    GPURootSignatureID pRS                ;//= GPUCreateRootSignature(device, &rootRSDesc);
+    //GPURootSignatureID pRS                ;//= GPUCreateRootSignature(device, &rootRSDesc);
 
     //create descriptorset
     GPUDescriptorSetDescriptor set_desc{};
-    set_desc.root_signature = pRS;
+    //set_desc.root_signature = pRS;
     set_desc.set_index      = 0;
-    GPUDescriptorSetID set  ;//= GPUCreateDescriptorSet(device, &set_desc);
+    //GPUDescriptorSetID set  ;//= GPUCreateDescriptorSet(device, &set_desc);
 
     //////////model
     vSize = 0;
@@ -390,7 +390,7 @@ void NormalRenderSimple()
     debug_normal_pipelineDesc.pVertexShader               = &shaderEntries[2];
     debug_normal_pipelineDesc.pFragmentShader             = &shaderEntries[3];
     debug_normal_pipelineDesc.pGeometryShader             = &shaderEntries[4];
-    GPURenderPipelineID debug_normal_pipeline             = GPUCreateRenderPipeline(device, &debug_normal_pipelineDesc);
+    //GPURenderPipelineID debug_normal_pipeline             = GPUCreateRenderPipeline(device, &debug_normal_pipelineDesc);
     GPUFreeShaderLibrary(pNVShader);
     GPUFreeShaderLibrary(pNFShader);
     GPUFreeShaderLibrary(pNGShader);
@@ -412,16 +412,16 @@ void NormalRenderSimple()
 
     //Model model("C:\\Dev\\nanosuit\\out\\nanosuit.json");
     Model model("D:\\c++\\nanosuit\\out\\nanosuit.json");
-    std::vector<TextureData> textures;
+    std::vector<TextureData*> textures;
     {
         for (size_t i = 0; i < model.mMesh.subMeshes.size(); i++)
         {
             if (model.mMesh.subMeshes[i].diffuse_tex_url != "")
             {
-                TextureData tex;
-                tex.LoadTexture("D:\\c++\\nanosuit\\" + model.mMesh.subMeshes[i].diffuse_tex_url, device, pGraphicQueue);
-                tex.SetDescriptorSet(modelRS);
-                textures.emplace_back(tex);
+                TextureData* tex = new TextureData;
+                auto& res = textures.emplace_back(tex);
+                res->LoadTexture("D:\\c++\\nanosuit\\" + model.mMesh.subMeshes[i].diffuse_tex_url, device, pGraphicQueue);
+                res->SetDescriptorSet(modelRS);
             }
         }
     }
@@ -601,7 +601,7 @@ void NormalRenderSimple()
     desc_data[0].binding_type      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
     desc_data[0].count             = 1;
     desc_data[0].buffers          = &pUniformBuffer;
-    GPUUpdateDescriptorSet(set, desc_data, 1);
+    GPUUpdateDescriptorSet(modelSet, desc_data, 1);
     for (size_t i = 0; i < textures.size(); i++)
     {
         GPUDescriptorData desc_data = {};
@@ -609,14 +609,14 @@ void NormalRenderSimple()
         desc_data.binding           = 0;
         desc_data.binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
         desc_data.count             = 1;
-        desc_data.textures          = &textures[i].mTextureView;
-        GPUUpdateDescriptorSet(textures[i].mSet, &desc_data, 1);
+        desc_data.textures          = &textures[i]->mTextureView;
+        GPUUpdateDescriptorSet(textures[i]->mSet, &desc_data, 1);
     }
 
-    static glm::mat4 m = glm::translate(glm::mat4(1.f), { 0.f, -5.f, 0.f });
+    static glm::mat4 m = glm::translate(glm::mat4(1.f), { 0.f, -10.f, 0.f });
     UniformBuffer ubo{};
-    ubo.viewPos  = glm::vec4(0.f, 0.f, 10.f, 1.f);
-    ubo.model    = glm::rotate(m, glm::radians(0.f), glm::vec3(0.f, 1.f, 0.f));
+    ubo.viewPos  = glm::vec4(0.f, 0.f, 5.f, 1.f);
+    ubo.model    = glm::rotate(m, glm::radians(135.f), glm::vec3(0.f, 1.f, 0.f));
     ubo.view     = glm::lookAt(glm::vec3(ubo.viewPos.x, ubo.viewPos.y, ubo.viewPos.z), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
     ubo.proj     = glm::perspective(glm::radians(90.f), (float)WIDTH / HEIGHT, 0.1f, 1000.f);
     // //ubo.proj[1][1] *= -1;
@@ -647,23 +647,18 @@ void NormalRenderSimple()
     GPUBufferID pbrMaterialUniformBuffer           = GPUCreateBuffer(device, &pbr_material_param_uniform_buffer);
 
     GPUDescriptorSetDescriptor set_1_desc{};
-    set_1_desc.root_signature = pRS;
-    set_1_desc.set_index      = 1;
-    GPUDescriptorSetID set_1  ;//= GPUCreateDescriptorSet(device, &set_1_desc);
+    set_1_desc.root_signature = modelRS;
+    set_1_desc.set_index      = 2;
+    GPUDescriptorSetID set_1  = GPUCreateDescriptorSet(device, &set_1_desc);
     //update descriptorset
     {
-        GPUDescriptorData data[2] = {};
-        data[0].name              = u8"PBRMat";
+        GPUDescriptorData data[1] = {};
+        data[0].name              = u8"Lights";
         data[0].binding           = 0;
         data[0].binding_type      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
-        data[0].buffers           = &pbrMaterialUniformBuffer;
+        data[0].buffers           = &lightUniformBuffer;
         data[0].count             = 1;
-        data[1].name              = u8"Lights";
-        data[1].binding           = 1;
-        data[1].binding_type      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
-        data[1].buffers           = &lightUniformBuffer;
-        data[1].count             = 1;
-        GPUUpdateDescriptorSet(set_1, data, 2);
+        GPUUpdateDescriptorSet(set_1, data, 1);
     }
 
     // light
@@ -684,11 +679,11 @@ void NormalRenderSimple()
     GPUUnmapBuffer(lightUniformBuffer);
 
     // material
-    rang.offset               = 0;
+    /* rang.offset               = 0;
     rang.size                 = sizeof(PBRMaterialParam);
     GPUMapBuffer(pbrMaterialUniformBuffer, &rang);
     memcpy(pbrMaterialUniformBuffer->cpu_mapped_address, &pbrMaterialInfo, rang.size);
-    GPUUnmapBuffer(pbrMaterialUniformBuffer);
+    GPUUnmapBuffer(pbrMaterialUniformBuffer); */
 
     //render loop begin
     constexpr const bool visualizeNormal = false;
@@ -715,12 +710,12 @@ void NormalRenderSimple()
             memcpy(pUniformBuffer->cpu_mapped_address, &ubo, rang.size);
             GPUUnmapBuffer(pUniformBuffer);
 
-            GPUBufferRange geom_vs_ubo_rang{};
+            /* GPUBufferRange geom_vs_ubo_rang{};
             geom_vs_ubo_rang.offset = 0;
             geom_vs_ubo_rang.size   = sizeof(GeomVSUniformBuffer);
             GPUMapBuffer(geomVSUniformBuffer, &geom_vs_ubo_rang);
             memcpy(geomVSUniformBuffer->cpu_mapped_address, &geom_vs_ubo, geom_vs_ubo_rang.size);
-            GPUUnmapBuffer(geomVSUniformBuffer);
+            GPUUnmapBuffer(geomVSUniformBuffer); */
 
             GPUAcquireNextDescriptor acq_desc{};
             acq_desc.signal_semaphore        = presentSemaphore;
@@ -770,7 +765,7 @@ void NormalRenderSimple()
                     GPURenderEncoderBindIndexBuffer(encoder, indexBuffer, 0, indexStride);
                     //bind descriptor ste
                     //GPURenderEncoderBindDescriptorSet(encoder, set);
-                    //GPURenderEncoderBindDescriptorSet(encoder, set_1);
+                    GPURenderEncoderBindDescriptorSet(encoder, set_1);//lighting
                     //GPURenderEncoderDraw(encoder, 3, 0);
                     //GPURenderEncoderDrawIndexed(encoder, sizeof(indices) / sizeof(uint16_t), 0, 0);
                     //uint32_t indexCount = indices.size();
@@ -784,7 +779,7 @@ void NormalRenderSimple()
                     GPURenderEncoderPushConstant(encoder, modelRS, &push_constant);
                     for (uint32_t i = 0; i < model.mMesh.subMeshes.size(); i++)
                     {
-                        GPURenderEncoderBindDescriptorSet(encoder, textures[i].mSet);
+                        GPURenderEncoderBindDescriptorSet(encoder, textures[i]->mSet);
                         uint32_t indexCount = model.mMesh.subMeshes[i].indexCount;
                         GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, model.mMesh.subMeshes[i].indexOffset, model.mMesh.subMeshes[i].vertexOffset, 0);
                     }
@@ -808,7 +803,7 @@ void NormalRenderSimple()
 
                     if constexpr (visualizeNormal)
                     {
-                        GPURenderEncoderBindPipeline(encoder, debug_normal_pipeline);
+                        //GPURenderEncoderBindPipeline(encoder, debug_normal_pipeline);
                         GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, 0, 0, 0);
                     }
                 }
@@ -864,7 +859,7 @@ void NormalRenderSimple()
     GPUFreeRootSignature(modelRS);
     ////////////model
     //GPUFreeDescriptorSet(set);
-    //GPUFreeDescriptorSet(set_1);
+    GPUFreeDescriptorSet(set_1);
     GPUFreeTextureView(textureView);
     GPUFreeTexture(texture);
     GPUFreeBuffer(pbrMaterialUniformBuffer);
@@ -875,7 +870,7 @@ void NormalRenderSimple()
     GPUFreeBuffer(indexBuffer);
    /*  GPUFreeCommandBuffer(cmd);
     GPUFreeCommandPool(pool); */
-    GPUFreeRenderPipeline(debug_normal_pipeline);
+    //GPUFreeRenderPipeline(debug_normal_pipeline);
     GPUFreeRenderPipeline(pipeline);
     //GPUFreeRootSignature(pRS);
     GPUFreeSwapchain(pSwapchain);

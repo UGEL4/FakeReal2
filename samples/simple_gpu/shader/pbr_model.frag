@@ -55,7 +55,7 @@ layout(set = 1, binding = 0) uniform texture2D tex;
 layout(set = 1, binding = 1) uniform sampler texSamp; //static sampler
 
 const int MAX_LIGHT_NUM = 4;
-layout(set = 1, binding = 1) uniform LightParam
+layout(set = 2, binding = 0) uniform LightParam
 {
     vec4 lightColor[MAX_LIGHT_NUM];
     vec4 lightPos[MAX_LIGHT_NUM];
@@ -111,7 +111,7 @@ void main()
     vec3 color 	 = ambient + Lo;
     color        = color / (color + vec3(1.0));
     color        = pow(color, vec3(1.0 / 2.2));
-    outColor     = vec4(color, 1.0);
+    outColor     = vec4(albedo.rgb, 1.0);
     //outColor     = vec4(Lights.lightColor[1].xyz, 1.0);
 
     //outColor = vec4(inColor.rgb, 1.0);
