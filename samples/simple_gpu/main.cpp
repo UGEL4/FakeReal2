@@ -358,9 +358,19 @@ void NormalRenderSimple()
     //create semaphore
     GPUSemaphoreID presentSemaphore = GPUCreateSemaphore(device);
 
+    Model model("C:\\Dev\\nanosuit\\out\\nanosuit.json");
     // start upload resources
+    uint32_t uploadBufferSize = sizeof(TEXTURE_DATA);
+    if (uploadBufferSize < model.GetMeshDataVerticesByteSize())
+    {
+        uploadBufferSize = model.GetMeshDataVerticesByteSize();
+    }
+    if (uploadBufferSize < model.GetMeshDataIndicesByteSize())
+    {
+        uploadBufferSize = model.GetMeshDataIndicesByteSize();
+    }
     GPUBufferDescriptor upload_buffer{};
-    upload_buffer.size         = sizeof(TEXTURE_DATA);
+    upload_buffer.size         = uploadBufferSize;
     upload_buffer.flags        = GPU_BCF_OWN_MEMORY_BIT | GPU_BCF_PERSISTENT_MAP_BIT;
     upload_buffer.descriptors  = GPU_RESOURCE_TYPE_NONE;
     upload_buffer.memory_usage = GPU_MEM_USAGE_CPU_ONLY;
@@ -394,20 +404,20 @@ void NormalRenderSimple()
 
     //vertex buffer
     //std::vector<Vertex> vertices = Sphere::GenCubeVertices();
-    std::vector<Vertex> vertices = Sphere::GenSphereVertices();
+    //std::vector<Vertex> vertices = Sphere::GenSphereVertices();
     GPUBufferDescriptor vertex_desc{};
-    vertex_desc.size         = sizeof(Vertex) * vertices.size();
+    vertex_desc.size         = model.GetMeshDataVerticesByteSize();
     vertex_desc.flags        = GPU_BCF_OWN_MEMORY_BIT;
     vertex_desc.descriptors  = GPU_RESOURCE_TYPE_VERTEX_BUFFER;
     vertex_desc.memory_usage = GPU_MEM_USAGE_GPU_ONLY;
     GPUBufferID vertexBuffer = GPUCreateBuffer(device, &vertex_desc);
     //COPY
-    memcpy(uploadBuffer->cpu_mapped_address, &vertices[0], sizeof(Vertex) * vertices.size());
+    memcpy(uploadBuffer->cpu_mapped_address, model.GetVertexBufferData().data(), vertex_desc.size);
     GPUResetCommandPool(pools[0]);
     GPUCmdBegin(cmds[0]);
     {
         GPUBufferToBufferTransfer trans_verticex_buffer_desc{};
-        trans_verticex_buffer_desc.size       = sizeof(Vertex) * vertices.size();
+        trans_verticex_buffer_desc.size       = vertex_desc.size;
         trans_verticex_buffer_desc.src        = uploadBuffer;
         trans_verticex_buffer_desc.src_offset = 0;
         trans_verticex_buffer_desc.dst        = vertexBuffer;
@@ -429,20 +439,20 @@ void NormalRenderSimple()
 
     //index buffer
     //std::vector<uint32_t> indices = Sphere::GenCubeIndices();
-    std::vector<uint32_t> indices = Sphere::GenSphereIndices();
+    //std::vector<uint32_t> indices = Sphere::GenSphereIndices();
     GPUBufferDescriptor index_desc{};
-    index_desc.size         = sizeof(uint32_t) * indices.size();
+    index_desc.size         = model.GetMeshDataIndicesByteSize();
     index_desc.flags        = GPU_BCF_OWN_MEMORY_BIT;
     index_desc.descriptors  = GPU_RESOURCE_TYPE_INDEX_BUFFER;
     index_desc.memory_usage = GPU_MEM_USAGE_GPU_ONLY;
     GPUBufferID indexBuffer = GPUCreateBuffer(device, &index_desc);
     //copy
-    memcpy(uploadBuffer->cpu_mapped_address, indices.data(), sizeof(uint32_t) * indices.size());
+    memcpy(uploadBuffer->cpu_mapped_address, model.GetIndexBufferData().data(), index_desc.size);
     GPUResetCommandPool(pools[0]);
     GPUCmdBegin(cmds[0]);
     {
         GPUBufferToBufferTransfer trans_index_buffer_desc{};
-        trans_index_buffer_desc.size       = sizeof(uint32_t) * indices.size();
+        trans_index_buffer_desc.size       = index_desc.size;
         trans_index_buffer_desc.src        = uploadBuffer;
         trans_index_buffer_desc.src_offset = 0;
         trans_index_buffer_desc.dst        = indexBuffer;
@@ -519,7 +529,7 @@ void NormalRenderSimple()
         // GPUUpdateDescriptorSet(set_1, desc_data + 1, 1);
     }
 
-    static glm::mat4 m = glm::translate(glm::mat4(1.f), { 0.f, 0.f, 0.f });
+    static glm::mat4 m = glm::translate(glm::mat4(1.f), { 0.f, -5.f, 0.f });
     UniformBuffer ubo{};
     ubo.viewPos  = glm::vec4(0.f, 0.f, 10.f, 1.f);
     ubo.model    = glm::rotate(m, glm::radians(0.f), glm::vec3(0.f, 1.f, 0.f));
@@ -672,17 +682,30 @@ void NormalRenderSimple()
                     //bind vertexbuffer
                     uint32_t stride = sizeof(Vertex);
                     GPURenderEncoderBindVertexBuffers(encoder, 1, &vertexBuffer, &stride, nullptr);
-                    uint32_t indexStride = sizeof(decltype(indices)::value_type);
+                    uint32_t indexStride = sizeof(uint32_t);
                     GPURenderEncoderBindIndexBuffer(encoder, indexBuffer, 0, indexStride);
                     //bind descriptor ste
                     GPURenderEncoderBindDescriptorSet(encoder, set);
                     GPURenderEncoderBindDescriptorSet(encoder, set_1);
                     //GPURenderEncoderDraw(encoder, 3, 0);
                     //GPURenderEncoderDrawIndexed(encoder, sizeof(indices) / sizeof(uint16_t), 0, 0);
-                    uint32_t indexCount = indices.size();
-                    //GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, 0, 0, 0);
+                    //uint32_t indexCount = indices.size();
+                    glm::vec4 pos = glm::vec4(0.f, 0.f, 0.f, 1.f);
+                    PushConstant push_constant{};
+                    push_constant.objOffsetPos = pos;
+                    push_constant.ao           = 1.f;
+                    push_constant.metallic     = 0.7f;
+                    push_constant.roughness    = 0.05f;
+                    GPURenderEncoderPushConstant(encoder, pRS, &push_constant);
+                    for (uint32_t i = 0; i < model.mMesh.subMeshes.size(); i++)
+                    {
+                        uint32_t indexCount = model.mMesh.subMeshes[i].indexCount;
+                        GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, model.mMesh.subMeshes[i].indexOffset, model.mMesh.subMeshes[i].vertexOffset, 0);
+                    }
+                    uint32_t indexCount = model.mMesh.subMeshes[0].indexCount;
+                    //GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, model.mMesh.subMeshes[0].indexOffset, model.mMesh.subMeshes[0].vertexOffset, 0);
 
-                    for (uint32_t y = 0; y < 7; y++)
+                    /* for (uint32_t y = 0; y < 7; y++)
                     {
                         for (uint32_t x = 0; x < 7; x++)
                         {
@@ -695,7 +718,7 @@ void NormalRenderSimple()
                             GPURenderEncoderPushConstant(encoder, pRS, &push_constant);
                             GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, 0, 0, 0);
                         }
-                    }
+                    } */
 
                     if constexpr (visualizeNormal)
                     {

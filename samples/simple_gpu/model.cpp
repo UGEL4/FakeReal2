@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include "Utils/Json/JsonReader.h"
+#include <unordered_map>
 
 Model::Model(const std::string_view file)
 {
@@ -28,6 +29,10 @@ void Model::LoadModel(const std::string_view file)
     is.close();
 
     FakeReal::JsonReader reader(json_str.c_str());
+
+    //Mesh mesh;
+    std::unordered_map<uint32_t, std::vector<MeshData>> meshGroup; //<materianIndex, meshList>
+    std::unordered_map<uint32_t, std::string> diffuse_textures; //<materianIndex, >
     
     reader.StartObject();
     {
@@ -35,23 +40,23 @@ void Model::LoadModel(const std::string_view file)
         size_t meshCount = 0;
         reader.StartArray(&meshCount);
         {
-            mMeshes.reserve(meshCount);
+            //mMeshes.reserve(meshCount);
+
             for (size_t m = 0; m < meshCount; m++)
             {
-                Mesh mesh{};
-
+                MeshData meshData{};
+                uint32_t materialIndex = 0;
                 reader.StartObject();
                 {
+                    reader.Key("mMaterialIndex");
+                    reader.Value(materialIndex);
+
                     reader.Key("mVertices");
                     size_t count = 0;
                     reader.StartArray(&count);
-                    mesh.vertices.reserve(count);
+                    meshData.vertices.reserve(count);
                     for (size_t i = 0; i < count; i++)
                     {
-                        if (i == 13381)
-                        {
-                            int a = 0;
-                        }
                         Vertex v{};
                         reader.StartObject();
                         {
@@ -73,28 +78,94 @@ void Model::LoadModel(const std::string_view file)
                             reader.Value(v.v);
                         }
                         reader.EndObject();
-                        mesh.vertices.emplace_back(v);
+                        meshData.vertices.emplace_back(v);
                     }
                     reader.EndArray();
 
                     reader.Key("mIndices");
                     count = 0;
                     reader.StartArray(&count);
-                    mesh.indices.reserve(count);
+                    meshData.indices.reserve(count);
                     for (size_t i = 0; i < count; i++)
                     {
                         uint32_t val = 0;
                         reader.Value(val);
-                        mesh.indices.push_back(val);
+                        meshData.indices.push_back(val);
                     }
                     reader.EndArray();
+
+                    //texture begin
+                    reader.StartObject();
+                    if (reader.HasKey("diffuse"))
+                    {
+                        reader.Key("diffuse");
+                        reader.StartObject();
+                        reader.Key("url");
+                        std::string texName;
+                        reader.Value(texName);
+                        reader.EndObject();
+                        diffuse_textures.insert(std::make_pair(materialIndex, texName));
+                    }
+                    reader.EndObject();
+                    //texture end
                 }
                 reader.EndObject();
 
-                mMeshes.emplace_back(mesh);
+                auto& meshDataList = meshGroup[materialIndex];
+                meshDataList.emplace_back(meshData);
+                //mMeshes.emplace_back(mesh);
             }
         }
         reader.EndArray();
     }
     reader.EndObject();
+
+    //
+    std::vector<Vertex> tmpVertices;
+    std::vector<uint32_t> tmpIndices;
+    MeshData newMesh{};
+    uint32_t vertexOffset = 0;
+    uint32_t indexOffset  = 0;
+    for (auto iter : meshGroup)
+    {
+        uint32_t mat_idx = iter.first;
+        auto& list = iter.second;
+        tmpVertices.clear();
+        tmpIndices.clear();
+        for (auto& meshData : list)
+        {
+            for (uint32_t i = 0; i < meshData.vertices.size(); i++)
+            {
+                Vertex& v = meshData.vertices[i];
+                uint32_t f = 0;
+                for (f = 0; f < tmpVertices.size(); f++)
+                {
+                    if (v == tmpVertices[f]) break;
+                }
+                if (f == tmpVertices.size())
+                {
+                    tmpVertices.emplace_back(v);
+                }
+                tmpIndices.push_back(f);
+            }
+        }
+
+        mMesh.meshData.vertices.insert(mMesh.meshData.vertices.end(), tmpVertices.begin(), tmpVertices.end());
+        mMesh.meshData.indices.insert(mMesh.meshData.indices.end(), tmpIndices.begin(), tmpIndices.end());
+        SubMesh subMesh{};
+        subMesh.vertexOffset  = vertexOffset;
+        subMesh.vertexCount   = (uint32_t)tmpVertices.size();
+        subMesh.indexOffset   = indexOffset;
+        subMesh.indexCount    = (uint32_t)tmpIndices.size();
+        subMesh.materialIndex = mat_idx;
+        vertexOffset += subMesh.vertexCount;
+        indexOffset  += subMesh.indexCount;
+        if (list.size())
+        {
+            //texture
+
+        }
+
+        mMesh.subMeshes.emplace_back(subMesh);
+    }
 }

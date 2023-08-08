@@ -97,8 +97,8 @@ namespace FakeReal
 
 					//mesh
 					//MeshResourceDesc meshResDesc = { gameObjectPart.mMeshDesc.mMeshFile };
-					//MeshResourceDesc meshResDesc = { "asset/objects/character/default/stromtrooper/component/mesh/Stormtroopermesh.mesh.json" };
-					MeshResourceDesc meshResDesc = { "asset/objects/character/default/cube/component/mesh/cube.mesh.json" };
+					MeshResourceDesc meshResDesc = { "asset/objects/character/default/stromtrooper/component/mesh/Stormtroopermesh.mesh.json" };
+					//MeshResourceDesc meshResDesc = { "asset/objects/character/default/cube/component/mesh/cube.mesh.json" };
 					bool meshAssetLoaded = m_pRenderScene->GetMeshAssetIdAllocator().HasElement(meshResDesc);
 
 					RenderMeshData meshData;
@@ -118,8 +118,8 @@ namespace FakeReal
 					else
 					{
 						//materialResDesc.mBaseColorTextureFile = "texture/huaji.jpg";
-						//materialResDesc.mBaseColorTextureFile = "asset/objects/character/default/stromtrooper/component/mesh/texture/Stormtrooper_D.png";
-						materialResDesc.mBaseColorTextureFile = "asset/objects/character/default/cube/component/mesh/texture/huaji.jpg";
+						materialResDesc.mBaseColorTextureFile = "asset/objects/character/default/stromtrooper/component/mesh/texture/Stormtrooper_D.png";
+						//materialResDesc.mBaseColorTextureFile = "asset/objects/character/default/cube/component/mesh/texture/huaji.jpg";
 					}
 
 					bool materialAssetLoaded = m_pRenderScene->GetMaterialAssetIdAllocator().HasElement(materialResDesc);
