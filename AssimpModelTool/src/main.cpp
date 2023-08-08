@@ -13,7 +13,8 @@ int main(int argc, char** argv)
     const char* inFile = argv[1];
     const char* outFile = argv[2];
 
-    ExportModel("C:\\Dev\\nanosuit\\nanosuit.obj", "C:\\Dev\\nanosuit\\out\\nanosuit.json");
+    //ExportModel("C:\\Dev\\nanosuit\\nanosuit.obj", "C:\\Dev\\nanosuit\\out\\nanosuit.json");
+    ExportModel("D:\\c++\\nanosuit\\nanosuit.obj", "D:\\c++\\nanosuit\\out\\nanosuit.json");
 
     return 0;
 }

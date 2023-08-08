@@ -23,7 +23,7 @@ struct MeshData
 {
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
-    std::unordered_map<std::string, std::vector<std::string>> textures;
+    //std::unordered_map<std::string, std::vector<std::string>> textures;
 };
 
 struct SubMesh
@@ -33,7 +33,7 @@ struct SubMesh
     uint32_t indexOffset;
     uint32_t indexCount;
     uint32_t materialIndex;
-    uint32_t difu_tex_index;
+    std::string diffuse_tex_url;
 };
 
 struct Mesh
@@ -261,8 +261,11 @@ public:
     uint32_t mWidth{ 0 };
     uint32_t mHeight{ 0 };
     uint32_t mDepth{ 0 };
+    uint32_t mPixelBytes{ 0 };
     void* m_pPixels{ nullptr };
-    GPUTextureID mTexture;
+    GPUTextureID mTexture {nullptr};
+    GPUTextureViewID mTextureView {nullptr};
+    GPUDescriptorSetID mSet{nullptr};
 
     TextureData() = default;
     ~TextureData()
@@ -273,8 +276,13 @@ public:
           m_pPixels = nullptr;
         }
 
+        if (mTextureView) GPUFreeTextureView(mTextureView);
+        mTextureView = nullptr;
         if (mTexture) GPUFreeTexture(mTexture);
         mTexture = nullptr;
+
+        if (mSet) GPUFreeDescriptorSet(mSet);
+        mSet = nullptr;
     }
 
     bool IsValid() const
@@ -282,7 +290,15 @@ public:
         return m_pPixels != nullptr;
     }
 
-    void LoadTexture(const std::string& file, bool isSRGB, GPUDeviceID device, GPUQueueID gfxQueue)
+    void SetDescriptorSet(GPURootSignatureID rs)
+    {
+        GPUDescriptorSetDescriptor model_material_set_desc{};
+        model_material_set_desc.root_signature = rs;
+        model_material_set_desc.set_index      = 1;
+        mSet                                   = GPUCreateDescriptorSet(rs->device, &model_material_set_desc);
+    }
+
+    void LoadTexture(const std::string& file, GPUDeviceID device, GPUQueueID gfxQueue)
     {
         // todo: opitional
         stbi_set_flip_vertically_on_load(true);
@@ -292,20 +308,72 @@ public:
         {
           return;
         }
-        mWidth     = width;
-        mHeight    = height;
-        mDepth     = 1;
+        mWidth      = width;
+        mHeight     = height;
+        mDepth      = 1;
+        mPixelBytes = width * height * 4; //R8G8BA8
 
         GPUTextureDescriptor desc{};
-        desc.flags = GPU_TCF_OWN_MEMORY_BIT;
-        desc.width = width;
-        desc.height = height;
-        desc.depth  = 1;
-        desc.array_size = 1;
-        desc.format     = GPU_FORMAT_R8G8BA8_UNORM;
+        desc.flags       = GPU_TCF_OWN_MEMORY_BIT;
+        desc.width       = width;
+        desc.height      = height;
+        desc.depth       = 1;
+        desc.array_size  = 1;
+        desc.format      = GPU_FORMAT_R8G8BA8_UNORM;
         desc.owner_queue = gfxQueue;
         desc.start_state = GPU_RESOURCE_STATE_COPY_DEST;
         desc.descriptors = GPU_RESOURCE_TYPE_TEXTURE;
         mTexture = GPUCreateTexture(device, &desc);
+        GPUTextureViewDescriptor tex_view_desc{};
+        tex_view_desc.pTexture        = mTexture;
+        tex_view_desc.format          = (EGPUFormat)mTexture->format;
+        tex_view_desc.usages          = EGPUTexutreViewUsage::GPU_TVU_SRV;
+        tex_view_desc.aspectMask      = EGPUTextureViewAspect::GPU_TVA_COLOR;
+        tex_view_desc.baseMipLevel    = 0;
+        tex_view_desc.mipLevelCount   = 1;
+        tex_view_desc.baseArrayLayer  = 0;
+        tex_view_desc.arrayLayerCount = 1;
+        mTextureView                  = GPUCreateTextureView(device, &tex_view_desc);
+
+        //upload
+        GPUBufferDescriptor upload_buffer{};
+        upload_buffer.size         = mPixelBytes;
+        upload_buffer.flags        = GPU_BCF_OWN_MEMORY_BIT | GPU_BCF_PERSISTENT_MAP_BIT;
+        upload_buffer.descriptors  = GPU_RESOURCE_TYPE_NONE;
+        upload_buffer.memory_usage = GPU_MEM_USAGE_CPU_ONLY;
+        GPUBufferID uploadBuffer   = GPUCreateBuffer(device, &upload_buffer);
+        memcpy(uploadBuffer->cpu_mapped_address, m_pPixels, mPixelBytes);
+        GPUCommandPoolID pool = GPUCreateCommandPool(gfxQueue);
+        GPUCommandBufferDescriptor cmdDesc{};
+        cmdDesc.isSecondary = false;
+        GPUCommandBufferID cmd = GPUCreateCommandBuffer(pool, &cmdDesc);
+        GPUResetCommandPool(pool);
+        GPUCmdBegin(cmd);
+        {
+            GPUBufferToTextureTransfer trans_texture_buffer_desc{};
+            trans_texture_buffer_desc.dst                              = mTexture;
+            trans_texture_buffer_desc.dst_subresource.mip_level        = 0;
+            trans_texture_buffer_desc.dst_subresource.base_array_layer = 0;
+            trans_texture_buffer_desc.dst_subresource.layer_count      = 1;
+            trans_texture_buffer_desc.src                              = uploadBuffer;
+            trans_texture_buffer_desc.src_offset                       = 0;
+            GPUCmdTransferBufferToTexture(cmd, &trans_texture_buffer_desc);
+            GPUTextureBarrier barrier{};
+            barrier.texture = mTexture;
+            barrier.src_state = GPU_RESOURCE_STATE_COPY_DEST;
+            barrier.dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE;
+            GPUResourceBarrierDescriptor rs_barrer{};
+            rs_barrer.texture_barriers      = &barrier;
+            rs_barrer.texture_barriers_count = 1;
+            GPUCmdResourceBarrier(cmd, &rs_barrer);
+        }
+        GPUCmdEnd(cmd);
+        GPUQueueSubmitDescriptor texture_cpy_submit = { .cmds = &cmd, .cmds_count = 1 };
+        GPUSubmitQueue(gfxQueue, &texture_cpy_submit);
+        GPUWaitQueueIdle(gfxQueue);
+
+        GPUFreeBuffer(uploadBuffer);
+        GPUFreeCommandBuffer(cmd);
+        GPUFreeCommandPool(pool);
     }
 };

@@ -95,6 +95,7 @@ void Model::LoadModel(const std::string_view file)
                     reader.EndArray();
 
                     //texture begin
+                    reader.Key("mTexture");
                     reader.StartObject();
                     if (reader.HasKey("diffuse"))
                     {
@@ -160,10 +161,16 @@ void Model::LoadModel(const std::string_view file)
         subMesh.materialIndex = mat_idx;
         vertexOffset += subMesh.vertexCount;
         indexOffset  += subMesh.indexCount;
-        if (list.size())
+        
+        //texture
+        auto tex_iter = diffuse_textures.find(mat_idx);
+        if (tex_iter != diffuse_textures.end())
         {
-            //texture
-
+            subMesh.diffuse_tex_url = tex_iter->second;
+        }
+        else
+        {
+            subMesh.diffuse_tex_url = "";
         }
 
         mMesh.subMeshes.emplace_back(subMesh);
