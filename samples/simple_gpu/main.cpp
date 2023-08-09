@@ -216,6 +216,27 @@ void NormalRenderSimple()
     GPUTextureID texture         = CreateTexture(device, pGraphicQueue);
     GPUTextureViewID textureView = CreateTextureView(texture);
     const char8_t* sampler_name  = u8"texSamp";
+    GPUTextureDescriptor depth_tex_desc{};
+    depth_tex_desc.flags = GPU_TCF_OWN_MEMORY_BIT;
+    depth_tex_desc.width = TEXTURE_WIDTH;
+    depth_tex_desc.height = TEXTURE_HEIGHT;
+    depth_tex_desc.depth  = 1;
+    depth_tex_desc.array_size = 1;
+    depth_tex_desc.format     = GPU_FORMAT_D32_SFLOAT;
+    depth_tex_desc.owner_queue = pGraphicQueue;
+    depth_tex_desc.start_state = GPU_RESOURCE_STATE_DEPTH_WRITE;
+    depth_tex_desc.descriptors = GPU_RESOURCE_TYPE_DEPTH_STENCIL;
+    GPUTextureID depthTexture = GPUCreateTexture(device, &depth_tex_desc);
+    GPUTextureViewDescriptor depth_tex_view_desc{};
+    depth_tex_view_desc.pTexture        = depthTexture;
+    depth_tex_view_desc.format          = GPU_FORMAT_D32_SFLOAT;
+    depth_tex_view_desc.usages          = EGPUTexutreViewUsage::GPU_TVU_RTV_DSV;
+    depth_tex_view_desc.aspectMask      = EGPUTextureViewAspect::GPU_TVA_DEPTH;
+    depth_tex_view_desc.baseMipLevel    = 0;
+    depth_tex_view_desc.mipLevelCount   = 1;
+    depth_tex_view_desc.baseArrayLayer  = 0;
+    depth_tex_view_desc.arrayLayerCount = 1;
+    GPUTextureViewID depthTextureView = GPUCreateTextureView(device, &depth_tex_view_desc);
 
     // start create renderpipeline
     //shader
@@ -368,6 +389,10 @@ void NormalRenderSimple()
         .enableScissor        = false,
         .enableDepthClamp     = false
     };
+    GPUDepthStateDesc depthDesc{};
+    depthDesc.depthTest  = true;
+    depthDesc.depthWrite = true;
+    depthDesc.depthFunc  = GPU_CMP_LEQUAL;
     GPURenderPipelineDescriptor pipelineDesc{};
     {
         pipelineDesc.pRootSignature    = modelRS;
@@ -375,9 +400,11 @@ void NormalRenderSimple()
         pipelineDesc.pFragmentShader   = &modelShaderEntries[1];
         pipelineDesc.pVertexLayout     = &vertexLayout;
         pipelineDesc.primitiveTopology = GPU_PRIM_TOPO_TRI_LIST;
+        pipelineDesc.pDepthState       = &depthDesc;
         pipelineDesc.pRasterizerState  = &rasterizerState;
         pipelineDesc.pColorFormats     = const_cast<EGPUFormat*>(&ppSwapchainImage[0]->desc.format);
         pipelineDesc.renderTargetCount = 1;
+        pipelineDesc.depthStencilFormat = GPU_FORMAT_D32_SFLOAT;
     }
     GPURenderPipelineID pipeline   = GPUCreateRenderPipeline(device, &pipelineDesc);
     GPUFreeShaderLibrary(pVShader);
@@ -412,16 +439,16 @@ void NormalRenderSimple()
 
     //Model model("C:\\Dev\\nanosuit\\out\\nanosuit.json");
     Model model("D:\\c++\\nanosuit\\out\\nanosuit.json");
-    std::vector<TextureData*> textures;
+    std::vector<TextureData> textures;
+    textures.reserve(model.mMesh.subMeshes.size());
     {
         for (size_t i = 0; i < model.mMesh.subMeshes.size(); i++)
         {
             if (model.mMesh.subMeshes[i].diffuse_tex_url != "")
             {
-                TextureData* tex = new TextureData;
-                auto& res = textures.emplace_back(tex);
-                res->LoadTexture("D:\\c++\\nanosuit\\" + model.mMesh.subMeshes[i].diffuse_tex_url, device, pGraphicQueue);
-                res->SetDescriptorSet(modelRS);
+                auto& res = textures.emplace_back();
+                res.LoadTexture("D:\\c++\\nanosuit\\" + model.mMesh.subMeshes[i].diffuse_tex_url, device, pGraphicQueue);
+                res.SetDescriptorSet(modelRS);
             }
         }
     }
@@ -609,14 +636,14 @@ void NormalRenderSimple()
         desc_data.binding           = 0;
         desc_data.binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
         desc_data.count             = 1;
-        desc_data.textures          = &textures[i]->mTextureView;
-        GPUUpdateDescriptorSet(textures[i]->mSet, &desc_data, 1);
+        desc_data.textures          = &textures[i].mTextureView;
+        GPUUpdateDescriptorSet(textures[i].mSet, &desc_data, 1);
     }
 
     static glm::mat4 m = glm::translate(glm::mat4(1.f), { 0.f, -10.f, 0.f });
     UniformBuffer ubo{};
     ubo.viewPos  = glm::vec4(0.f, 0.f, 5.f, 1.f);
-    ubo.model    = glm::rotate(m, glm::radians(135.f), glm::vec3(0.f, 1.f, 0.f));
+    ubo.model    = glm::rotate(m, glm::radians(115.f), glm::vec3(0.f, 1.f, 0.f));
     ubo.view     = glm::lookAt(glm::vec3(ubo.viewPos.x, ubo.viewPos.y, ubo.viewPos.z), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
     ubo.proj     = glm::perspective(glm::radians(90.f), (float)WIDTH / HEIGHT, 0.1f, 1000.f);
     // //ubo.proj[1][1] *= -1;
@@ -745,10 +772,17 @@ void NormalRenderSimple()
                 screenAttachment.load_action  = GPU_LOAD_ACTION_CLEAR;
                 screenAttachment.store_action = GPU_STORE_ACTION_STORE;
                 screenAttachment.clear_color  = { { 0.f, 0.f, 0.f, 0.f } };
+                GPUDepthStencilAttachment ds_attachment{};
+                ds_attachment.view = depthTextureView;
+                ds_attachment.depth_load_action = GPU_LOAD_ACTION_CLEAR;
+                ds_attachment.depth_store_action = GPU_STORE_ACTION_STORE;
+                ds_attachment.clear_depth = 1.0f;
+                ds_attachment.write_depth = true;
                 GPURenderPassDescriptor render_pass_desc{};
                 render_pass_desc.sample_count        = GPU_SAMPLE_COUNT_1;
                 render_pass_desc.color_attachments   = &screenAttachment;
                 render_pass_desc.render_target_count = 1;
+                render_pass_desc.depth_stencil       = &ds_attachment;
                 GPURenderPassEncoderID encoder       = GPUCmdBeginRenderPass(cmd, &render_pass_desc);
                 {
                     GPURenderEncoderSetViewport(encoder, 0.f, (float)backbuffer->height,
@@ -779,7 +813,7 @@ void NormalRenderSimple()
                     GPURenderEncoderPushConstant(encoder, modelRS, &push_constant);
                     for (uint32_t i = 0; i < model.mMesh.subMeshes.size(); i++)
                     {
-                        GPURenderEncoderBindDescriptorSet(encoder, textures[i]->mSet);
+                        GPURenderEncoderBindDescriptorSet(encoder, textures[i].mSet);
                         uint32_t indexCount = model.mMesh.subMeshes[i].indexCount;
                         GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, model.mMesh.subMeshes[i].indexOffset, model.mMesh.subMeshes[i].vertexOffset, 0);
                     }
