@@ -218,8 +218,8 @@ void NormalRenderSimple()
     const char8_t* sampler_name  = u8"texSamp";
     GPUTextureDescriptor depth_tex_desc{};
     depth_tex_desc.flags = GPU_TCF_OWN_MEMORY_BIT;
-    depth_tex_desc.width = TEXTURE_WIDTH;
-    depth_tex_desc.height = TEXTURE_HEIGHT;
+    depth_tex_desc.width = pSwapchain->ppBackBuffers[0]->width;
+    depth_tex_desc.height = pSwapchain->ppBackBuffers[0]->height;
     depth_tex_desc.depth  = 1;
     depth_tex_desc.array_size = 1;
     depth_tex_desc.format     = GPU_FORMAT_D32_SFLOAT;
@@ -437,8 +437,8 @@ void NormalRenderSimple()
     //create semaphore
     GPUSemaphoreID presentSemaphore = GPUCreateSemaphore(device);
 
-    //Model model("C:\\Dev\\nanosuit\\out\\nanosuit.json");
-    Model model("D:\\c++\\nanosuit\\out\\nanosuit.json");
+    Model model("C:\\Dev\\nanosuit\\out\\nanosuit.json");
+    //Model model("D:\\c++\\nanosuit\\out\\nanosuit.json");
     std::vector<TextureData> textures;
     textures.reserve(model.mMesh.subMeshes.size());
     {
@@ -447,7 +447,8 @@ void NormalRenderSimple()
             if (model.mMesh.subMeshes[i].diffuse_tex_url != "")
             {
                 auto& res = textures.emplace_back();
-                res.LoadTexture("D:\\c++\\nanosuit\\" + model.mMesh.subMeshes[i].diffuse_tex_url, device, pGraphicQueue);
+                res.LoadTexture("C:\\Dev\\nanosuit\\" + model.mMesh.subMeshes[i].diffuse_tex_url, device, pGraphicQueue);
+                //res.LoadTexture("D:\\c++\\nanosuit\\" + model.mMesh.subMeshes[i].diffuse_tex_url, device, pGraphicQueue);
                 res.SetDescriptorSet(modelRS);
             }
         }
@@ -591,11 +592,12 @@ void NormalRenderSimple()
         glm::mat4 proj;
     };
     GPUBufferDescriptor geom_vs_uniform_buffer{};
-    geom_vs_uniform_buffer.size         = sizeof(GeomVSUniformBuffer);
-    geom_vs_uniform_buffer.flags        = GPU_BCF_NONE;
-    geom_vs_uniform_buffer.descriptors  = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
-    geom_vs_uniform_buffer.memory_usage = GPU_MEM_USAGE_CPU_TO_GPU;
-    GPUBufferID geomVSUniformBuffer     = GPUCreateBuffer(device, &geom_vs_uniform_buffer);
+    geom_vs_uniform_buffer.size             = sizeof(GeomVSUniformBuffer);
+    geom_vs_uniform_buffer.flags            = GPU_BCF_NONE;
+    geom_vs_uniform_buffer.descriptors      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
+    geom_vs_uniform_buffer.memory_usage     = GPU_MEM_USAGE_CPU_TO_GPU;
+    geom_vs_uniform_buffer.prefer_on_device = true;
+    GPUBufferID geomVSUniformBuffer         = GPUCreateBuffer(device, &geom_vs_uniform_buffer);
 
     // update descriptorset
     {
@@ -643,7 +645,7 @@ void NormalRenderSimple()
     static glm::mat4 m = glm::translate(glm::mat4(1.f), { 0.f, -10.f, 0.f });
     UniformBuffer ubo{};
     ubo.viewPos  = glm::vec4(0.f, 0.f, 5.f, 1.f);
-    ubo.model    = glm::rotate(m, glm::radians(115.f), glm::vec3(0.f, 1.f, 0.f));
+    ubo.model    = glm::rotate(m, glm::radians(0.f), glm::vec3(0.f, 1.f, 0.f));
     ubo.view     = glm::lookAt(glm::vec3(ubo.viewPos.x, ubo.viewPos.y, ubo.viewPos.z), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
     ubo.proj     = glm::perspective(glm::radians(90.f), (float)WIDTH / HEIGHT, 0.1f, 1000.f);
     // //ubo.proj[1][1] *= -1;
@@ -660,6 +662,7 @@ void NormalRenderSimple()
     light_param_uniform_buffer.flags        = GPU_BCF_NONE;
     light_param_uniform_buffer.descriptors  = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
     light_param_uniform_buffer.memory_usage = GPU_MEM_USAGE_CPU_TO_GPU;
+    light_param_uniform_buffer.prefer_on_device = true;
     GPUBufferID lightUniformBuffer          = GPUCreateBuffer(device, &light_param_uniform_buffer);
     //pbr material param
     PBRMaterialParam pbrMaterialInfo{};
@@ -671,6 +674,7 @@ void NormalRenderSimple()
     pbr_material_param_uniform_buffer.flags        = GPU_BCF_NONE;
     pbr_material_param_uniform_buffer.descriptors  = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
     pbr_material_param_uniform_buffer.memory_usage = GPU_MEM_USAGE_CPU_TO_GPU;
+    pbr_material_param_uniform_buffer.prefer_on_device = true;
     GPUBufferID pbrMaterialUniformBuffer           = GPUCreateBuffer(device, &pbr_material_param_uniform_buffer);
 
     GPUDescriptorSetDescriptor set_1_desc{};
@@ -690,10 +694,10 @@ void NormalRenderSimple()
 
     // light
     const float p = 15.0f;
-    lightInfo.lightPos[0]   = glm::vec4(-p, p * 0.5f, p * 0.4f, 1.f);
-    lightInfo.lightPos[1]   = glm::vec4(-p, -p * 0.5f, p * 0.4f, 1.f);
-    lightInfo.lightPos[2]   = glm::vec4(p, p * 0.5f, p * 0.4f, 1.f);
-    lightInfo.lightPos[3]   = glm::vec4(p, -p * 0.5f, p * 0.4f, 1.f);
+    lightInfo.lightPos[0]   = glm::vec4(-p, p * 0.5f, 5.f, 1.f);
+    lightInfo.lightPos[1]   = glm::vec4(-p, -p * 0.5f, 5.f, 1.f);
+    lightInfo.lightPos[2]   = glm::vec4(p, p * 0.5f, 5.f, 1.f);
+    lightInfo.lightPos[3]   = glm::vec4(p, -p * 0.5f, 5.f, 1.f);
     lightInfo.lightColor[0] = glm::vec4(1000.f, 1000.f, 1000.f, 1.f);
     lightInfo.lightColor[1] = glm::vec4(1000.f, 1000.f, 1000.f, 1.f);
     lightInfo.lightColor[2] = glm::vec4(1000.f, 1000.f, 1000.f, 1.f);
@@ -808,7 +812,7 @@ void NormalRenderSimple()
                     PushConstant push_constant{};
                     push_constant.objOffsetPos = pos;
                     push_constant.ao           = 1.f;
-                    push_constant.metallic     = 0.7f;
+                    push_constant.metallic     = 0.3f;
                     push_constant.roughness    = 0.05f;
                     GPURenderEncoderPushConstant(encoder, modelRS, &push_constant);
                     for (uint32_t i = 0; i < model.mMesh.subMeshes.size(); i++)
@@ -894,6 +898,8 @@ void NormalRenderSimple()
     ////////////model
     //GPUFreeDescriptorSet(set);
     GPUFreeDescriptorSet(set_1);
+    GPUFreeTextureView(depthTextureView);
+    GPUFreeTexture(depthTexture);
     GPUFreeTextureView(textureView);
     GPUFreeTexture(texture);
     GPUFreeBuffer(pbrMaterialUniformBuffer);

@@ -282,6 +282,10 @@ VkFormat VulkanUtil_GPUFormatToVulkanFormat(EGPUFormat format)
             return VK_FORMAT_D24_UNORM_S8_UINT;
         case GPU_FORMAT_D32_SFLOAT_S8_UINT:
             return VK_FORMAT_D32_SFLOAT_S8_UINT;
+        case GPU_FORMAT_D16_UNORM:
+            return VK_FORMAT_D16_UNORM;
+        case GPU_FORMAT_D32_SFLOAT:
+            return VK_FORMAT_D32_SFLOAT;
         default: break;
     }
     return VK_FORMAT_UNDEFINED;

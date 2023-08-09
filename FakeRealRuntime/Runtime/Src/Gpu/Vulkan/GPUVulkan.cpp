@@ -172,11 +172,12 @@ static void VulkanUtil_FindOrCreateRenderPass(const GPUDevice_Vulkan* pDevice, c
         idx++;
     }
 
-    uint32_t _attachmentCount = attachmentCount;
+    uint32_t colorAttachmentCount = attachmentCount;
+    uint32_t _attachmentCount     = attachmentCount;
     _attachmentCount += depthCount;
     VkSubpassDescription subPass{};
     subPass.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subPass.colorAttachmentCount    = _attachmentCount;
+    subPass.colorAttachmentCount    = colorAttachmentCount;
     subPass.pColorAttachments       = colorAttachmentRefs;
     subPass.pDepthStencilAttachment = (depthCount > 0) ? depthStencilAttachmentRef : VK_NULL_HANDLE;
 

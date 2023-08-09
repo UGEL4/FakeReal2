@@ -3,4 +3,6 @@ C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V fragment_shader.frag -o fragm
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V normal_geom.vert -o normal_geom.vert.spv
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V normal_geom.frag -o normal_geom.frag.spv
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V normal_geom.geom -o normal_geom.geom.spv
+C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V pbr_model.vert -o pbr_model.vert.spv
+C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V pbr_model.frag -o pbr_model.frag.spv
 pause
