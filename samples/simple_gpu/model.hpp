@@ -3,7 +3,7 @@
 #include <vector>
 #include <cmath>
 #include <array>
-#include <glm/vec4.hpp>
+#include <glm/glm.hpp>
 #include "stb_image.h"
 #include "Gpu/GpuApi.h"
 
@@ -253,6 +253,21 @@ struct PushConstant
     float roughness;
     float ao;
     float padding;
+};
+
+struct UniformBuffer
+{
+    glm::mat4 model;
+    glm::mat4 view;
+    glm::mat4 proj;
+    glm::vec4 viewPos;
+};
+
+struct GeomVSUniformBuffer
+{
+    glm::mat4 model;
+    glm::mat4 view;
+    glm::mat4 proj;
 };
 
 class TextureData

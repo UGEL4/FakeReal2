@@ -11,15 +11,25 @@ layout (location = 0) out VS_OUT {
     vec3 normal;
 } vs_out;
 
-layout (set = 0, binding = 2) uniform UBO
+layout (set = 0, binding = 0) uniform UBO
 {
     mat4 model;
     mat4 view;
-    mat4 projection;
-} nv_ubo;
+    mat4 proj;
+    vec4 viewPos;
+} ubo;
+
+layout(push_constant) uniform PushConsts
+{
+    vec4 objPos;
+    layout(offset = 16) float metallic;
+    layout(offset = 20) float roughness;
+    layout(offset = 24) float ao;
+    layout(offset = 32) float padding;
+} pushConsts;
 
 void main(void){
-    mat3 normalMatrix = mat3(transpose(inverse(nv_ubo.view * nv_ubo.model)));
-    vs_out.normal = vec3(vec4(normalMatrix * inNormal, 0.0));
-    gl_Position = nv_ubo.view * nv_ubo.model * vec4(inPos, 1.0); 
+    mat3 normalMatrix = mat3(transpose(inverse(ubo.view * ubo.model)));
+    vs_out.normal     = vec3(vec4(normalMatrix * inNormal, 0.0));
+    gl_Position       = ubo.view * (pushConsts.objPos + ubo.model * vec4(inPos, 1.0)); 
 }

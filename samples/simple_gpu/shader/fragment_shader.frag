@@ -43,30 +43,22 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-layout(set = 0, binding = 0) uniform texture2D tex;
-layout(set = 0, binding = 3) uniform sampler texSamp; //static sampler
-layout(set = 0, binding = 1) uniform UniformBufferObj
+// ----------------------------------------------------------------------------
+layout(set = 0, binding = 0) uniform UniformBufferObj
 {
     mat4 model;
     mat4 view;
     mat4 proj;
     vec4 viewPos;
 }ubo;
-
-layout(set = 1, binding = 0) uniform PBRMaterialParam
-{
-    float metallic;
-    float roughness;
-    float ao;
-    float padding;
-} PBRMat;
-
 const int MAX_LIGHT_NUM = 4;
-layout(set = 1, binding = 1) uniform LightParam
+layout(set = 0, binding = 1) uniform LightParam
 {
     vec4 lightColor[MAX_LIGHT_NUM];
     vec4 lightPos[MAX_LIGHT_NUM];
 } Lights;
+layout(set = 0, binding = 2) uniform texture2D tex;
+layout(set = 0, binding = 3) uniform sampler texSamp; //static sampler
 
 layout(location = 0) in vec3 inWorldPos;
 layout(location = 1) in vec3 inNormal;

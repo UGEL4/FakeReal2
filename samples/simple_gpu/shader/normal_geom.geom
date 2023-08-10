@@ -10,20 +10,21 @@ layout (location = 0) in VS_OUT {
     vec3 normal;
 } gs_in[];
 
-layout (set = 0, binding = 2) uniform UBO
+layout (set = 0, binding = 0) uniform UBO
 {
     mat4 model;
     mat4 view;
-    mat4 projection;
-} nv_ubo;
+    mat4 proj;
+    vec4 viewPos;
+} ubo;
 
 const float MAGNITUDE = 0.2;
 
 void GenerateLine(int index)
 {
-    gl_Position = nv_ubo.projection * gl_in[index].gl_Position;
+    gl_Position = ubo.proj * gl_in[index].gl_Position;
     EmitVertex();
-    gl_Position = nv_ubo.projection * (gl_in[index].gl_Position + vec4(gs_in[index].normal, 0.0) * MAGNITUDE);
+    gl_Position = ubo.proj * (gl_in[index].gl_Position + vec4(gs_in[index].normal, 0.0) * MAGNITUDE);
     EmitVertex();
     EndPrimitive();
 }
