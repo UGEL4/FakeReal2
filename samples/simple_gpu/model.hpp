@@ -392,3 +392,86 @@ public:
         GPUFreeCommandPool(pool);
     }
 };
+
+class HDRIBLTextureData
+{
+public:
+    GPUTextureID mTexture {nullptr};
+    GPUTextureViewID mTextureView {nullptr};
+    GPUDescriptorSetID mSet{nullptr};
+
+    void Load(const std::string& file, GPUDeviceID device, GPUQueueID gfxQueue)
+    {
+        stbi_set_flip_vertically_on_load(true);
+        int width, height, comp;
+        const uint8_t * pixels = stbi_load(file.c_str(), &width, &height, &comp, STBI_default);
+        if (!pixels)
+        {
+          return;
+        }
+
+        GPUTextureDescriptor desc{};
+        desc.flags       = GPU_TCF_OWN_MEMORY_BIT;
+        desc.width       = width;
+        desc.height      = height;
+        desc.depth       = 1;
+        desc.array_size  = 1;
+        desc.format      = CGPU_FORMAT_R16G16B16_SFLOAT;
+        desc.owner_queue = gfxQueue;
+        desc.start_state = GPU_RESOURCE_STATE_COPY_DEST;
+        desc.descriptors = GPU_RESOURCE_TYPE_TEXTURE;
+        mTexture = GPUCreateTexture(device, &desc);
+        GPUTextureViewDescriptor tex_view_desc{};
+        tex_view_desc.pTexture        = mTexture;
+        tex_view_desc.format          = (EGPUFormat)mTexture->format;
+        tex_view_desc.usages          = EGPUTexutreViewUsage::GPU_TVU_SRV;
+        tex_view_desc.aspectMask      = EGPUTextureViewAspect::GPU_TVA_COLOR;
+        tex_view_desc.baseMipLevel    = 0;
+        tex_view_desc.mipLevelCount   = 1;
+        tex_view_desc.baseArrayLayer  = 0;
+        tex_view_desc.arrayLayerCount = 1;
+        mTextureView                  = GPUCreateTextureView(device, &tex_view_desc);
+
+        //upload
+        /* uint32_t pixelBytes = width * height * 3;
+        GPUBufferDescriptor upload_buffer{};
+        upload_buffer.size         = pixelBytes;
+        upload_buffer.flags        = GPU_BCF_OWN_MEMORY_BIT | GPU_BCF_PERSISTENT_MAP_BIT;
+        upload_buffer.descriptors  = GPU_RESOURCE_TYPE_NONE;
+        upload_buffer.memory_usage = GPU_MEM_USAGE_CPU_ONLY;
+        GPUBufferID uploadBuffer   = GPUCreateBuffer(device, &upload_buffer);
+        memcpy(uploadBuffer->cpu_mapped_address, m_pPixels, mPixelBytes);
+        GPUCommandPoolID pool = GPUCreateCommandPool(gfxQueue);
+        GPUCommandBufferDescriptor cmdDesc{};
+        cmdDesc.isSecondary = false;
+        GPUCommandBufferID cmd = GPUCreateCommandBuffer(pool, &cmdDesc);
+        GPUResetCommandPool(pool);
+        GPUCmdBegin(cmd);
+        {
+            GPUBufferToTextureTransfer trans_texture_buffer_desc{};
+            trans_texture_buffer_desc.dst                              = mTexture;
+            trans_texture_buffer_desc.dst_subresource.mip_level        = 0;
+            trans_texture_buffer_desc.dst_subresource.base_array_layer = 0;
+            trans_texture_buffer_desc.dst_subresource.layer_count      = 1;
+            trans_texture_buffer_desc.src                              = uploadBuffer;
+            trans_texture_buffer_desc.src_offset                       = 0;
+            GPUCmdTransferBufferToTexture(cmd, &trans_texture_buffer_desc);
+            GPUTextureBarrier barrier{};
+            barrier.texture = mTexture;
+            barrier.src_state = GPU_RESOURCE_STATE_COPY_DEST;
+            barrier.dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE;
+            GPUResourceBarrierDescriptor rs_barrer{};
+            rs_barrer.texture_barriers      = &barrier;
+            rs_barrer.texture_barriers_count = 1;
+            GPUCmdResourceBarrier(cmd, &rs_barrer);
+        }
+        GPUCmdEnd(cmd);
+        GPUQueueSubmitDescriptor texture_cpy_submit = { .cmds = &cmd, .cmds_count = 1 };
+        GPUSubmitQueue(gfxQueue, &texture_cpy_submit);
+        GPUWaitQueueIdle(gfxQueue);
+
+        GPUFreeBuffer(uploadBuffer);
+        GPUFreeCommandBuffer(cmd);
+        GPUFreeCommandPool(pool); */
+    }
+};

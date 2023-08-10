@@ -286,6 +286,8 @@ VkFormat VulkanUtil_GPUFormatToVulkanFormat(EGPUFormat format)
             return VK_FORMAT_D16_UNORM;
         case GPU_FORMAT_D32_SFLOAT:
             return VK_FORMAT_D32_SFLOAT;
+        case CGPU_FORMAT_R16G16B16_SFLOAT:
+            return VK_FORMAT_R16G16B16_SFLOAT;
         default: break;
     }
     return VK_FORMAT_UNDEFINED;
@@ -319,6 +321,8 @@ EGPUFormat VulkanUtil_VulkanFormatToGPUFormat(VkFormat format)
             return GPU_FORMAT_D24_UNORM_S8_UINT;
         case VK_FORMAT_D32_SFLOAT_S8_UINT:
             return GPU_FORMAT_D32_SFLOAT_S8_UINT;
+        case VK_FORMAT_R16G16B16_SFLOAT:
+            return CGPU_FORMAT_R16G16B16_SFLOAT;
         default: break;
     }
     return GPU_FORMAT_COUNT;
@@ -794,6 +798,7 @@ void VulkanUtil_ReturnDescriptorSets(struct VulkanUtil_DescriptorPool* pPool, Vk
 
 uint32_t VulkanUtil_BitSizeOfBlock(EGPUFormat format)
 {
+    //todo : other format
     switch (format)
     {
         case EGPUFormat::GPU_FORMAT_R16_UINT: return 16;

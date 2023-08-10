@@ -491,7 +491,7 @@ void DrawNormalObject(GPURenderPassEncoderID encoder, const LightParam& light, c
     memcpy(uniformBuffer->cpu_mapped_address, &ubo, rang.size);
     GPUUnmapBuffer(uniformBuffer);
 
-    constexpr const static bool visualizeNormal = true;
+    constexpr const static bool visualizeNormal = false;
 
     GPURenderEncoderBindPipeline(encoder, pipeline);
     // bind vertexbuffer
@@ -978,7 +978,7 @@ void NormalRenderSimple()
     presentSemaphore = GPUCreateSemaphore(device);
 
     ////model
-    CreateModelRenderObjects();
+    //CreateModelRenderObjects();
     ////model
 
     ///normal
@@ -1067,7 +1067,7 @@ void NormalRenderSimple()
                     GPURenderEncoderSetScissor(encoder, 0, 0, backbuffer->width,
                                                backbuffer->height);
 
-                    DrawModel(encoder, lightInfo, viewPos, view, proj);
+                    //DrawModel(encoder, lightInfo, viewPos, view, proj);
                     DrawNormalObject(encoder, lightInfo, viewPos, view, proj);
                 }
                 GPUCmdEndRenderPass(cmd, encoder);
@@ -1118,7 +1118,7 @@ void NormalRenderSimple()
     GPUFreeSampler(staticSampler);
     
     ////////////model
-    FreeModelRendderObjects();
+    //FreeModelRendderObjects();
     ////////////model
     ///normal
     FreeNormalRenderObjects();
