@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 #include "stb_image.h"
 #include "Gpu/GpuApi.h"
+#include <array>
 
 struct Vertex
 {
@@ -393,34 +394,56 @@ public:
     }
 };
 
-class HDRIBLTextureData
+class HDRIBLCubeMapTextureData
 {
 public:
     GPUTextureID mTexture {nullptr};
     GPUTextureViewID mTextureView {nullptr};
     GPUDescriptorSetID mSet{nullptr};
 
-    void Load(const std::string& file, GPUDeviceID device, GPUQueueID gfxQueue)
+    void Load(std::array<std::string, 6>& files, GPUDeviceID device, GPUQueueID gfxQueue, EGPUFormat format, uint32_t desiredChannels = 4)
     {
         stbi_set_flip_vertically_on_load(true);
         int width, height, comp;
-        const uint8_t * pixels = stbi_load(file.c_str(), &width, &height, &comp, STBI_default);
-        if (!pixels)
+        std::array<uint8_t*, 6> pixels = {nullptr};
+        for (uint32_t i = 0; i < 6; i++)
         {
-          return;
+            pixels[i] = stbi_load(files[i].c_str(), &width, &height, &comp, desiredChannels);
+            if (!pixels[i])
+            {
+                return;
+            }
         }
+
+        uint32_t bytes = 0;
+        switch (format)
+        {
+            case GPU_FORMAT_R32G32B32_SFLOAT:
+            {
+                bytes = width * height * 4 * 3;
+            }
+            break;
+            case GPU_FORMAT_R32G32B32A32_SFLOAT:
+                bytes = width * height * 4 * 4;
+                break;
+            default:
+                assert(0);
+                break;
+        }
+
+        uint32_t totalBytes = bytes * 6;
 
         GPUTextureDescriptor desc{};
         desc.flags       = GPU_TCF_OWN_MEMORY_BIT;
         desc.width       = width;
         desc.height      = height;
         desc.depth       = 1;
-        desc.array_size  = 1;
-        desc.format      = CGPU_FORMAT_R16G16B16_SFLOAT;
+        desc.array_size  = 6;
+        desc.format      = GPU_FORMAT_R32G32B32A32_SFLOAT;
         desc.owner_queue = gfxQueue;
         desc.start_state = GPU_RESOURCE_STATE_COPY_DEST;
-        desc.descriptors = GPU_RESOURCE_TYPE_TEXTURE;
-        mTexture = GPUCreateTexture(device, &desc);
+        desc.descriptors = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
+        mTexture         = GPUCreateTexture(device, &desc);
         GPUTextureViewDescriptor tex_view_desc{};
         tex_view_desc.pTexture        = mTexture;
         tex_view_desc.format          = (EGPUFormat)mTexture->format;
@@ -429,21 +452,22 @@ public:
         tex_view_desc.baseMipLevel    = 0;
         tex_view_desc.mipLevelCount   = 1;
         tex_view_desc.baseArrayLayer  = 0;
-        tex_view_desc.arrayLayerCount = 1;
+        tex_view_desc.arrayLayerCount = 6;
         mTextureView                  = GPUCreateTextureView(device, &tex_view_desc);
 
-        //upload
-        /* uint32_t pixelBytes = width * height * 3;
         GPUBufferDescriptor upload_buffer{};
-        upload_buffer.size         = pixelBytes;
+        upload_buffer.size         = totalBytes;
         upload_buffer.flags        = GPU_BCF_OWN_MEMORY_BIT | GPU_BCF_PERSISTENT_MAP_BIT;
         upload_buffer.descriptors  = GPU_RESOURCE_TYPE_NONE;
         upload_buffer.memory_usage = GPU_MEM_USAGE_CPU_ONLY;
         GPUBufferID uploadBuffer   = GPUCreateBuffer(device, &upload_buffer);
-        memcpy(uploadBuffer->cpu_mapped_address, m_pPixels, mPixelBytes);
+        for (uint32_t i = 0; i < 6; i++)
+        {
+            memcpy(((uint8_t*)(uploadBuffer->cpu_mapped_address) + bytes * i), pixels[i], bytes);
+        }
         GPUCommandPoolID pool = GPUCreateCommandPool(gfxQueue);
         GPUCommandBufferDescriptor cmdDesc{};
-        cmdDesc.isSecondary = false;
+        cmdDesc.isSecondary    = false;
         GPUCommandBufferID cmd = GPUCreateCommandBuffer(pool, &cmdDesc);
         GPUResetCommandPool(pool);
         GPUCmdBegin(cmd);
@@ -452,7 +476,7 @@ public:
             trans_texture_buffer_desc.dst                              = mTexture;
             trans_texture_buffer_desc.dst_subresource.mip_level        = 0;
             trans_texture_buffer_desc.dst_subresource.base_array_layer = 0;
-            trans_texture_buffer_desc.dst_subresource.layer_count      = 1;
+            trans_texture_buffer_desc.dst_subresource.layer_count      = 6;
             trans_texture_buffer_desc.src                              = uploadBuffer;
             trans_texture_buffer_desc.src_offset                       = 0;
             GPUCmdTransferBufferToTexture(cmd, &trans_texture_buffer_desc);
@@ -472,6 +496,6 @@ public:
 
         GPUFreeBuffer(uploadBuffer);
         GPUFreeCommandBuffer(cmd);
-        GPUFreeCommandPool(pool); */
+        GPUFreeCommandPool(pool);
     }
 };

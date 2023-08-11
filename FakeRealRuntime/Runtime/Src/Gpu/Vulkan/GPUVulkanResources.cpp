@@ -10,16 +10,26 @@ GPUTextureViewID GPUCreateTextureView_Vulkan(GPUDeviceID pDevice, const GPUTextu
     GPUTexture_Vulkan* pVkTexture = (GPUTexture_Vulkan*)pDesc->pTexture;
 
     VkImageViewType viewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
-    VkImageType imageType    = pDesc->pTexture->isCube ? VK_IMAGE_TYPE_3D : VK_IMAGE_TYPE_2D;
+    VkImageType imageType    = VK_IMAGE_TYPE_2D;
     switch (imageType)
     {
         case VK_IMAGE_TYPE_1D:
             viewType = pDesc->arrayLayerCount > 1 ? VK_IMAGE_VIEW_TYPE_1D_ARRAY : VK_IMAGE_VIEW_TYPE_1D;
             break;
         case VK_IMAGE_TYPE_2D:
-            viewType = VK_IMAGE_VIEW_TYPE_2D;
-            break;
-        case VK_IMAGE_TYPE_3D: {
+        {
+            if (pDesc->pTexture->isCube)
+            {
+                viewType = (pDesc->dims == GPU_TEX_DIMENSION_CUBE_ARRAY) ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY : VK_IMAGE_VIEW_TYPE_CUBE;
+            }
+            else
+            {
+                viewType = ((pDesc->dims == GPU_TEX_DIMENSION_2D_ARRAY) || (pDesc->dims == GPU_TEX_DIMENSION_2DMS_ARRAY)) ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
+            }
+        }
+        break;
+        case VK_IMAGE_TYPE_3D:
+        {
             if (pDesc->arrayLayerCount > 1)
             {
                 assert(0);
@@ -131,7 +141,7 @@ GPUTextureID GPUCreateTexture_Vulkan(GPUDeviceID device, const GPUTextureDescrip
 {
     if (desc->sample_count > GPU_SAMPLE_COUNT_1 && desc->mip_levels > 1)
     {
-        //cgpu_error("Multi-Sampled textures cannot have mip maps");
+        //"Multi-Sampled textures cannot have mip maps";
         assert(false);
         return nullptr;
     }
