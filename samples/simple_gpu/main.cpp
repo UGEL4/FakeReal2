@@ -11,6 +11,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "sky_box.hpp"
 
 static int WIDTH = 1080;
 static int HEIGHT = 1080;
@@ -56,7 +57,7 @@ Model* pModel = nullptr;
 std::vector<TextureData> modelTextures;
 
 
-inline static void ReadBytes(const char8_t* file_name, uint32_t** bytes, uint32_t* length)
+/* inline static void ReadBytes(const char8_t* file_name, uint32_t** bytes, uint32_t* length)
 {
     FILE* f = fopen((const char*)file_name, "rb");
     fseek(f, 0, SEEK_END);
@@ -84,7 +85,7 @@ inline static void ReadShaderBytes(const char8_t* virtual_path, uint32_t** bytes
             break;
     }
     ReadBytes(shader_file, bytes, length);
-}
+} */
 
 LRESULT CALLBACK WindowProcedure(HWND window, UINT msg, WPARAM wp, LPARAM lp)
 {
@@ -174,10 +175,10 @@ void CreateNormalRendeObjects()
     //shader
     uint32_t* vShaderCode;
     uint32_t vSize = 0;
-    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/vertex_shader.vert", &vShaderCode, &vSize, EGPUBackend::GPUBackend_Vulkan);
+    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/vertex_shader.vert", &vShaderCode, &vSize);
     uint32_t* fShaderCode;
     uint32_t fSize = 0;
-    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/fragment_shader.frag", &fShaderCode, &fSize, EGPUBackend::GPUBackend_Vulkan);
+    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/fragment_shader.frag", &fShaderCode, &fSize);
     GPUShaderLibraryDescriptor vShaderDesc{};
     {
         vShaderDesc.pName    = u8"vertex_shader";
@@ -199,13 +200,13 @@ void CreateNormalRendeObjects()
 
     uint32_t* normal_vShaderCode;
     uint32_t normal_vSize = 0;
-    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/normal_geom.vert", &normal_vShaderCode, &normal_vSize, EGPUBackend::GPUBackend_Vulkan);
+    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/normal_geom.vert", &normal_vShaderCode, &normal_vSize);
     uint32_t* normal_fShaderCode;
     uint32_t normal_fSize = 0;
-    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/normal_geom.frag", &normal_fShaderCode, &normal_fSize, EGPUBackend::GPUBackend_Vulkan);
+    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/normal_geom.frag", &normal_fShaderCode, &normal_fSize);
     uint32_t* normal_gShaderCode;
     uint32_t normal_gSize = 0;
-    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/normal_geom.geom", &normal_gShaderCode, &normal_gSize, EGPUBackend::GPUBackend_Vulkan);
+    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/normal_geom.geom", &normal_gShaderCode, &normal_gSize);
     GPUShaderLibraryDescriptor normal_vShaderDesc{};
     normal_vShaderDesc.pName    = u8"normal_vertex_shader";
     normal_vShaderDesc.code     = normal_vShaderCode;
@@ -565,10 +566,10 @@ void CreateModelRenderObjects()
 {
     uint32_t* vShaderCode;
     uint32_t vSize = 0;
-    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/pbr_model.vert", &vShaderCode, &vSize, EGPUBackend::GPUBackend_Vulkan);
+    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/pbr_model.vert", &vShaderCode, &vSize);
     uint32_t* fShaderCode;
     uint32_t fSize = 0;
-    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/pbr_model.frag", &fShaderCode, &fSize, EGPUBackend::GPUBackend_Vulkan);
+    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/pbr_model.frag", &fShaderCode, &fSize);
     GPUShaderLibraryDescriptor modelShaderDesc[2] = {};
     {
         modelShaderDesc[0].pName    = u8"bpr_model_vertex_shader";
@@ -985,6 +986,24 @@ void NormalRenderSimple()
     CreateNormalRendeObjects();
     ///normal
 
+    ///skybox
+    SkyBox skyBox;
+    {
+        std::array<std::string, 6> textures =
+        {
+            "../../../../asset/textures/sky/skybox_irradiance_X+.hdr",
+            "../../../../asset/textures/sky/skybox_irradiance_X-.hdr",
+            "../../../../asset/textures/sky/skybox_irradiance_Z+.hdr",
+            "../../../../asset/textures/sky/skybox_irradiance_Z-.hdr",
+            "../../../../asset/textures/sky/skybox_irradiance_Y+.hdr",
+            "../../../../asset/textures/sky/skybox_irradiance_Y-.hdr"
+        };
+        skyBox.Load(textures, device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT);
+        skyBox.InitVertexAndIndexResource(device, graphicQueue);
+        skyBox.CreateRenderPipeline(device, staticSampler, sampler_name, (EGPUFormat)swapchain->ppBackBuffers[0]->format);
+    }
+    ///skybox
+
     //light
     LightParam lightInfo    = {};
     const float p           = 15.0f;
@@ -1067,6 +1086,8 @@ void NormalRenderSimple()
                     GPURenderEncoderSetScissor(encoder, 0, 0, backbuffer->width,
                                                backbuffer->height);
 
+                    //skyybox
+                    skyBox.Draw(encoder, view, proj);
                     //DrawModel(encoder, lightInfo, viewPos, view, proj);
                     DrawNormalObject(encoder, lightInfo, viewPos, view, proj);
                 }
@@ -1123,6 +1144,9 @@ void NormalRenderSimple()
     ///normal
     FreeNormalRenderObjects();
     ///normal
+    ///skybox
+    skyBox.~SkyBox();
+    ///skybox
 
     GPUFreeTextureView(depthTextureView);
     GPUFreeTexture(depthTexture);
@@ -1236,10 +1260,10 @@ void RenderGraphSimple()
     //shader
     uint32_t* vShaderCode;
     uint32_t vSize = 0;
-    ReadShaderBytes(u8"traingle_vertex_shader.vert", &vShaderCode, &vSize, EGPUBackend::GPUBackend_Vulkan);
+    ReadShaderBytes(u8"traingle_vertex_shader.vert", &vShaderCode, &vSize);
     uint32_t* fShaderCode;
     uint32_t fSize = 0;
-    ReadShaderBytes(u8"traingle_fragment_shader.frag", &fShaderCode, &fSize, EGPUBackend::GPUBackend_Vulkan);
+    ReadShaderBytes(u8"traingle_fragment_shader.frag", &fShaderCode, &fSize);
     GPUShaderLibraryDescriptor vShaderDesc{};
     vShaderDesc.pName    = u8"vertex_shader";
     vShaderDesc.code = vShaderCode;

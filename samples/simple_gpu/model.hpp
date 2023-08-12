@@ -399,7 +399,13 @@ class HDRIBLCubeMapTextureData
 public:
     GPUTextureID mTexture {nullptr};
     GPUTextureViewID mTextureView {nullptr};
-    GPUDescriptorSetID mSet{nullptr};
+
+    HDRIBLCubeMapTextureData() = default;
+    ~HDRIBLCubeMapTextureData()
+    {
+        if (mTextureView) GPUFreeTextureView(mTextureView);
+        if (mTexture) GPUFreeTexture(mTexture);
+    }
 
     void Load(std::array<std::string, 6>& files, GPUDeviceID device, GPUQueueID gfxQueue, EGPUFormat format, uint32_t desiredChannels = 4)
     {
@@ -411,6 +417,7 @@ public:
             pixels[i] = stbi_load(files[i].c_str(), &width, &height, &comp, desiredChannels);
             if (!pixels[i])
             {
+                assert(0 && ("Load image failed : " + files[i]).c_str());
                 return;
             }
         }
@@ -463,7 +470,9 @@ public:
         GPUBufferID uploadBuffer   = GPUCreateBuffer(device, &upload_buffer);
         for (uint32_t i = 0; i < 6; i++)
         {
-            memcpy(((uint8_t*)(uploadBuffer->cpu_mapped_address) + bytes * i), pixels[i], bytes);
+            uint8_t* ptr = (uint8_t*)(uploadBuffer->cpu_mapped_address) + bytes * i;
+            memcpy(ptr, pixels[i], bytes);
+            //memcpy(((uint8_t*)(uploadBuffer->cpu_mapped_address) + bytes * i), pixels[i], bytes);
         }
         GPUCommandPoolID pool = GPUCreateCommandPool(gfxQueue);
         GPUCommandBufferDescriptor cmdDesc{};
@@ -497,5 +506,13 @@ public:
         GPUFreeBuffer(uploadBuffer);
         GPUFreeCommandBuffer(cmd);
         GPUFreeCommandPool(pool);
+
+        for (uint32_t i = 0; i < 6; i++)
+        {
+            if (pixels[i] != nullptr)
+            {
+                stbi_image_free(pixels[i]);
+            }
+        }
     }
 };
