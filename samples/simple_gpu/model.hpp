@@ -218,6 +218,38 @@ struct Sphere
         return vertices;
     }
 
+    static std::vector<Vertex> GenCubeIdentityVertices()
+    {
+        std::vector<Vertex> vertices = {
+            { -1.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 },
+            { 1.0, -1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0 },
+            { 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0 },
+            {-1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0 },
+            { 1.0,-1.0,-1.0, 0.0, 0.0,-1.0, 0.0, 0.0 },
+            {-1.0,-1.0,-1.0, 0.0, 0.0,-1.0, 1.0, 0.0 },
+            {-1.0, 1.0,-1.0, 0.0, 0.0,-1.0, 1.0, 1.0 },
+            { 1.0, 1.0,-1.0, 0.0, 0.0,-1.0, 0.0, 1.0 },
+            {-1.0,-1.0, 1.0,-1.0, 0.0, 0.0, 1.0, 0.0 },
+            {-1.0, 1.0, 1.0,-1.0, 0.0, 0.0, 1.0, 1.0 },
+            {-1.0, 1.0,-1.0,-1.0, 0.0, 0.0, 0.0, 1.0 },
+            {-1.0,-1.0,-1.0,-1.0, 0.0, 0.0, 0.0, 0.0 },
+            { 1.0,-1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0 },
+            { 1.0,-1.0,-1.0, 1.0, 0.0, 0.0, 1.0, 0.0 },
+            { 1.0, 1.0,-1.0, 1.0, 0.0, 0.0, 1.0, 1.0 },
+            { 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0 },
+            {-1.0,-1.0,-1.0, 0.0,-1.0, 0.0, 0.0, 0.0 },
+            { 1.0,-1.0,-1.0, 0.0,-1.0, 0.0, 1.0, 0.0 },
+            { 1.0,-1.0, 1.0, 0.0,-1.0, 0.0, 1.0, 1.0 },
+            {-1.0,-1.0, 1.0, 0.0,-1.0, 0.0, 0.0, 1.0 },
+            {-1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0 },
+            { 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0 },
+            { 1.0, 1.0,-1.0, 0.0, 1.0, 0.0, 1.0, 1.0 },
+            {-1.0, 1.0,-1.0, 0.0, 1.0, 0.0, 0.0, 1.0 }
+        };
+
+        return vertices;
+    }
+
     static std::vector<uint32_t> GenCubeIndices()
     {
         std::vector<uint32_t> indeces = {
@@ -411,10 +443,10 @@ public:
     {
         stbi_set_flip_vertically_on_load(true);
         int width, height, comp;
-        std::array<uint8_t*, 6> pixels = {nullptr};
+        std::array<void*, 6> pixels = {nullptr};
         for (uint32_t i = 0; i < 6; i++)
         {
-            pixels[i] = stbi_load(files[i].c_str(), &width, &height, &comp, desiredChannels);
+            pixels[i] = stbi_loadf(files[i].c_str(), &width, &height, &comp, desiredChannels);
             if (!pixels[i])
             {
                 assert(0 && ("Load image failed : " + files[i]).c_str());
@@ -470,9 +502,9 @@ public:
         GPUBufferID uploadBuffer   = GPUCreateBuffer(device, &upload_buffer);
         for (uint32_t i = 0; i < 6; i++)
         {
-            uint8_t* ptr = (uint8_t*)(uploadBuffer->cpu_mapped_address) + bytes * i;
-            memcpy(ptr, pixels[i], bytes);
-            //memcpy(((uint8_t*)(uploadBuffer->cpu_mapped_address) + bytes * i), pixels[i], bytes);
+            //uint8_t* ptr = (uint8_t*)(uploadBuffer->cpu_mapped_address) + bytes * i;
+            //memcpy(ptr, pixels[i], bytes);
+            memcpy(((uint8_t*)(uploadBuffer->cpu_mapped_address) + bytes * i), pixels[i], bytes);
         }
         GPUCommandPoolID pool = GPUCreateCommandPool(gfxQueue);
         GPUCommandBufferDescriptor cmdDesc{};

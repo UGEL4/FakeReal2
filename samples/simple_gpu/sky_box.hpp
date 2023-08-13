@@ -7,7 +7,7 @@ class SkyBox
 public:
     SkyBox()
     {
-        mVertices = Sphere::GenCubeVertices();
+        mVertices = Sphere::GenCubeIdentityVertices();
         mIndices  = Sphere::GenCubeIndices();
         mTextureData = new HDRIBLCubeMapTextureData;
     }
@@ -34,7 +34,7 @@ public:
     void Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const glm::mat4& proj)
     {
         UniformBuffer ubo = {
-            .model = view,
+            .model = glm::mat4(glm::mat3(view)),
             .proj  = proj
         };
         GPUBufferRange rang{};
@@ -44,8 +44,8 @@ public:
         memcpy(mUniformBuffer->cpu_mapped_address, &ubo, rang.size);
         GPUUnmapBuffer(mUniformBuffer);
 
-        GPURenderEncoderBindDescriptorSet(encoder, mSet);
         GPURenderEncoderBindPipeline(encoder, mPipeline);
+        GPURenderEncoderBindDescriptorSet(encoder, mSet);
         uint32_t strides = sizeof(Vertex);
         GPURenderEncoderBindVertexBuffers(encoder, 1, &mVertexBuffer, &strides, nullptr);
         GPURenderEncoderBindIndexBuffer(encoder, mIndexBuffer, 0, sizeof(uint32_t));
@@ -213,7 +213,7 @@ public:
         vertexLayout.attributes[2]  = { 1, GPU_FORMAT_R32G32_SFLOAT, 0, sizeof(float) * 6, sizeof(float) * 2, GPU_INPUT_RATE_VERTEX };
         // renderpipeline
         GPURasterizerStateDescriptor rasterizerState = {
-            .cullMode             = GPU_CULL_MODE_BACK,
+            .cullMode             = GPU_CULL_MODE_NONE,
             .fillMode             = GPU_FILL_MODE_SOLID,
             .frontFace            = GPU_FRONT_FACE_CCW,
             .depthBias            = 0,
@@ -222,6 +222,11 @@ public:
             .enableScissor        = false,
             .enableDepthClamp     = false
         };
+        GPUDepthStateDesc depthDesc = {
+            .depthTest  = false,
+            .depthWrite = false,
+            .depthFunc  = GPU_CMP_LEQUAL
+        };
         GPURenderPipelineDescriptor pipelineDesc{};
         {
             pipelineDesc.pRootSignature     = mRS;
@@ -229,9 +234,11 @@ public:
             pipelineDesc.pFragmentShader    = &shaderEntries[1];
             pipelineDesc.pVertexLayout      = &vertexLayout;
             pipelineDesc.primitiveTopology  = GPU_PRIM_TOPO_TRI_LIST;
+            pipelineDesc.pDepthState        = &depthDesc;
             pipelineDesc.pRasterizerState   = &rasterizerState;
             pipelineDesc.pColorFormats      = const_cast<EGPUFormat*>(&colorFormat);
             pipelineDesc.renderTargetCount  = 1;
+            pipelineDesc.depthStencilFormat = GPU_FORMAT_D32_SFLOAT;
         }
         mPipeline = GPUCreateRenderPipeline(device, &pipelineDesc);
         GPUFreeShaderLibrary(pVShader);
@@ -255,7 +262,7 @@ private:
         GPUDescriptorData desc_data[2] = {};
         desc_data[0].name              = u8"tex"; // shader texture2D`s name
         desc_data[0].binding           = 1;
-        desc_data[0].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
+        desc_data[0].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
         desc_data[0].count             = 1;
         desc_data[0].textures          = &mTextureData->mTextureView;
         desc_data[1].name              = u8"ubo";

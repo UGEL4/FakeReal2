@@ -17,7 +17,7 @@ inline static void ReadShaderBytes(const char8_t* virtual_path, uint32_t** bytes
 {
     std::filesystem::path cur_path = std::filesystem::current_path();
     std::u8string shader_path      = cur_path.u8string();
-    shader_path.append(u8"./../shaders/");
+    shader_path.append(u8"/");
     char8_t shader_file[256];
     strcpy((char*)shader_file, (const char*)shader_path.c_str());
     strcat((char*)shader_file, (const char*)virtual_path);

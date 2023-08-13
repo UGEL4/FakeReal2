@@ -8,10 +8,11 @@
 #include "Frontend/RenderGraph.h"
 #include "model.hpp"
 #include "Utils/Log/LogSystem.h"
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+// #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "sky_box.hpp"
+#include "camera.hpp"
 
 static int WIDTH = 1080;
 static int HEIGHT = 1080;
@@ -56,6 +57,34 @@ GPUBufferID modelLightUniformBuffer = nullptr;
 Model* pModel = nullptr;
 std::vector<TextureData> modelTextures;
 
+Camera gCamera;
+glm::vec2 mousePos;
+struct
+{
+    bool left   = false;
+    bool right  = false;
+    bool middle = false;
+} mouseButtons;
+
+void HandleMouseMove(int32_t x, int32_t y)
+{
+    int32_t dx = (int32_t)mousePos.x - x;
+    int32_t dy = (int32_t)mousePos.y - y;
+
+    if (mouseButtons.left)
+    {
+        gCamera.rotate(glm::vec3(dy * gCamera.rotationSpeed, -dx * gCamera.rotationSpeed, 0.0f));
+    }
+    if (mouseButtons.right)
+    {
+        gCamera.translate(glm::vec3(-0.0f, 0.0f, dy * .005f));
+    }
+    if (mouseButtons.middle)
+    {
+        gCamera.translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
+    }
+    mousePos = glm::vec2((float)x, (float)y);
+}
 
 /* inline static void ReadBytes(const char8_t* file_name, uint32_t** bytes, uint32_t* length)
 {
@@ -95,11 +124,82 @@ LRESULT CALLBACK WindowProcedure(HWND window, UINT msg, WPARAM wp, LPARAM lp)
             std::cout << "\ndestroying window\n";
             PostQuitMessage(0);
             return 0L;
+        case WM_KEYDOWN:
+            if (gCamera.type == Camera::firstperson)
+            {
+                switch (wp)
+                {
+                    case KEY_W:
+                        gCamera.keys.up = true;
+                        break;
+                    case KEY_S:
+                        gCamera.keys.down = true;
+                        break;
+                    case KEY_A:
+                        gCamera.keys.left = true;
+                        break;
+                    case KEY_D:
+                        gCamera.keys.right = true;
+                        break;
+                }
+            }
+            break;
+        case WM_KEYUP:
+            if (gCamera.type == Camera::firstperson)
+            {
+                switch (wp)
+                {
+                    case KEY_W:
+                        gCamera.keys.up = false;
+                        break;
+                    case KEY_S:
+                        gCamera.keys.down = false;
+                        break;
+                    case KEY_A:
+                        gCamera.keys.left = false;
+                        break;
+                    case KEY_D:
+                        gCamera.keys.right = false;
+                        break;
+                }
+            }
+            break;
         case WM_LBUTTONDOWN:
-            std::cout << "\nmouse left button down at (" << LOWORD(lp) << ',' << HIWORD(lp) << ")\n";
+            mousePos          = glm::vec2((float)LOWORD(lp), (float)HIWORD(lp));
+            mouseButtons.left = true;
+            break;
+        case WM_RBUTTONDOWN:
+            mousePos           = glm::vec2((float)LOWORD(lp), (float)HIWORD(lp));
+            mouseButtons.right = true;
+            break;
+        case WM_MBUTTONDOWN:
+            mousePos            = glm::vec2((float)LOWORD(lp), (float)HIWORD(lp));
+            mouseButtons.middle = true;
+            break;
+        case WM_LBUTTONUP:
+            mouseButtons.left = false;
+            break;
+        case WM_RBUTTONUP:
+            mouseButtons.right = false;
+            break;
+        case WM_MBUTTONUP:
+            mouseButtons.middle = false;
+            break;
+        case WM_MOUSEWHEEL:
+        {
+            short wheelDelta = GET_WHEEL_DELTA_WPARAM(wp);
+            gCamera.translate(glm::vec3(0.0f, 0.0f, (float)wheelDelta * 0.005f));
+            break;
+        }
+        case WM_MOUSEMOVE:
+        {
+            HandleMouseMove(LOWORD(lp), HIWORD(lp));
+            break;
+        }
         default:
             return DefWindowProc(window, msg, wp, lp);
     }
+    return DefWindowProc(window, msg, wp, lp);
 }
 
 HWND CreateWin32Window()
@@ -654,8 +754,8 @@ void CreateModelRenderObjects()
     GPUFreeShaderLibrary(pModelFShader);
     // end create renderpipeline
 
-    pModel = new Model("C:\\Dev\\nanosuit\\out\\nanosuit.json");
-    //Model model("D:\\c++\\nanosuit\\out\\nanosuit.json");
+    //pModel = new Model("C:\\Dev\\nanosuit\\out\\nanosuit.json");
+    pModel = new Model("D:\\c++\\nanosuit\\out\\nanosuit.json");
     modelTextures.reserve(pModel->mMesh.subMeshes.size());
     {
         for (size_t i = 0; i < pModel->mMesh.subMeshes.size(); i++)
@@ -663,8 +763,8 @@ void CreateModelRenderObjects()
             if (pModel->mMesh.subMeshes[i].diffuse_tex_url != "")
             {
                 auto& res = modelTextures.emplace_back();
-                res.LoadTexture("C:\\Dev\\nanosuit\\" +pModel->mMesh.subMeshes[i].diffuse_tex_url, device, graphicQueue);
-                //res.LoadTexture("D:\\c++\\nanosuit\\" + model.mMesh.subMeshes[i].diffuse_tex_url, device, pGraphicQueue);
+                //res.LoadTexture("C:\\Dev\\nanosuit\\" +pModel->mMesh.subMeshes[i].diffuse_tex_url, device, graphicQueue);
+                res.LoadTexture("D:\\c++\\nanosuit\\" + pModel->mMesh.subMeshes[i].diffuse_tex_url, device, graphicQueue);
                 res.SetDescriptorSet(modelRS);
             }
         }
@@ -861,6 +961,14 @@ void RenderGraphSimple();
 int main(int argc, char** argv)
 {
     FakeReal::LogSystem::Initialize();
+
+    gCamera.type          = Camera::CameraType::firstperson;
+    gCamera.movementSpeed = 4.0f;
+    gCamera.setPerspective(90.0f, (float)WIDTH / (float)HEIGHT, 0.1f, 1000.0f);
+    gCamera.rotationSpeed = 0.25f;
+    //gCamera.setRotation({ -3.75f, 180.0f, 0.0f });
+    //gCamera.setPosition({ 0.55f, 0.85f, 12.0f });
+
     NormalRenderSimple();
    // RenderGraphSimple();
    //Model model("C:\\Dev\\nanosuit\\out\\nanosuit.json");
@@ -987,7 +1095,7 @@ void NormalRenderSimple()
     ///normal
 
     ///skybox
-    SkyBox skyBox;
+    SkyBox* skyBox = new SkyBox;
     {
         std::array<std::string, 6> textures =
         {
@@ -998,9 +1106,9 @@ void NormalRenderSimple()
             "../../../../asset/textures/sky/skybox_irradiance_Y+.hdr",
             "../../../../asset/textures/sky/skybox_irradiance_Y-.hdr"
         };
-        skyBox.Load(textures, device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT);
-        skyBox.InitVertexAndIndexResource(device, graphicQueue);
-        skyBox.CreateRenderPipeline(device, staticSampler, sampler_name, (EGPUFormat)swapchain->ppBackBuffers[0]->format);
+        skyBox->Load(textures, device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT);
+        skyBox->InitVertexAndIndexResource(device, graphicQueue);
+        skyBox->CreateRenderPipeline(device, staticSampler, sampler_name, (EGPUFormat)swapchain->ppBackBuffers[0]->format);
     }
     ///skybox
 
@@ -1016,9 +1124,13 @@ void NormalRenderSimple()
     lightInfo.lightColor[2] = glm::vec4(1000.f, 1000.f, 1000.f, 1.f);
     lightInfo.lightColor[3] = glm::vec4(1000.f, 1000.f, 1000.f, 1.f);
 
-    glm::vec4 viewPos = glm::vec4(0.f, 0.f, 6.f, 1.f);
-    glm::mat4 view    = glm::lookAt(glm::vec3(viewPos.x, viewPos.y, viewPos.z), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
-    glm::mat4 proj    = glm::perspective(glm::radians(90.f), (float)WIDTH / HEIGHT, 0.1f, 1000.f);
+    //glm::vec4 viewPos = glm::vec4(-6.f, 0.f, 6.f, 1.f);
+    //glm::mat4 view    = glm::lookAt(glm::vec3(viewPos.x, viewPos.y, viewPos.z), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+    //glm::mat4 proj    = glm::perspective(glm::radians(90.f), (float)WIDTH / HEIGHT, 0.1f, 1000.f);
+
+    /* glm::vec4 viewPos = glm::vec4(gCamera.position.x, gCamera.position.y, gCamera.position.z, 1.0);
+    glm::mat4 view    = gCamera.matrices.view;
+    glm::mat4 proj    = gCamera.matrices.perspective; */
 
     //render loop begin
     uint32_t backbufferIndex = 0;
@@ -1037,6 +1149,7 @@ void NormalRenderSimple()
         }
         else
         {
+            auto tStart = std::chrono::high_resolution_clock::now();
 
             GPUAcquireNextDescriptor acq_desc{};
             acq_desc.signal_semaphore        = presentSemaphore;
@@ -1086,10 +1199,11 @@ void NormalRenderSimple()
                     GPURenderEncoderSetScissor(encoder, 0, 0, backbuffer->width,
                                                backbuffer->height);
 
+                    glm::vec4 viewPos = glm::vec4(gCamera.position.x, gCamera.position.y, gCamera.position.z, 1.0);
                     //skyybox
-                    skyBox.Draw(encoder, view, proj);
+                    skyBox->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective);
                     //DrawModel(encoder, lightInfo, viewPos, view, proj);
-                    DrawNormalObject(encoder, lightInfo, viewPos, view, proj);
+                    DrawNormalObject(encoder, lightInfo, viewPos, gCamera.matrices.view, gCamera.matrices.perspective);
                 }
                 GPUCmdEndRenderPass(cmd, encoder);
 
@@ -1118,6 +1232,11 @@ void NormalRenderSimple()
             presentDesc.wait_semaphores      = &presentSemaphore;
             presentDesc.wait_semaphore_count = 1;
             GPUQueuePresent(graphicQueue, &presentDesc);
+
+            auto tEnd = std::chrono::high_resolution_clock::now();
+            auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
+            float frameTimer = (float)tDiff / 1000.0f;
+	        gCamera.update(frameTimer);
         }
     }
     //render loop end
@@ -1145,7 +1264,8 @@ void NormalRenderSimple()
     FreeNormalRenderObjects();
     ///normal
     ///skybox
-    skyBox.~SkyBox();
+    //skyBox.~SkyBox(); Dont do this!
+    delete skyBox;
     ///skybox
 
     GPUFreeTextureView(depthTextureView);
