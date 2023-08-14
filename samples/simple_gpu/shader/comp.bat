@@ -7,4 +7,6 @@ C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V pbr_model.vert -o pbr_model.v
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V pbr_model.frag -o pbr_model.frag.spv
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V skybox.vert -o skybox.vert.spv
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V skybox.frag -o skybox.frag.spv
+C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V gen_cube.vert -o gen_cube.vert.spv
+C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V gen_cube.frag -o gen_cube.frag.spv
 pause

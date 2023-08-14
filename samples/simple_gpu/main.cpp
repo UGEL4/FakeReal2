@@ -73,7 +73,7 @@ void HandleMouseMove(int32_t x, int32_t y)
 
     if (mouseButtons.left)
     {
-        gCamera.rotate(glm::vec3(dy * gCamera.rotationSpeed, -dx * gCamera.rotationSpeed, 0.0f));
+        gCamera.rotate(glm::vec3(-dy * gCamera.rotationSpeed, -dx * gCamera.rotationSpeed, 0.0f));
     }
     if (mouseButtons.right)
     {
@@ -85,36 +85,6 @@ void HandleMouseMove(int32_t x, int32_t y)
     }
     mousePos = glm::vec2((float)x, (float)y);
 }
-
-/* inline static void ReadBytes(const char8_t* file_name, uint32_t** bytes, uint32_t* length)
-{
-    FILE* f = fopen((const char*)file_name, "rb");
-    fseek(f, 0, SEEK_END);
-    *length = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    *bytes = (uint32_t*)malloc(*length);
-    fread(*bytes, *length, 1, f);
-    fclose(f);
-}
-
-inline static void ReadShaderBytes(const char8_t* virtual_path, uint32_t** bytes, uint32_t* length, EGPUBackend backend)
-{
-    std::filesystem::path cur_path = std::filesystem::current_path();
-    std::u8string shader_path      = cur_path.u8string();
-    shader_path.append(u8"./../shaders/");
-    char8_t shader_file[256];
-    strcpy((char*)shader_file, (const char*)shader_path.c_str());
-    strcat((char*)shader_file, (const char*)virtual_path);
-    switch (backend)
-    {
-        case EGPUBackend::GPUBackend_Vulkan:
-            strcat((char*)shader_file, (const char*)(u8".spv"));
-            break;
-        default:
-            break;
-    }
-    ReadBytes(shader_file, bytes, length);
-} */
 
 LRESULT CALLBACK WindowProcedure(HWND window, UINT msg, WPARAM wp, LPARAM lp)
 {
@@ -236,7 +206,7 @@ GPUTextureID CreateTexture(GPUDeviceID device, GPUQueueID queue)
     desc.height = TEXTURE_HEIGHT;
     desc.depth  = 1;
     desc.array_size = 1;
-    desc.format     = GPU_FORMAT_R8G8BA8_UNORM;
+    desc.format     = GPU_FORMAT_R8G8B8A8_UNORM;
     desc.owner_queue = queue;
     desc.start_state = GPU_RESOURCE_STATE_COPY_DEST;
     desc.descriptors = GPU_RESOURCE_TYPE_TEXTURE;
@@ -1095,19 +1065,28 @@ void NormalRenderSimple()
     ///normal
 
     ///skybox
-    SkyBox* skyBox = new SkyBox;
+    SkyBox* skyBox = new SkyBox(new HDRIBLCubeMapTextureData);
+    //SkyBox* skyBox = new SkyBox(new IBLCubeMapTextureData);
     {
         std::array<std::string, 6> textures =
         {
-            "../../../../asset/textures/sky/skybox_irradiance_X+.hdr",
+            /* "../../../../asset/textures/sky/skybox_irradiance_X+.hdr",
             "../../../../asset/textures/sky/skybox_irradiance_X-.hdr",
             "../../../../asset/textures/sky/skybox_irradiance_Z+.hdr",
             "../../../../asset/textures/sky/skybox_irradiance_Z-.hdr",
             "../../../../asset/textures/sky/skybox_irradiance_Y+.hdr",
-            "../../../../asset/textures/sky/skybox_irradiance_Y-.hdr"
+            "../../../../asset/textures/sky/skybox_irradiance_Y-.hdr", */
+            "../../../../asset/textures/sky/right.jpg",
+            "../../../../asset/textures/sky/left.jpg",
+            "../../../../asset/textures/sky/top.jpg",
+            "../../../../asset/textures/sky/bottom.jpg",
+            "../../../../asset/textures/sky/front.jpg",
+            "../../../../asset/textures/sky/back.jpg",
         };
-        skyBox->Load(textures, device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT);
+        //skyBox->Load(textures, device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT, false);
+        //skyBox->Load(textures, device, graphicQueue, GPU_FORMAT_R8G8B8A8_SRGB, false);
         skyBox->InitVertexAndIndexResource(device, graphicQueue);
+        skyBox->GenIBLImageFromHDR("../../../../asset/textures/sky/HDR_111_Parking_Lot_2_Ref.hdr", device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT, true);
         skyBox->CreateRenderPipeline(device, staticSampler, sampler_name, (EGPUFormat)swapchain->ppBackBuffers[0]->format);
     }
     ///skybox
@@ -1200,10 +1179,10 @@ void NormalRenderSimple()
                                                backbuffer->height);
 
                     glm::vec4 viewPos = glm::vec4(gCamera.position.x, gCamera.position.y, gCamera.position.z, 1.0);
-                    //skyybox
-                    skyBox->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective);
-                    //DrawModel(encoder, lightInfo, viewPos, view, proj);
                     DrawNormalObject(encoder, lightInfo, viewPos, gCamera.matrices.view, gCamera.matrices.perspective);
+                    //DrawModel(encoder, lightInfo, viewPos, view, proj);
+                     //skyybox
+                    skyBox->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos);
                 }
                 GPUCmdEndRenderPass(cmd, encoder);
 

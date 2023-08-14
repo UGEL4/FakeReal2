@@ -218,38 +218,6 @@ struct Sphere
         return vertices;
     }
 
-    static std::vector<Vertex> GenCubeIdentityVertices()
-    {
-        std::vector<Vertex> vertices = {
-            { -1.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 },
-            { 1.0, -1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0 },
-            { 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0 },
-            {-1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0 },
-            { 1.0,-1.0,-1.0, 0.0, 0.0,-1.0, 0.0, 0.0 },
-            {-1.0,-1.0,-1.0, 0.0, 0.0,-1.0, 1.0, 0.0 },
-            {-1.0, 1.0,-1.0, 0.0, 0.0,-1.0, 1.0, 1.0 },
-            { 1.0, 1.0,-1.0, 0.0, 0.0,-1.0, 0.0, 1.0 },
-            {-1.0,-1.0, 1.0,-1.0, 0.0, 0.0, 1.0, 0.0 },
-            {-1.0, 1.0, 1.0,-1.0, 0.0, 0.0, 1.0, 1.0 },
-            {-1.0, 1.0,-1.0,-1.0, 0.0, 0.0, 0.0, 1.0 },
-            {-1.0,-1.0,-1.0,-1.0, 0.0, 0.0, 0.0, 0.0 },
-            { 1.0,-1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0 },
-            { 1.0,-1.0,-1.0, 1.0, 0.0, 0.0, 1.0, 0.0 },
-            { 1.0, 1.0,-1.0, 1.0, 0.0, 0.0, 1.0, 1.0 },
-            { 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0 },
-            {-1.0,-1.0,-1.0, 0.0,-1.0, 0.0, 0.0, 0.0 },
-            { 1.0,-1.0,-1.0, 0.0,-1.0, 0.0, 1.0, 0.0 },
-            { 1.0,-1.0, 1.0, 0.0,-1.0, 0.0, 1.0, 1.0 },
-            {-1.0,-1.0, 1.0, 0.0,-1.0, 0.0, 0.0, 1.0 },
-            {-1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0 },
-            { 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0 },
-            { 1.0, 1.0,-1.0, 0.0, 1.0, 0.0, 1.0, 1.0 },
-            {-1.0, 1.0,-1.0, 0.0, 1.0, 0.0, 0.0, 1.0 }
-        };
-
-        return vertices;
-    }
-
     static std::vector<uint32_t> GenCubeIndices()
     {
         std::vector<uint32_t> indeces = {
@@ -259,6 +227,56 @@ struct Sphere
             12, 13, 14, 14, 15, 12,
             16, 17, 18, 18, 19, 16,
             20, 21, 22, 22, 23, 20
+        };
+        return indeces;
+    }
+
+    static std::vector<Vertex> GenCubeIdentityVertices()
+    {
+        std::vector<Vertex> vertices = {
+            { 1.0,-1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0 },
+            { 1.0,-1.0,-1.0, 1.0, 0.0, 0.0, 1.0, 0.0 },
+            { 1.0, 1.0,-1.0, 1.0, 0.0, 0.0, 1.0, 1.0 },
+            { 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0 },
+
+            {-1.0,-1.0, 1.0,-1.0, 0.0, 0.0, 1.0, 0.0 },
+            {-1.0, 1.0, 1.0,-1.0, 0.0, 0.0, 1.0, 1.0 },
+            {-1.0, 1.0,-1.0,-1.0, 0.0, 0.0, 0.0, 1.0 },
+            {-1.0,-1.0,-1.0,-1.0, 0.0, 0.0, 0.0, 0.0 },
+
+            {-1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0 },
+            { 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0 },
+            { 1.0, 1.0,-1.0, 0.0, 1.0, 0.0, 1.0, 1.0 },
+            {-1.0, 1.0,-1.0, 0.0, 1.0, 0.0, 0.0, 1.0 },
+
+            {-1.0,-1.0,-1.0, 0.0,-1.0, 0.0, 0.0, 0.0 },
+            { 1.0,-1.0,-1.0, 0.0,-1.0, 0.0, 1.0, 0.0 },
+            { 1.0,-1.0, 1.0, 0.0,-1.0, 0.0, 1.0, 1.0 },
+            {-1.0,-1.0, 1.0, 0.0,-1.0, 0.0, 0.0, 1.0 },
+
+            {-1.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0 },
+            {1.0, -1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0 },
+            { 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0 },
+            {-1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0 },
+
+            { 1.0,-1.0,-1.0, 0.0, 0.0,-1.0, 0.0, 0.0 },
+            {-1.0,-1.0,-1.0, 0.0, 0.0,-1.0, 1.0, 0.0 },
+            {-1.0, 1.0,-1.0, 0.0, 0.0,-1.0, 1.0, 1.0 },
+            { 1.0, 1.0,-1.0, 0.0, 0.0,-1.0, 0.0, 1.0 }
+        };
+
+        return vertices;
+    }
+
+    static std::vector<uint32_t> GenCubeIdentityIndices()
+    {
+        std::vector<uint32_t> indeces = {
+            0, 3, 2, 2, 1, 0,
+            4, 7, 6, 6, 5, 4,
+            8, 11, 10, 10, 9, 8,
+            12, 15, 14, 14, 13, 12,
+            16, 19, 18, 18, 17, 16,
+            20, 23, 22, 22, 21, 20
         };
         return indeces;
     }
@@ -367,7 +385,7 @@ public:
         desc.height      = height;
         desc.depth       = 1;
         desc.array_size  = 1;
-        desc.format      = GPU_FORMAT_R8G8BA8_UNORM;
+        desc.format      = GPU_FORMAT_R8G8B8A8_UNORM;
         desc.owner_queue = gfxQueue;
         desc.start_state = GPU_RESOURCE_STATE_COPY_DEST;
         desc.descriptors = GPU_RESOURCE_TYPE_TEXTURE;
@@ -433,15 +451,15 @@ public:
     GPUTextureViewID mTextureView {nullptr};
 
     HDRIBLCubeMapTextureData() = default;
-    ~HDRIBLCubeMapTextureData()
+    virtual ~HDRIBLCubeMapTextureData()
     {
         if (mTextureView) GPUFreeTextureView(mTextureView);
         if (mTexture) GPUFreeTexture(mTexture);
     }
 
-    void Load(std::array<std::string, 6>& files, GPUDeviceID device, GPUQueueID gfxQueue, EGPUFormat format, uint32_t desiredChannels = 4)
+    virtual void Load(std::array<std::string, 6>& files, GPUDeviceID device, GPUQueueID gfxQueue, EGPUFormat format, bool flip, uint32_t desiredChannels = 4)
     {
-        stbi_set_flip_vertically_on_load(true);
+        stbi_set_flip_vertically_on_load(flip);
         int width, height, comp;
         std::array<void*, 6> pixels = {nullptr};
         for (uint32_t i = 0; i < 6; i++)
@@ -546,5 +564,120 @@ public:
                 stbi_image_free(pixels[i]);
             }
         }
+    }
+
+    void GenIBLImageFromHDR(const std::string& file, GPUDeviceID device, GPUQueueID gfxQueue, EGPUFormat format, bool flip, uint32_t desiredChannels = 4)
+    {
+        stbi_set_flip_vertically_on_load(flip);
+        int width, height, comp;
+        void* pixel = stbi_loadf(file.c_str(), &width, &height, &comp, desiredChannels);
+        if (!pixel)
+        {
+            assert(0 && "HDR texture load field!");
+            return;
+        }
+
+        uint32_t bytes = 0;
+        switch (format)
+        {
+            case GPU_FORMAT_R32G32B32_SFLOAT:
+            {
+                bytes = width * height * 4 * 3;
+            }
+            break;
+            case GPU_FORMAT_R32G32B32A32_SFLOAT:
+                bytes = width * height * 4 * 4;
+                break;
+            default:
+                assert(0);
+                break;
+        }
+
+        GPUTextureDescriptor desc{};
+        desc.flags               = GPU_TCF_OWN_MEMORY_BIT;
+        desc.width               = width;
+        desc.height              = height;
+        desc.depth               = 1;
+        desc.array_size          = 1;
+        desc.format              = GPU_FORMAT_R32G32B32A32_SFLOAT;
+        desc.owner_queue         = gfxQueue;
+        desc.start_state         = GPU_RESOURCE_STATE_COPY_DEST;
+        desc.descriptors         = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
+        GPUTextureID tempTexture = GPUCreateTexture(device, &desc);
+        GPUTextureViewDescriptor tex_view_desc{};
+        tex_view_desc.pTexture           = mTexture;
+        tex_view_desc.format             = (EGPUFormat)mTexture->format;
+        tex_view_desc.usages             = EGPUTexutreViewUsage::GPU_TVU_SRV;
+        tex_view_desc.aspectMask         = EGPUTextureViewAspect::GPU_TVA_COLOR;
+        tex_view_desc.baseMipLevel       = 0;
+        tex_view_desc.mipLevelCount      = 1;
+        tex_view_desc.baseArrayLayer     = 0;
+        tex_view_desc.arrayLayerCount    = 1;
+        GPUTextureViewID tempTextureView = GPUCreateTextureView(device, &tex_view_desc);
+
+        GPUBufferDescriptor upload_buffer{};
+        upload_buffer.size         = bytes;
+        upload_buffer.flags        = GPU_BCF_OWN_MEMORY_BIT | GPU_BCF_PERSISTENT_MAP_BIT;
+        upload_buffer.descriptors  = GPU_RESOURCE_TYPE_NONE;
+        upload_buffer.memory_usage = GPU_MEM_USAGE_CPU_ONLY;
+        GPUBufferID uploadBuffer   = GPUCreateBuffer(device, &upload_buffer);
+        memcpy(uploadBuffer->cpu_mapped_address, pixel, bytes);
+        GPUCommandPoolID pool = GPUCreateCommandPool(gfxQueue);
+        GPUCommandBufferDescriptor cmdDesc{};
+        cmdDesc.isSecondary    = false;
+        GPUCommandBufferID cmd = GPUCreateCommandBuffer(pool, &cmdDesc);
+        GPUResetCommandPool(pool);
+        GPUCmdBegin(cmd);
+        {
+            GPUBufferToTextureTransfer trans_texture_buffer_desc{};
+            trans_texture_buffer_desc.dst                              = tempTexture;
+            trans_texture_buffer_desc.dst_subresource.mip_level        = 0;
+            trans_texture_buffer_desc.dst_subresource.base_array_layer = 0;
+            trans_texture_buffer_desc.dst_subresource.layer_count      = 1;
+            trans_texture_buffer_desc.src                              = uploadBuffer;
+            trans_texture_buffer_desc.src_offset                       = 0;
+            GPUCmdTransferBufferToTexture(cmd, &trans_texture_buffer_desc);
+            GPUTextureBarrier barrier{};
+            barrier.texture   = tempTexture;
+            barrier.src_state = GPU_RESOURCE_STATE_COPY_DEST;
+            barrier.dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE;
+            GPUResourceBarrierDescriptor rs_barrer{};
+            rs_barrer.texture_barriers       = &barrier;
+            rs_barrer.texture_barriers_count = 1;
+            GPUCmdResourceBarrier(cmd, &rs_barrer);
+        }
+        GPUCmdEnd(cmd);
+        GPUQueueSubmitDescriptor texture_cpy_submit = { .cmds = &cmd, .cmds_count = 1 };
+        GPUSubmitQueue(gfxQueue, &texture_cpy_submit);
+        GPUWaitQueueIdle(gfxQueue);
+
+        stbi_image_free(pixel);
+
+        uint32_t totalBytes = bytes * 6;
+        desc = {};
+        desc.flags       = GPU_TCF_OWN_MEMORY_BIT;
+        desc.width       = width;
+        desc.height      = height;
+        desc.depth       = 1;
+        desc.array_size  = 6;
+        desc.format      = GPU_FORMAT_R32G32B32A32_SFLOAT;
+        desc.owner_queue = gfxQueue;
+        desc.start_state = GPU_RESOURCE_STATE_COPY_DEST;
+        desc.descriptors = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
+        mTexture         = GPUCreateTexture(device, &desc);
+        tex_view_desc = {};
+        tex_view_desc.pTexture        = mTexture;
+        tex_view_desc.format          = (EGPUFormat)mTexture->format;
+        tex_view_desc.usages          = EGPUTexutreViewUsage::GPU_TVU_SRV;
+        tex_view_desc.aspectMask      = EGPUTextureViewAspect::GPU_TVA_COLOR;
+        tex_view_desc.baseMipLevel    = 0;
+        tex_view_desc.mipLevelCount   = 1;
+        tex_view_desc.baseArrayLayer  = 0;
+        tex_view_desc.arrayLayerCount = 6;
+        mTextureView                  = GPUCreateTextureView(device, &tex_view_desc);
+
+        GPUFreeBuffer(uploadBuffer);
+        GPUFreeCommandBuffer(cmd);
+        GPUFreeCommandPool(pool);
     }
 };
