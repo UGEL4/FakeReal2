@@ -58,7 +58,8 @@ layout(set = 0, binding = 1) uniform LightParam
     vec4 lightPos[MAX_LIGHT_NUM];
 } Lights;
 layout(set = 0, binding = 2) uniform texture2D tex;
-layout(set = 0, binding = 3) uniform sampler texSamp; //static sampler
+layout(set = 0, binding = 3) uniform textureCube irradianceMap;
+layout(set = 0, binding = 4) uniform sampler texSamp; //static sampler
 
 layout(location = 0) in vec3 inWorldPos;
 layout(location = 1) in vec3 inNormal;
@@ -106,7 +107,13 @@ void main()
 
         Lo += (Kd * albedo.rgb / PI + specular) * radiance * NdotL;
     }
-    vec3 ambient = vec3(0.03) * albedo.rgb * inPBRMat.ao;
+    vec3 Ks = fresnelSchlick(max(dot(N, view), 0.0), F0);
+    vec3 Kd = 1.0 - Ks;
+    Kd *= (1.0 - inPBRMat.metallic);
+    vec3 irradiance = texture(samplerCube(irradianceMap, texSamp), N).rgb;
+    vec3 diffuse    = irradiance * albedo.xyz;
+    vec3 ambient = Kd * diffuse * inPBRMat.ao;
+    //vec3 ambient = vec3(0.03) * albedo.rgb * inPBRMat.ao;
     vec3 color 	 = ambient + Lo;
     color        = color / (color + vec3(1.0));
     color        = pow(color, vec3(1.0 / 2.2));

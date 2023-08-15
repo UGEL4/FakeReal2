@@ -21,15 +21,15 @@ layout (set = 0, binding = 0) uniform UBO
 
 layout(push_constant) uniform PushConsts
 {
-    vec4 objPos;
-    layout(offset = 16) float metallic;
-    layout(offset = 20) float roughness;
-    layout(offset = 24) float ao;
-    layout(offset = 32) float padding;
+    mat4 model;
+    layout(offset = 64) float metallic;
+    layout(offset = 68) float roughness;
+    layout(offset = 72) float ao;
+    layout(offset = 76) float padding;
 } pushConsts;
 
 void main(void){
-    mat3 normalMatrix = mat3(transpose(inverse(ubo.view * ubo.model)));
+    mat3 normalMatrix = mat3(transpose(inverse(ubo.view * pushConsts.model)));
     vs_out.normal     = vec3(vec4(normalMatrix * inNormal, 0.0));
-    gl_Position       = ubo.view * (pushConsts.objPos + ubo.model * vec4(inPos, 1.0)); 
+    gl_Position       = ubo.view * pushConsts.model * vec4(inPos, 1.0); 
 }

@@ -9,4 +9,6 @@ C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V skybox.vert -o skybox.vert.sp
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V skybox.frag -o skybox.frag.spv
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V gen_cube.vert -o gen_cube.vert.spv
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V gen_cube.frag -o gen_cube.frag.spv
+C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V gen_irradiance_cube.vert -o gen_irradiance_cube.vert.spv
+C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V gen_irradiance_cube.frag -o gen_irradiance_cube.frag.spv
 pause

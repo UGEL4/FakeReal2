@@ -240,7 +240,7 @@ GPUSamplerID CreateTextureSampler(GPUDeviceID device)
     return GPUCreateSampler(device, &desc);
 }
 
-void CreateNormalRendeObjects()
+void CreateNormalRendeObjects(const SkyBox* skyBox)
 {
     //shader
     uint32_t* vShaderCode;
@@ -521,7 +521,7 @@ void CreateNormalRendeObjects()
 
     // update descriptorset
     {
-        GPUDescriptorData desc_data[3] = {};
+        GPUDescriptorData desc_data[4] = {};
         desc_data[0].name              = u8"tex"; // shader texture2D`s name
         desc_data[0].binding           = 2;
         desc_data[0].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
@@ -537,7 +537,12 @@ void CreateNormalRendeObjects()
         desc_data[2].binding_type      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
         desc_data[2].count             = 1;
         desc_data[2].buffers           = &lightUniformBuffer;
-        GPUUpdateDescriptorSet(set, desc_data, 3);
+        desc_data[3].name              = u8"irradianceMap";
+        desc_data[3].binding           = 3;
+        desc_data[3].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
+        desc_data[3].count             = 1;
+        desc_data[3].textures          = &skyBox->mIrradianceMap->mTextureView;
+        GPUUpdateDescriptorSet(set, desc_data, 4);
     }
 }
 
@@ -550,9 +555,9 @@ void DrawNormalObject(GPURenderPassEncoderID encoder, const LightParam& light, c
     memcpy(lightUniformBuffer->cpu_mapped_address, &light, rang.size);
     GPUUnmapBuffer(lightUniformBuffer);
 
-    glm::mat4 m = glm::translate(glm::mat4(1.f), { 1.f, 0.f, -2.f });
+    glm::mat4 m = glm::translate(glm::mat4(1.f), { 0.f, 0.f, 0.f });
     UniformBuffer ubo{};
-    ubo.model   = glm::rotate(m, glm::radians(0.f), glm::vec3(0.f, 1.f, 0.f));
+    ubo.model   = m;
     ubo.view    = view;
     ubo.proj    = proj;
     ubo.viewPos = viewPos;
@@ -572,25 +577,26 @@ void DrawNormalObject(GPURenderPassEncoderID encoder, const LightParam& light, c
     GPURenderEncoderBindIndexBuffer(encoder, indexBuffer, 0, indexStride);
     // bind descriptor ste
     GPURenderEncoderBindDescriptorSet(encoder, set);
-    /* glm::vec4 pos = glm::vec4(0.f, 0.f, 0.f, 1.f);
-    PushConstant push_constant{};
-    push_constant.objOffsetPos = pos;
-    push_constant.ao           = 1.f;
-    push_constant.metallic     = 0.3f;
-    push_constant.roughness    = 0.05f;
-    GPURenderEncoderPushConstant(encoder, RS, &push_constant);
-    GPURenderEncoderDrawIndexed(encoder, normalMeshindexCount, 0, 0); */
 
-    for (uint32_t y = 0; y < 7; y++)
+    glm::mat4 model = glm::mat4(1.0f);
+    for (int row = 0; row < 7; ++row)
     {
-        for (uint32_t x = 0; x < 7; x++)
+        for (int col = 0; col < 7; ++col)
         {
-            glm::vec4 pos = glm::vec4(float(x - (7 / 2.0f)) * 2.5f, float(y - (7 / 2.0f)) * 2.5f, 0.f, 1.f);
-            PushConstant push_constant{};
-            push_constant.objOffsetPos = pos;
-            push_constant.ao           = 1.f;
-            push_constant.metallic     = glm::clamp((float)y / (float)(7), 0.1f, 1.0f);
-            push_constant.roughness    = glm::clamp((float)x / (float)(7), 0.05f, 1.0f);
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, glm::vec3((float)(col - (7 / 2)) * 2.5f, (float)(row - (7 / 2)) * 2.5f, -2.0f));
+            struct
+            {
+                glm::mat4 model;
+                float metallic;
+                float roughness;
+                float ao;
+                float padding; 
+            }push_constant;
+            push_constant.model     = model;
+            push_constant.ao        = 1.f;
+            push_constant.metallic  = glm::clamp((float)row / (float)(7), 0.1f, 1.0f);
+            push_constant.roughness = glm::clamp((float)col / (float)(7), 0.05f, 1.0f);
             GPURenderEncoderPushConstant(encoder, RS, &push_constant);
             GPURenderEncoderDrawIndexed(encoder, normalMeshindexCount, 0, 0);
         }
@@ -599,22 +605,28 @@ void DrawNormalObject(GPURenderPassEncoderID encoder, const LightParam& light, c
     if constexpr (visualizeNormal)
     {
         GPURenderEncoderBindPipeline(encoder, debugNormalPipeline);
-        for (uint32_t y = 0; y < 7; y++)
+        for (int row = 0; row < 7; ++row)
         {
-            for (uint32_t x = 0; x < 7; x++)
+            for (int col = 0; col < 7; ++col)
             {
-                glm::vec4 pos = glm::vec4(float(x - (7 / 2.0f)) * 2.5f, float(y - (7 / 2.0f)) * 2.5f, 0.f, 1.f);
-                PushConstant push_constant{};
-                push_constant.objOffsetPos = pos;
-                push_constant.ao           = 1.f;
-                push_constant.metallic     = glm::clamp((float)y / (float)(7), 0.1f, 1.0f);
-                push_constant.roughness    = glm::clamp((float)x / (float)(7), 0.05f, 1.0f);
+                model = glm::mat4(1.0f);
+                model = glm::translate(model, glm::vec3((float)(col - (7 / 2)) * 2.5f, (float)(row - (7 / 2)) * 2.5f, -2.0f));
+                struct
+                {
+                    glm::mat4 model;
+                    float metallic;
+                    float roughness;
+                    float ao;
+                    float padding;
+                } push_constant;
+                push_constant.model     = model;
+                push_constant.ao        = 1.f;
+                push_constant.metallic  = glm::clamp((float)row / (float)(7), 0.1f, 1.0f);
+                push_constant.roughness = glm::clamp((float)col / (float)(7), 0.05f, 1.0f);
                 GPURenderEncoderPushConstant(encoder, RS, &push_constant);
                 GPURenderEncoderDrawIndexed(encoder, normalMeshindexCount, 0, 0);
             }
         }
-        /* GPURenderEncoderBindPipeline(encoder, debugNormalPipeline);
-        GPURenderEncoderDrawIndexed(encoder, normalMeshindexCount, 0, 0); */
     }
 }
 
@@ -937,7 +949,7 @@ int main(int argc, char** argv)
     gCamera.setPerspective(90.0f, (float)WIDTH / (float)HEIGHT, 0.1f, 1000.0f);
     gCamera.rotationSpeed = 0.25f;
     //gCamera.setRotation({ -3.75f, 180.0f, 0.0f });
-    //gCamera.setPosition({ 0.55f, 0.85f, 12.0f });
+    gCamera.setPosition({ 0.f, 0.f, -10.0f });
 
     NormalRenderSimple();
    // RenderGraphSimple();
@@ -1059,11 +1071,6 @@ void NormalRenderSimple()
     ////model
     //CreateModelRenderObjects();
     ////model
-
-    ///normal
-    CreateNormalRendeObjects();
-    ///normal
-
     ///skybox
     SkyBox* skyBox = new SkyBox(new HDRIBLCubeMapTextureData);
     //SkyBox* skyBox = new SkyBox(new IBLCubeMapTextureData);
@@ -1086,22 +1093,28 @@ void NormalRenderSimple()
         //skyBox->Load(textures, device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT, false);
         //skyBox->Load(textures, device, graphicQueue, GPU_FORMAT_R8G8B8A8_SRGB, false);
         skyBox->InitVertexAndIndexResource(device, graphicQueue);
-        skyBox->GenIBLImageFromHDR("../../../../asset/textures/sky/HDR_111_Parking_Lot_2_Ref.hdr", device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT, true);
+        skyBox->GenIBLImageFromHDR("../../../../asset/textures/sky/HDR_111_Parking_Lot_2_Env.hdr", device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT, true);
+        //skyBox->GenIBLImageFromHDR("../../../../asset/textures/sky/newport_loft.hdr", device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT, true);
+        skyBox->GenIrradianceCubeMap(device, graphicQueue);
         skyBox->CreateRenderPipeline(device, staticSampler, sampler_name, (EGPUFormat)swapchain->ppBackBuffers[0]->format);
     }
     ///skybox
+    ///normal
+    CreateNormalRendeObjects(skyBox);
+    ///normal
+
 
     //light
     LightParam lightInfo    = {};
     const float p           = 15.0f;
-    lightInfo.lightPos[0]   = glm::vec4(-p, p * 0.5f, 5.f, 1.f);
-    lightInfo.lightPos[1]   = glm::vec4(-p, -p * 0.5f, 5.f, 1.f);
-    lightInfo.lightPos[2]   = glm::vec4(p, p * 0.5f, 5.f, 1.f);
-    lightInfo.lightPos[3]   = glm::vec4(p, -p * 0.5f, 5.f, 1.f);
-    lightInfo.lightColor[0] = glm::vec4(1000.f, 1000.f, 1000.f, 1.f);
-    lightInfo.lightColor[1] = glm::vec4(1000.f, 1000.f, 1000.f, 1.f);
-    lightInfo.lightColor[2] = glm::vec4(1000.f, 1000.f, 1000.f, 1.f);
-    lightInfo.lightColor[3] = glm::vec4(1000.f, 1000.f, 1000.f, 1.f);
+    lightInfo.lightPos[0]   = glm::vec4(-10.f, 10.f, 10.f, 1.f);
+    lightInfo.lightPos[1]   = glm::vec4( 10.f, 10.f, 10.f, 1.f);
+    lightInfo.lightPos[2]   = glm::vec4(-10.f, -10.f, 10.f, 1.f);
+    lightInfo.lightPos[3]   = glm::vec4( 10.f, -10.f, 10.f, 1.f);
+    lightInfo.lightColor[0] = glm::vec4(300.f, 300.f, 300.f, 1.f);
+    lightInfo.lightColor[1] = glm::vec4(300.f, 300.f, 300.f, 1.f);
+    lightInfo.lightColor[2] = glm::vec4(300.f, 300.f, 300.f, 1.f);
+    lightInfo.lightColor[3] = glm::vec4(300.f, 300.f, 300.f, 1.f);
 
     //glm::vec4 viewPos = glm::vec4(-6.f, 0.f, 6.f, 1.f);
     //glm::mat4 view    = glm::lookAt(glm::vec3(viewPos.x, viewPos.y, viewPos.z), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
@@ -1179,10 +1192,10 @@ void NormalRenderSimple()
                                                backbuffer->height);
 
                     glm::vec4 viewPos = glm::vec4(gCamera.position.x, gCamera.position.y, gCamera.position.z, 1.0);
-                    DrawNormalObject(encoder, lightInfo, viewPos, gCamera.matrices.view, gCamera.matrices.perspective);
+                    DrawNormalObject(encoder, lightInfo, -viewPos, gCamera.matrices.view, gCamera.matrices.perspective);
                     //DrawModel(encoder, lightInfo, viewPos, view, proj);
                      //skyybox
-                    skyBox->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos);
+                    skyBox->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, -viewPos);
                 }
                 GPUCmdEndRenderPass(cmd, encoder);
 

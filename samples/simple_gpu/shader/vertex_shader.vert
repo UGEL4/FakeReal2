@@ -11,11 +11,11 @@ layout(set = 0, binding = 0) uniform UniformBufferObj
 
 layout(push_constant) uniform PushConsts
 {
-    vec4 objPos;
-    layout(offset = 16) float metallic;
-    layout(offset = 20) float roughness;
-    layout(offset = 24) float ao;
-    layout(offset = 32) float padding;
+    mat4 model;
+    layout(offset = 64) float metallic;
+    layout(offset = 68) float roughness;
+    layout(offset = 72) float ao;
+    layout(offset = 76) float padding;
 } pushConsts;
 
 layout(location = 0) in vec3 inPos;
@@ -33,13 +33,16 @@ layout(location = 3) out VS_MaterialOut
 } outMaterial;
 void main()
 {
-    mat3 normalMatrix = mat3(transpose(inverse(ubo.model)));
-    vec4 worldPos     = pushConsts.objPos + ubo.model * vec4(inPos, 1.0);
-    gl_Position       = ubo.proj * ubo.view * worldPos;
+    mat3 normalMatrix = mat3(transpose(inverse(pushConsts.model)));
+    //mat3 normalMatrix = mat3(ubo.model);
+    vec4 worldPos     = pushConsts.model * vec4(inPos, 1.0);
+    //vec4 worldPos     = ubo.model * vec4(inPos, 1.0) + pushConsts.objPos;
     outWorldPos       = worldPos.xyz;
-    outNormal         = normalMatrix * inNormal;
-    outUV             = inUV;
-    outMaterial.metallic = pushConsts.metallic;
+    gl_Position       = ubo.proj * ubo.view * worldPos;
+    //outWorldPos       = worldPos.xyz;
+    outNormal             = normalMatrix * inNormal;
+    outUV                 = inUV;
+    outMaterial.metallic  = pushConsts.metallic;
     outMaterial.roughness = pushConsts.roughness;
-    outMaterial.ao = pushConsts.ao;
+    outMaterial.ao        = pushConsts.ao;
 }
