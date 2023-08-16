@@ -7,6 +7,11 @@ layout(set = 0, binding = 2) uniform sampler texSamp; //static sampler
 layout(location = 0) in vec3 inUVW;
 layout(location = 1) in vec3 inColor;
 
+layout(push_constant) uniform PushConsts
+{
+    float roughness;
+}sampleMip;
+
 // From http://filmicworlds.com/blog/filmic-tonemapping-operators/
 vec3 Uncharted2Tonemap(vec3 color)
 {
@@ -25,7 +30,7 @@ void main()
 {
     float exposure = 4.5;
     float gamma    = 2.2;
-    vec3 color     = texture(samplerCube(tex, texSamp), inUVW).rgb;
+    vec3 color     = textureLod(samplerCube(tex, texSamp), inUVW, sampleMip.roughness).rgb;
     // Tone mapping
     color = Uncharted2Tonemap(color * exposure);
     color = color * (1.0f / Uncharted2Tonemap(vec3(11.2f)));	

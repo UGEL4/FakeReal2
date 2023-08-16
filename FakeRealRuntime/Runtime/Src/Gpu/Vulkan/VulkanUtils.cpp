@@ -288,8 +288,12 @@ VkFormat VulkanUtil_GPUFormatToVulkanFormat(EGPUFormat format)
             return VK_FORMAT_D16_UNORM;
         case GPU_FORMAT_D32_SFLOAT:
             return VK_FORMAT_D32_SFLOAT;
-        case CGPU_FORMAT_R16G16B16_SFLOAT:
+        case GPU_FORMAT_R16G16_SFLOAT:
+            return VK_FORMAT_R16G16_SFLOAT;
+        case GPU_FORMAT_R16G16B16_SFLOAT:
             return VK_FORMAT_R16G16B16_SFLOAT;
+        case GPU_FORMAT_R16G16B16A16_SFLOAT:
+            return VK_FORMAT_R16G16B16A16_SFLOAT;
         default: break;
     }
     return VK_FORMAT_UNDEFINED;
@@ -325,8 +329,12 @@ EGPUFormat VulkanUtil_VulkanFormatToGPUFormat(VkFormat format)
             return GPU_FORMAT_D24_UNORM_S8_UINT;
         case VK_FORMAT_D32_SFLOAT_S8_UINT:
             return GPU_FORMAT_D32_SFLOAT_S8_UINT;
+        case VK_FORMAT_R16G16_SFLOAT:
+            return GPU_FORMAT_R16G16_SFLOAT;
         case VK_FORMAT_R16G16B16_SFLOAT:
-            return CGPU_FORMAT_R16G16B16_SFLOAT;
+            return GPU_FORMAT_R16G16B16_SFLOAT;
+        case VK_FORMAT_R16G16B16A16_SFLOAT:
+            return GPU_FORMAT_R16G16B16A16_SFLOAT;
         default: break;
     }
     return GPU_FORMAT_COUNT;

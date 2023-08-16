@@ -43,6 +43,10 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
+vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
 // ----------------------------------------------------------------------------
 layout(set = 0, binding = 0) uniform UniformBufferObj
 {
@@ -59,7 +63,9 @@ layout(set = 0, binding = 1) uniform LightParam
 } Lights;
 layout(set = 0, binding = 2) uniform texture2D tex;
 layout(set = 0, binding = 3) uniform textureCube irradianceMap;
-layout(set = 0, binding = 4) uniform sampler texSamp; //static sampler
+layout(set = 0, binding = 4) uniform textureCube preFilteredMap;
+layout(set = 0, binding = 5) uniform texture2D brdfLutTex;
+layout(set = 0, binding = 6) uniform sampler texSamp; //static sampler
 
 layout(location = 0) in vec3 inWorldPos;
 layout(location = 1) in vec3 inNormal;
@@ -71,6 +77,17 @@ layout(location = 3) in VS_MaterialOut
     float ao;
 } inPBRMat;
 
+vec3 prefilteredReflection(vec3 R, float roughness)
+{
+    const float MAX_REFLECTION_LOD = 9.0; // todo: param/const
+    float lod = roughness * MAX_REFLECTION_LOD;
+    float lodf = floor(lod);
+    float lodc = ceil(lod);
+    vec3 a = textureLod(samplerCube(preFilteredMap, texSamp), R, lodf).rgb;
+    vec3 b = textureLod(samplerCube(preFilteredMap, texSamp), R, lodc).rgb;
+    return mix(a, b, lod - lodf);
+}
+
 layout(location = 0) out vec4 outColor;
 void main()
 {
@@ -78,6 +95,7 @@ void main()
     vec4 albedo     = vec4(1.0, 0.0, 0.0, 1.0);
     vec3 N          = normalize(inNormal);
     vec3 view       = normalize(ubo.viewPos.xyz - inWorldPos);
+    vec3 R          = reflect(-view, N);
 
     vec3 F0 = vec3(0.04);
     F0      = mix(F0, albedo.rgb, inPBRMat.metallic);
@@ -107,13 +125,19 @@ void main()
 
         Lo += (Kd * albedo.rgb / PI + specular) * radiance * NdotL;
     }
-    vec3 Ks = fresnelSchlick(max(dot(N, view), 0.0), F0);
+
+    vec3 F = fresnelSchlickRoughness(clamp(dot(N, view), 0.0, 1.0), F0, inPBRMat.roughness);
+    vec3 Ks = F;
     vec3 Kd = 1.0 - Ks;
     Kd *= (1.0 - inPBRMat.metallic);
     vec3 irradiance = texture(samplerCube(irradianceMap, texSamp), N).rgb;
     vec3 diffuse    = irradiance * albedo.xyz;
-    vec3 ambient = Kd * diffuse * inPBRMat.ao;
+    vec3 reflection = prefilteredReflection(R, inPBRMat.roughness).rgb;
+    vec2 brdf       = texture(sampler2D(brdfLutTex, texSamp), vec2(max(dot(N, view), 0.0), inPBRMat.roughness)).rg;
+    vec3 specular   = reflection * (F * brdf.x + brdf.y);
+    vec3 ambient    = (Kd * diffuse + specular) * inPBRMat.ao;
     //vec3 ambient = vec3(0.03) * albedo.rgb * inPBRMat.ao;
+
     vec3 color 	 = ambient + Lo;
     color        = color / (color + vec3(1.0));
     color        = pow(color, vec3(1.0 / 2.2));

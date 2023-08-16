@@ -449,12 +449,14 @@ class HDRIBLCubeMapTextureData
 public:
     GPUTextureID mTexture {nullptr};
     GPUTextureViewID mTextureView {nullptr};
+    GPUSamplerID mSampler{ nullptr };
 
     HDRIBLCubeMapTextureData() = default;
     virtual ~HDRIBLCubeMapTextureData()
     {
         if (mTextureView) GPUFreeTextureView(mTextureView);
         if (mTexture) GPUFreeTexture(mTexture);
+        if (mSampler) GPUFreeSampler(mSampler);
     }
 
     virtual void Load(std::array<std::string, 6>& files, GPUDeviceID device, GPUQueueID gfxQueue, EGPUFormat format, bool flip, uint32_t desiredChannels = 4)
@@ -679,5 +681,15 @@ public:
         GPUFreeBuffer(uploadBuffer);
         GPUFreeCommandBuffer(cmd);
         GPUFreeCommandPool(pool);
+    }
+
+    void SetSampler(GPUSamplerID sampler)
+    {
+        mSampler = sampler;
+    }
+
+    void CreateSampler(GPUDeviceID device, const GPUSamplerDescriptor& desc)
+    {
+        mSampler = GPUCreateSampler(device, &desc);
     }
 };

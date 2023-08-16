@@ -134,6 +134,8 @@ public:
         mIndices.clear();
         if (mTextureData) delete mTextureData;
         if (mIrradianceMap) delete mIrradianceMap;
+        if (mPrefilteredMap) delete mPrefilteredMap;
+        if (mBRDFLut) delete mBRDFLut;
 
         if (mVertexBuffer) GPUFreeBuffer(mVertexBuffer);
         if (mIndexBuffer) GPUFreeBuffer(mIndexBuffer);
@@ -164,6 +166,12 @@ public:
 
         GPURenderEncoderBindPipeline(encoder, mPipeline);
         GPURenderEncoderBindDescriptorSet(encoder, mSet);
+        struct
+        {
+            float roughness;
+        }pushData;
+        pushData.roughness = (float)0;
+        GPURenderEncoderPushConstant(encoder, mSet->root_signature, &pushData);
         uint32_t strides = sizeof(Vertex);
         GPURenderEncoderBindVertexBuffers(encoder, 1, &mVertexBuffer, &strides, nullptr);
         GPURenderEncoderBindIndexBuffer(encoder, mIndexBuffer, 0, sizeof(uint32_t));
@@ -740,6 +748,7 @@ public:
         mIrradianceMap      = new HDRIBLCubeMapTextureData;
         EGPUFormat format   = GPU_FORMAT_R32G32B32A32_SFLOAT;
         uint32_t dims       = 64;
+        uint32_t mipLevels  = static_cast<uint32_t>(std::floor(std::log2(dims))) + 1;
 
         GPUTextureDescriptor desc = {
             .flags       = GPU_TCF_OWN_MEMORY_BIT,
@@ -748,6 +757,7 @@ public:
             .depth       = 1,
             .array_size  = 6,
             .format      = format,
+            .mip_levels  = mipLevels,
             .owner_queue = gfxQueue,
             .start_state = GPU_RESOURCE_STATE_COPY_DEST,
             .descriptors = GPU_RESOURCE_TYPE_TEXTURE_CUBE
@@ -759,7 +769,7 @@ public:
             .usages          = EGPUTexutreViewUsage::GPU_TVU_SRV,
             .aspectMask      = EGPUTextureViewAspect::GPU_TVA_COLOR,
             .baseMipLevel    = 0,
-            .mipLevelCount   = 1,
+            .mipLevelCount   = mipLevels,
             .baseArrayLayer  = 0,
             .arrayLayerCount = 6
         };
@@ -925,72 +935,77 @@ public:
             render_pass_desc.sample_count        = GPU_SAMPLE_COUNT_1;
             render_pass_desc.color_attachments   = &screenAttachment;
             render_pass_desc.render_target_count = 1;
-            for (uint32_t i = 0; i < 6; i++)
+            for (uint32_t m = 0; m < mipLevels; m++)
             {
-                GPURenderPassEncoderID encoder = GPUCmdBeginRenderPass(cmd, &render_pass_desc);
+                for (uint32_t i = 0; i < 6; i++)
                 {
-                    GPURenderEncoderSetViewport(encoder, 0.f, 0.f, (float)dims, (float)dims, 0.f, 1.f);
-                    GPURenderEncoderSetScissor(encoder, 0, 0, dims, dims);
-
-                    GPURenderEncoderBindPipeline(encoder, tempPipeline);
-                    GPURenderEncoderBindDescriptorSet(encoder, set);
-
-                    struct PushData
+                    float viewPortW = static_cast<float>(dims * std::pow(0.5f, m));
+                    float viewPortH = static_cast<float>(dims * std::pow(0.5f, m));
+                    GPURenderPassEncoderID encoder = GPUCmdBeginRenderPass(cmd, &render_pass_desc);
                     {
-                        glm::mat4 view;
-                        glm::mat4 proj;
-                    } push_constant;
-                    push_constant.view = captureViews[i];
-                    push_constant.proj = captureProjection;
-                    GPURenderEncoderPushConstant(encoder, rs, &push_constant);
-                    uint32_t strides = sizeof(Vertex);
-                    GPURenderEncoderBindVertexBuffers(encoder, 1, &mVertexBuffer, &strides, nullptr);
-                    GPURenderEncoderBindIndexBuffer(encoder, mIndexBuffer, 0, sizeof(uint32_t));
-                    GPURenderEncoderDrawIndexed(encoder, mIndices.size(), 0, 0);
+                        GPURenderEncoderSetViewport(encoder, 0.f, 0.f, viewPortW, viewPortH, 0.f, 1.f);
+                        GPURenderEncoderSetScissor(encoder, 0, 0, dims, dims);
+
+                        GPURenderEncoderBindPipeline(encoder, tempPipeline);
+                        GPURenderEncoderBindDescriptorSet(encoder, set);
+
+                        struct PushData
+                        {
+                            glm::mat4 view;
+                            glm::mat4 proj;
+                        } push_constant;
+                        push_constant.view = captureViews[i];
+                        push_constant.proj = captureProjection;
+                        GPURenderEncoderPushConstant(encoder, rs, &push_constant);
+                        uint32_t strides = sizeof(Vertex);
+                        GPURenderEncoderBindVertexBuffers(encoder, 1, &mVertexBuffer, &strides, nullptr);
+                        GPURenderEncoderBindIndexBuffer(encoder, mIndexBuffer, 0, sizeof(uint32_t));
+                        GPURenderEncoderDrawIndexed(encoder, mIndices.size(), 0, 0);
+                    }
+                    GPUCmdEndRenderPass(cmd, encoder);
+
+                    GPUTextureBarrier tex_barrier1 = {
+                        .texture   = offScreen.texture,
+                        .src_state = GPU_RESOURCE_STATE_RENDER_TARGET,
+                        .dst_state = GPU_RESOURCE_STATE_COPY_SOURCE
+                    };
+                    GPUResourceBarrierDescriptor barrier = {
+                        .texture_barriers       = &tex_barrier1,
+                        .texture_barriers_count = 1
+                    };
+                    GPUCmdResourceBarrier(cmd, &barrier);
+
+                    GPUTextureSubresource src_sub_rang = {
+                        .aspects          = GPU_TVA_COLOR,
+                        .mip_level        = 0,
+                        .base_array_layer = 0,
+                        .layer_count      = 1
+                    };
+                    GPUTextureSubresource dst_sub_rang = {
+                        .aspects          = GPU_TVA_COLOR,
+                        .mip_level        = m,
+                        .base_array_layer = i,
+                        .layer_count      = 1
+                    };
+                    GPUTextureToTextureTransfer trans = {
+                        .src             = offScreen.texture,
+                        .dst             = mIrradianceMap->mTexture,
+                        .src_subresource = src_sub_rang,
+                        .dst_subresource = dst_sub_rang
+                    };
+                    GPUCmdTransferTextureToTexture(cmd, &trans);
+
+                    GPUTextureBarrier tex_barrier2 = {
+                        .texture   = offScreen.texture,
+                        .src_state = GPU_RESOURCE_STATE_COPY_SOURCE,
+                        .dst_state = GPU_RESOURCE_STATE_RENDER_TARGET
+                    };
+                    GPUResourceBarrierDescriptor barrier2 = {
+                        .texture_barriers       = &tex_barrier2,
+                        .texture_barriers_count = 1
+                    };
+                    GPUCmdResourceBarrier(cmd, &barrier2);
                 }
-                GPUCmdEndRenderPass(cmd, encoder);
-
-                GPUTextureBarrier tex_barrier1 = {
-                    .texture   = offScreen.texture,
-                    .src_state = GPU_RESOURCE_STATE_RENDER_TARGET,
-                    .dst_state = GPU_RESOURCE_STATE_COPY_SOURCE
-                };
-                GPUResourceBarrierDescriptor barrier = {
-                    .texture_barriers       = &tex_barrier1,
-                    .texture_barriers_count = 1
-                };
-                GPUCmdResourceBarrier(cmd, &barrier);
-
-                GPUTextureSubresource src_sub_rang = {
-                    .aspects          = GPU_TVA_COLOR,
-                    .mip_level        = 0,
-                    .base_array_layer = 0,
-                    .layer_count      = 1
-                };
-                GPUTextureSubresource dst_sub_rang = {
-                    .aspects          = GPU_TVA_COLOR,
-                    .mip_level        = 0,
-                    .base_array_layer = i,
-                    .layer_count      = 1
-                };
-                GPUTextureToTextureTransfer trans = {
-                    .src             = offScreen.texture,
-                    .dst             = mIrradianceMap->mTexture,
-                    .src_subresource = src_sub_rang,
-                    .dst_subresource = dst_sub_rang
-                };
-                GPUCmdTransferTextureToTexture(cmd, &trans);
-
-                GPUTextureBarrier tex_barrier2 = {
-                    .texture   = offScreen.texture,
-                    .src_state = GPU_RESOURCE_STATE_COPY_SOURCE,
-                    .dst_state = GPU_RESOURCE_STATE_RENDER_TARGET
-                };
-                GPUResourceBarrierDescriptor barrier2 = {
-                    .texture_barriers       = &tex_barrier2,
-                    .texture_barriers_count = 1
-                };
-                GPUCmdResourceBarrier(cmd, &barrier2);
             }
             GPUTextureBarrier final_barrier = {
                 .texture   = mIrradianceMap->mTexture,
@@ -1020,6 +1035,457 @@ public:
         GPUFreeRenderPipeline(tempPipeline);
     }
 
+    // Prefilter environment cubemap
+    // See https://placeholderart.wordpress.com/2015/07/28/implementation-notes-runtime-environment-map-filtering-for-image-based-lighting/
+    void GenPrefilteredCubeMap(GPUDeviceID device, GPUQueueID gfxQueue, uint32_t numSamples)
+    {
+        mPrefilteredMap      = new HDRIBLCubeMapTextureData;
+        EGPUFormat format   = GPU_FORMAT_R16G16B16A16_SFLOAT;
+        uint32_t dims       = 512;
+        uint32_t mipLevels = static_cast<uint32_t>(std::floor(std::log2(dims))) + 1;
+
+        GPUTextureDescriptor desc = {
+            .flags       = GPU_TCF_OWN_MEMORY_BIT,
+            .width       = dims,
+            .height      = dims,
+            .depth       = 1,
+            .array_size  = 6,
+            .format      = format,
+            .mip_levels  = mipLevels,
+            .owner_queue = gfxQueue,
+            .start_state = GPU_RESOURCE_STATE_COPY_DEST,
+            .descriptors = GPU_RESOURCE_TYPE_TEXTURE_CUBE
+        };
+        mPrefilteredMap->mTexture = GPUCreateTexture(device, &desc);
+        GPUTextureViewDescriptor tex_view_desc = {
+            .pTexture        = mPrefilteredMap->mTexture,
+            .format          = format,
+            .usages          = EGPUTexutreViewUsage::GPU_TVU_SRV,
+            .aspectMask      = EGPUTextureViewAspect::GPU_TVA_COLOR,
+            .baseMipLevel    = 0,
+            .mipLevelCount   = mipLevels,
+            .baseArrayLayer  = 0,
+            .arrayLayerCount = 6
+        };
+        mPrefilteredMap->mTextureView = GPUCreateTextureView(device, &tex_view_desc);
+
+        struct
+        {
+            GPUTextureID texture;
+            GPUTextureViewID texView;
+        } offScreen;
+        desc = {
+            .flags       = GPU_TCF_OWN_MEMORY_BIT,
+            .width       = dims,
+            .height      = dims,
+            .depth       = 1,
+            .array_size  = 1,
+            .format      = format,
+            .owner_queue = gfxQueue,
+            .start_state = GPU_RESOURCE_STATE_RENDER_TARGET,
+            .descriptors = GPU_RESOURCE_TYPE_TEXTURE | GPU_RESOURCE_TYPE_RENDER_TARGET
+        };
+        offScreen.texture = GPUCreateTexture(device, &desc);
+        tex_view_desc = {
+            .pTexture        = offScreen.texture,
+            .format          = format,
+            .usages          = EGPUTexutreViewUsage::GPU_TVU_RTV_DSV,
+            .aspectMask      = EGPUTextureViewAspect::GPU_TVA_COLOR,
+            .baseMipLevel    = 0,
+            .mipLevelCount   = 1,
+            .baseArrayLayer  = 0,
+            .arrayLayerCount = 1
+        };
+        offScreen.texView = GPUCreateTextureView(device, &tex_view_desc);
+
+        // shader
+        uint32_t* vShaderCode;
+        uint32_t vSize = 0;
+        ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/gen_prefiltered_cube.vert", &vShaderCode, &vSize);
+        uint32_t* fShaderCode;
+        uint32_t fSize = 0;
+        ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/gen_prefiltered_cube.frag", &fShaderCode, &fSize);
+        GPUShaderLibraryDescriptor vShaderDesc = {
+            .pName    = u8"gen_irradiance_cube_vertex_shader",
+            .code     = vShaderCode,
+            .codeSize = vSize,
+            .stage    = GPU_SHADER_STAGE_VERT
+        };
+        GPUShaderLibraryDescriptor fShaderDesc = {
+            .pName    = u8"gen_prefiltered_cube_fragment_shader",
+            .code     = fShaderCode,
+            .codeSize = fSize,
+            .stage    = GPU_SHADER_STAGE_FRAG
+        };
+        GPUShaderLibraryID pVShader = GPUCreateShaderLibrary(device, &vShaderDesc);
+        GPUShaderLibraryID pFShader = GPUCreateShaderLibrary(device, &fShaderDesc);
+        free(vShaderCode);
+        free(fShaderCode);
+
+        GPUShaderEntryDescriptor shaderEntries[2] = { 0 };
+        {
+            shaderEntries[0].stage    = GPU_SHADER_STAGE_VERT;
+            shaderEntries[0].entry    = u8"main";
+            shaderEntries[0].pLibrary = pVShader;
+            shaderEntries[1].stage    = GPU_SHADER_STAGE_FRAG;
+            shaderEntries[1].entry    = u8"main";
+            shaderEntries[1].pLibrary = pFShader;
+        }
+
+        GPUSamplerDescriptor sampler_desc = {
+            .min_filter     = GPU_FILTER_TYPE_LINEAR,
+            .mag_filter     = GPU_FILTER_TYPE_LINEAR,
+            .mipmap_mode    = GPU_MIPMAP_MODE_LINEAR,
+            .address_u      = GPU_ADDRESS_MODE_REPEAT,
+            .address_v      = GPU_ADDRESS_MODE_REPEAT,
+            .address_w      = GPU_ADDRESS_MODE_REPEAT,
+            .compare_func   = GPU_CMP_NEVER
+        };
+        GPUSamplerID staticSampler  = GPUCreateSampler(device, &sampler_desc);
+        const char8_t* sampler_name = u8"texSamp";
+
+        // create root signature
+        GPURootSignatureDescriptor rootRSDesc = {
+            .shaders              = shaderEntries,
+            .shader_count         = 2,
+            .static_samplers      = &staticSampler,
+            .static_sampler_names = &sampler_name,
+            .static_sampler_count = 1
+        };
+        GPURootSignatureID rs = GPUCreateRootSignature(device, &rootRSDesc);
+
+        // create descriptorset
+        GPUDescriptorSetDescriptor set_desc = {
+            .root_signature = rs,
+            .set_index      = 0
+        };
+        GPUDescriptorSetID set = GPUCreateDescriptorSet(device, &set_desc);
+
+        // vertex layout
+        GPUVertexLayout vertexLayout{};
+        vertexLayout.attributeCount = 3;
+        vertexLayout.attributes[0]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, 0, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
+        vertexLayout.attributes[1]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 3, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
+        vertexLayout.attributes[2]  = { 1, GPU_FORMAT_R32G32_SFLOAT, 0, sizeof(float) * 6, sizeof(float) * 2, GPU_INPUT_RATE_VERTEX };
+        // renderpipeline
+        GPURasterizerStateDescriptor rasterizerState = {
+            .cullMode             = GPU_CULL_MODE_BACK,
+            .fillMode             = GPU_FILL_MODE_SOLID,
+            .frontFace            = GPU_FRONT_FACE_CW,
+            .depthBias            = 0,
+            .slopeScaledDepthBias = 0.f,
+            .enableMultiSample    = false,
+            .enableScissor        = false,
+            .enableDepthClamp     = false
+        };
+        GPURenderPipelineDescriptor pipelineDesc = {
+            .pRootSignature    = rs,
+            .pVertexShader     = &shaderEntries[0],
+            .pFragmentShader   = &shaderEntries[1],
+            .pVertexLayout     = &vertexLayout,
+            .pRasterizerState  = &rasterizerState,
+            .primitiveTopology = GPU_PRIM_TOPO_TRI_LIST,
+            .pColorFormats     = const_cast<EGPUFormat*>(&format),
+            .renderTargetCount = 1
+        };
+        GPURenderPipelineID tempPipeline = GPUCreateRenderPipeline(device, &pipelineDesc);
+        GPUFreeShaderLibrary(pVShader);
+        GPUFreeShaderLibrary(pFShader);
+
+        GPUDescriptorData desc_data = {};
+        {
+            desc_data.name         = u8"tex";
+            desc_data.binding      = 0;
+            desc_data.binding_type = GPU_RESOURCE_TYPE_TEXTURE;
+            desc_data.count        = 1;
+            desc_data.textures     = &mTextureData->mTextureView;
+        }
+        GPUUpdateDescriptorSet(set, &desc_data, 1);
+
+        // render
+        glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 1000.0f);
+        glm::mat4 captureViews[]    = {
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)),
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f))
+        };
+
+        GPUCommandPoolID pool              = GPUCreateCommandPool(gfxQueue);
+        GPUCommandBufferDescriptor cmdDesc = { .isSecondary = false };
+        GPUCommandBufferID cmd             = GPUCreateCommandBuffer(pool, &cmdDesc);
+        GPUResetCommandPool(pool);
+        GPUCmdBegin(cmd);
+        {
+            GPUColorAttachment screenAttachment{};
+            screenAttachment.view         = offScreen.texView;
+            screenAttachment.load_action  = GPU_LOAD_ACTION_CLEAR;
+            screenAttachment.store_action = GPU_STORE_ACTION_STORE;
+            screenAttachment.clear_color  = { { 0.f, 0.f, 0.f, 0.f } };
+            GPURenderPassDescriptor render_pass_desc{};
+            render_pass_desc.sample_count        = GPU_SAMPLE_COUNT_1;
+            render_pass_desc.color_attachments   = &screenAttachment;
+            render_pass_desc.render_target_count = 1;
+            struct PushData
+            {
+                glm::mat4 view;
+                glm::mat4 proj;
+                float roughness;
+                uint32_t numSamples;
+            } push_constant;
+            push_constant.numSamples = numSamples;
+            for (uint32_t m = 0; m < mipLevels; m++)
+            {
+                push_constant.roughness = (float)m / (mipLevels - 1);
+                for (uint32_t i = 0; i < 6; i++)
+                {
+                    float viewPortW = static_cast<float>(dims * std::pow(0.5f, m));
+                    float viewPortH = static_cast<float>(dims * std::pow(0.5f, m));
+                    GPURenderPassEncoderID encoder = GPUCmdBeginRenderPass(cmd, &render_pass_desc);
+                    {
+                        GPURenderEncoderSetViewport(encoder, 0.f, 0.f, viewPortW, viewPortH, 0.f, 1.f);
+                        GPURenderEncoderSetScissor(encoder, 0, 0, dims, dims);
+
+                        GPURenderEncoderBindPipeline(encoder, tempPipeline);
+                        GPURenderEncoderBindDescriptorSet(encoder, set);
+
+                        push_constant.view = captureViews[i];
+                        push_constant.proj = captureProjection;
+                        GPURenderEncoderPushConstant(encoder, rs, &push_constant);
+                        uint32_t strides = sizeof(Vertex);
+                        GPURenderEncoderBindVertexBuffers(encoder, 1, &mVertexBuffer, &strides, nullptr);
+                        GPURenderEncoderBindIndexBuffer(encoder, mIndexBuffer, 0, sizeof(uint32_t));
+                        GPURenderEncoderDrawIndexed(encoder, mIndices.size(), 0, 0);
+                    }
+                    GPUCmdEndRenderPass(cmd, encoder);
+
+                    GPUTextureBarrier tex_barrier1 = {
+                        .texture   = offScreen.texture,
+                        .src_state = GPU_RESOURCE_STATE_RENDER_TARGET,
+                        .dst_state = GPU_RESOURCE_STATE_COPY_SOURCE
+                    };
+                    GPUResourceBarrierDescriptor barrier = {
+                        .texture_barriers       = &tex_barrier1,
+                        .texture_barriers_count = 1
+                    };
+                    GPUCmdResourceBarrier(cmd, &barrier);
+
+                    GPUTextureSubresource src_sub_rang = {
+                        .aspects          = GPU_TVA_COLOR,
+                        .mip_level        = 0,
+                        .base_array_layer = 0,
+                        .layer_count      = 1
+                    };
+                    GPUTextureSubresource dst_sub_rang = {
+                        .aspects          = GPU_TVA_COLOR,
+                        .mip_level        = m,
+                        .base_array_layer = i,
+                        .layer_count      = 1
+                    };
+                    GPUTextureToTextureTransfer trans = {
+                        .src             = offScreen.texture,
+                        .dst             = mPrefilteredMap->mTexture,
+                        .src_subresource = src_sub_rang,
+                        .dst_subresource = dst_sub_rang
+                    };
+                    GPUCmdTransferTextureToTexture(cmd, &trans);
+
+                    GPUTextureBarrier tex_barrier2 = {
+                        .texture   = offScreen.texture,
+                        .src_state = GPU_RESOURCE_STATE_COPY_SOURCE,
+                        .dst_state = GPU_RESOURCE_STATE_RENDER_TARGET
+                    };
+                    GPUResourceBarrierDescriptor barrier2 = {
+                        .texture_barriers       = &tex_barrier2,
+                        .texture_barriers_count = 1
+                    };
+                    GPUCmdResourceBarrier(cmd, &barrier2);
+                }
+            }
+            GPUTextureBarrier final_barrier = {
+                .texture   = mPrefilteredMap->mTexture,
+                .src_state = GPU_RESOURCE_STATE_COPY_DEST,
+                .dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE
+            };
+            GPUResourceBarrierDescriptor rs_barrer = {
+                .texture_barriers       = &final_barrier,
+                .texture_barriers_count = 1
+            };
+            GPUCmdResourceBarrier(cmd, &rs_barrer);
+        }
+        GPUCmdEnd(cmd);
+        // submit
+        GPUQueueSubmitDescriptor submit = { .cmds = &cmd, .cmds_count = 1 };
+        GPUSubmitQueue(gfxQueue, &submit);
+        GPUWaitQueueIdle(gfxQueue);
+        // render
+
+        GPUFreeCommandBuffer(cmd);
+        GPUFreeCommandPool(pool);
+        GPUFreeDescriptorSet(set);
+        GPUFreeTextureView(offScreen.texView);
+        GPUFreeTexture(offScreen.texture);
+        GPUFreeSampler(staticSampler);
+        GPUFreeRootSignature(rs);
+        GPUFreeRenderPipeline(tempPipeline);
+    }
+
+    void GenBRDFLut(GPUDeviceID device, GPUQueueID gfxQueue, uint32_t numSamples)
+    {
+        mBRDFLut          = new HDRIBLCubeMapTextureData;
+        EGPUFormat format = GPU_FORMAT_R16G16_SFLOAT;
+        uint32_t dims     = 512;
+
+        GPUTextureDescriptor desc = {
+            .flags       = GPU_TCF_OWN_MEMORY_BIT,
+            .width       = dims,
+            .height      = dims,
+            .depth       = 1,
+            .array_size  = 1,
+            .format      = format,
+            .mip_levels  = 1,
+            .owner_queue = gfxQueue,
+            .start_state = GPU_RESOURCE_STATE_RENDER_TARGET,
+            .descriptors = GPU_RESOURCE_TYPE_TEXTURE | GPU_RESOURCE_TYPE_RENDER_TARGET
+        };
+        mBRDFLut->mTexture = GPUCreateTexture(device, &desc);
+        GPUTextureViewDescriptor tex_view_desc = {
+            .pTexture        = mBRDFLut->mTexture,
+            .format          = format,
+            .usages          = EGPUTexutreViewUsage::GPU_TVU_SRV | GPU_TVU_RTV_DSV,
+            .aspectMask      = EGPUTextureViewAspect::GPU_TVA_COLOR,
+            .baseMipLevel    = 0,
+            .mipLevelCount   = 1,
+            .baseArrayLayer  = 0,
+            .arrayLayerCount = 1
+        };
+        mBRDFLut->mTextureView = GPUCreateTextureView(device, &tex_view_desc);
+
+        // shader
+        uint32_t* vShaderCode;
+        uint32_t vSize = 0;
+        ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/gen_brdf_lut.vert", &vShaderCode, &vSize);
+        uint32_t* fShaderCode;
+        uint32_t fSize = 0;
+        ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/gen_brdf_lut.frag", &fShaderCode, &fSize);
+        GPUShaderLibraryDescriptor vShaderDesc = {
+            .pName    = u8"gen_brdf_lut_vertex_shader",
+            .code     = vShaderCode,
+            .codeSize = vSize,
+            .stage    = GPU_SHADER_STAGE_VERT
+        };
+        GPUShaderLibraryDescriptor fShaderDesc = {
+            .pName    = u8"gen_brdf_lut_fragment_shader",
+            .code     = fShaderCode,
+            .codeSize = fSize,
+            .stage    = GPU_SHADER_STAGE_FRAG
+        };
+        GPUShaderLibraryID pVShader = GPUCreateShaderLibrary(device, &vShaderDesc);
+        GPUShaderLibraryID pFShader = GPUCreateShaderLibrary(device, &fShaderDesc);
+        free(vShaderCode);
+        free(fShaderCode);
+
+        GPUShaderEntryDescriptor shaderEntries[2] = { 0 };
+        {
+            shaderEntries[0].stage    = GPU_SHADER_STAGE_VERT;
+            shaderEntries[0].entry    = u8"main";
+            shaderEntries[0].pLibrary = pVShader;
+            shaderEntries[1].stage    = GPU_SHADER_STAGE_FRAG;
+            shaderEntries[1].entry    = u8"main";
+            shaderEntries[1].pLibrary = pFShader;
+        }
+
+        // create root signature
+        GPURootSignatureDescriptor rootRSDesc = {
+            .shaders              = shaderEntries,
+            .shader_count         = 2
+        };
+        GPURootSignatureID rs = GPUCreateRootSignature(device, &rootRSDesc);
+
+        // vertex layout
+        GPUVertexLayout vertexLayout{};
+        // renderpipeline
+        GPURasterizerStateDescriptor rasterizerState = {
+            .cullMode             = GPU_CULL_MODE_NONE,
+            .fillMode             = GPU_FILL_MODE_SOLID,
+            .frontFace            = GPU_FRONT_FACE_CW,
+            .depthBias            = 0,
+            .slopeScaledDepthBias = 0.f,
+            .enableMultiSample    = false,
+            .enableScissor        = false,
+            .enableDepthClamp     = false
+        };
+        GPURenderPipelineDescriptor pipelineDesc = {
+            .pRootSignature    = rs,
+            .pVertexShader     = &shaderEntries[0],
+            .pFragmentShader   = &shaderEntries[1],
+            .pVertexLayout     = &vertexLayout,
+            .pRasterizerState  = &rasterizerState,
+            .primitiveTopology = GPU_PRIM_TOPO_TRI_LIST,
+            .pColorFormats     = const_cast<EGPUFormat*>(&format),
+            .renderTargetCount = 1
+        };
+        GPURenderPipelineID tempPipeline = GPUCreateRenderPipeline(device, &pipelineDesc);
+        GPUFreeShaderLibrary(pVShader);
+        GPUFreeShaderLibrary(pFShader);
+
+        // render
+        GPUCommandPoolID pool              = GPUCreateCommandPool(gfxQueue);
+        GPUCommandBufferDescriptor cmdDesc = { .isSecondary = false };
+        GPUCommandBufferID cmd             = GPUCreateCommandBuffer(pool, &cmdDesc);
+        GPUResetCommandPool(pool);
+        GPUCmdBegin(cmd);
+        {
+            GPUColorAttachment screenAttachment{};
+            screenAttachment.view         = mBRDFLut->mTextureView;
+            screenAttachment.load_action  = GPU_LOAD_ACTION_CLEAR;
+            screenAttachment.store_action = GPU_STORE_ACTION_STORE;
+            screenAttachment.clear_color  = { { 0.f, 0.f, 0.f, 0.f } };
+            GPURenderPassDescriptor render_pass_desc{};
+            render_pass_desc.sample_count        = GPU_SAMPLE_COUNT_1;
+            render_pass_desc.color_attachments   = &screenAttachment;
+            render_pass_desc.render_target_count = 1;
+            struct PushData
+            {
+                uint32_t numSamples;
+            } push_constant;
+            push_constant.numSamples = numSamples;
+            GPURenderPassEncoderID encoder = GPUCmdBeginRenderPass(cmd, &render_pass_desc);
+            {
+                GPURenderEncoderSetViewport(encoder, 0.f, 0.f, dims, dims, 0.f, 1.f);
+                GPURenderEncoderSetScissor(encoder, 0, 0, dims, dims);
+                GPURenderEncoderBindPipeline(encoder, tempPipeline);
+                GPURenderEncoderPushConstant(encoder, rs, &push_constant);
+                GPURenderEncoderDraw(encoder, 3, 0);
+            }
+            GPUCmdEndRenderPass(cmd, encoder);
+
+            GPUTextureBarrier tex_barrier1 = {
+                .texture   = mBRDFLut->mTexture,
+                .src_state = GPU_RESOURCE_STATE_RENDER_TARGET,
+                .dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE
+            };
+            GPUResourceBarrierDescriptor barrier = {
+                .texture_barriers       = &tex_barrier1,
+                .texture_barriers_count = 1
+            };
+            GPUCmdResourceBarrier(cmd, &barrier);
+        }
+        GPUCmdEnd(cmd);
+        // submit
+        GPUQueueSubmitDescriptor submit = { .cmds = &cmd, .cmds_count = 1 };
+        GPUSubmitQueue(gfxQueue, &submit);
+        GPUWaitQueueIdle(gfxQueue);
+        // render
+
+        GPUFreeCommandBuffer(cmd);
+        GPUFreeCommandPool(pool);
+        GPUFreeRootSignature(rs);
+        GPUFreeRenderPipeline(tempPipeline);
+    }
+
 private:
     void UpdateDescriptorSet()
     {
@@ -1042,6 +1508,8 @@ public:
     std::vector<uint32_t> mIndices;
     HDRIBLCubeMapTextureData* mTextureData{ nullptr };
     HDRIBLCubeMapTextureData* mIrradianceMap{ nullptr };
+    HDRIBLCubeMapTextureData* mPrefilteredMap{ nullptr };
+    HDRIBLCubeMapTextureData* mBRDFLut{ nullptr };
     GPUBufferID mVertexBuffer{ nullptr };
     GPUBufferID mIndexBuffer{ nullptr };
     GPURenderPipelineID mPipeline{ nullptr };

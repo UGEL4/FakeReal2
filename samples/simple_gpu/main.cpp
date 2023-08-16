@@ -230,12 +230,12 @@ GPUTextureViewID CreateTextureView(GPUTextureID texture)
 GPUSamplerID CreateTextureSampler(GPUDeviceID device)
 {
     GPUSamplerDescriptor desc{};
-    desc.min_filter = GPU_FILTER_TYPE_LINEAR;
-    desc.mag_filter = GPU_FILTER_TYPE_LINEAR;
-    desc.mipmap_mode = GPU_MIPMAP_MODE_LINEAR;
-    desc.address_u   = GPU_ADDRESS_MODE_REPEAT;
-    desc.address_v  = GPU_ADDRESS_MODE_REPEAT;
-    desc.address_w   = GPU_ADDRESS_MODE_REPEAT;
+    desc.min_filter   = GPU_FILTER_TYPE_LINEAR;
+    desc.mag_filter   = GPU_FILTER_TYPE_LINEAR;
+    desc.mipmap_mode  = GPU_MIPMAP_MODE_LINEAR;
+    desc.address_u    = GPU_ADDRESS_MODE_CLAMP_TO_EDGE;
+    desc.address_v    = GPU_ADDRESS_MODE_CLAMP_TO_EDGE;
+    desc.address_w    = GPU_ADDRESS_MODE_CLAMP_TO_EDGE;
     desc.compare_func = GPU_CMP_NEVER;
     return GPUCreateSampler(device, &desc);
 }
@@ -521,7 +521,7 @@ void CreateNormalRendeObjects(const SkyBox* skyBox)
 
     // update descriptorset
     {
-        GPUDescriptorData desc_data[4] = {};
+        GPUDescriptorData desc_data[6] = {};
         desc_data[0].name              = u8"tex"; // shader texture2D`s name
         desc_data[0].binding           = 2;
         desc_data[0].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
@@ -542,7 +542,17 @@ void CreateNormalRendeObjects(const SkyBox* skyBox)
         desc_data[3].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
         desc_data[3].count             = 1;
         desc_data[3].textures          = &skyBox->mIrradianceMap->mTextureView;
-        GPUUpdateDescriptorSet(set, desc_data, 4);
+        desc_data[4].name              = u8"preFilteredMap";
+        desc_data[4].binding           = 4;
+        desc_data[4].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
+        desc_data[4].count             = 1;
+        desc_data[4].textures          = &skyBox->mPrefilteredMap->mTextureView;
+        desc_data[5].name              = u8"brdfLutTex";
+        desc_data[5].binding           = 5;
+        desc_data[5].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
+        desc_data[5].count             = 1;
+        desc_data[5].textures          = &skyBox->mBRDFLut->mTextureView;
+        GPUUpdateDescriptorSet(set, desc_data, 6);
     }
 }
 
@@ -1093,9 +1103,11 @@ void NormalRenderSimple()
         //skyBox->Load(textures, device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT, false);
         //skyBox->Load(textures, device, graphicQueue, GPU_FORMAT_R8G8B8A8_SRGB, false);
         skyBox->InitVertexAndIndexResource(device, graphicQueue);
-        skyBox->GenIBLImageFromHDR("../../../../asset/textures/sky/HDR_111_Parking_Lot_2_Env.hdr", device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT, true);
+        skyBox->GenIBLImageFromHDR("../../../../asset/textures/sky/HDR_111_Parking_Lot_2_Ref.hdr", device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT, true);
         //skyBox->GenIBLImageFromHDR("../../../../asset/textures/sky/newport_loft.hdr", device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT, true);
         skyBox->GenIrradianceCubeMap(device, graphicQueue);
+        skyBox->GenPrefilteredCubeMap(device, graphicQueue, 1024u);
+        skyBox->GenBRDFLut(device, graphicQueue, 1024u);
         skyBox->CreateRenderPipeline(device, staticSampler, sampler_name, (EGPUFormat)swapchain->ppBackBuffers[0]->format);
     }
     ///skybox
