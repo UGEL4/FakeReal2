@@ -15,4 +15,6 @@ C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V gen_prefiltered_cube.vert -o 
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V gen_prefiltered_cube.frag -o gen_prefiltered_cube.frag.spv
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V gen_brdf_lut.vert -o gen_brdf_lut.vert.spv
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V gen_brdf_lut.frag -o gen_brdf_lut.frag.spv
+C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V character.vert -o character.vert.spv
+C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V character.frag -o character.frag.spv
 pause

@@ -74,7 +74,7 @@ layout(location = 3) in VS_MaterialOut
 layout(location = 0) out vec4 outColor;
 void main()
 {
-    vec4 albedo     = texture(sampler2D(tex, texSamp), inUV);
+    /* vec4 albedo     = texture(sampler2D(tex, texSamp), inUV);
     //vec4 albedo     = vec4(1.0, 0.0, 0.0, 1.0);
     vec3 N          = normalize(inNormal);
     vec3 view       = normalize(ubo.viewPos.xyz - inWorldPos);
@@ -111,10 +111,12 @@ void main()
     vec3 color 	 = ambient + Lo;
     color        = color / (color + vec3(1.0));
     color        = pow(color, vec3(1.0 / 2.2));
-    outColor     = vec4(color, 1.0);
+    outColor     = vec4(color, 1.0); */
     //outColor     = vec4(Lights.lightColor[1].xyz, 1.0);
 
     //outColor = vec4(inColor.rgb, 1.0);
     //outClor = texture(tex, outUv);
     //outClor = albedo;
+    vec4 albedo     = texture(sampler2D(tex, texSamp), inUV);
+    outColor = albedo;
 }

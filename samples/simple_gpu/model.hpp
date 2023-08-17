@@ -282,6 +282,13 @@ struct Sphere
     }
 };
 
+struct TestPanel
+{
+    GPURenderPipelineID pipeline;
+    GPUDescriptorSetID set;
+    GPURootSignatureID rs;
+};
+
 struct PBRMaterialParam
 {
     float metallic;
