@@ -3,12 +3,13 @@
 #include "utils.hpp"
 #include "Utils/Json/JsonReader.h"
 #include <map>
+#include <stdint.h>
 
-MaterialInstanceID CreateMaterial(const std::string_view diffuse, const std::string_view normal, const std::string_view mask, GPUDeviceID device, GPUQueueID gfxQueue)
+MaterialInstanceID CreateMaterial(const std::string_view diffuse, const std::string_view normal, const std::string_view mask, GPUDeviceID device, GPUQueueID gfxQueue, bool flip)
 {
     MaterialInstance* m = (MaterialInstance*)calloc(1, sizeof(MaterialInstance));
 
-    stbi_set_flip_vertically_on_load(false);
+    stbi_set_flip_vertically_on_load(flip);
     int w, h, n;
     void* pixel = stbi_load(diffuse.data(), &w, &h, &n, 4);
     if (!pixel)
@@ -40,7 +41,7 @@ MaterialInstanceID CreateMaterial(const std::string_view diffuse, const std::str
         .height      = (uint32_t)h,
         .depth       = 1,
         .array_size  = 1,
-        .format      = GPU_FORMAT_R8G8B8A8_SRGB,
+        .format      = GPU_FORMAT_R8G8B8A8_UNORM,
         .owner_queue = gfxQueue,
         .start_state = GPU_RESOURCE_STATE_COPY_DEST,
         .descriptors = GPU_RESOURCE_TYPE_TEXTURE
@@ -67,7 +68,7 @@ MaterialInstanceID CreateMaterial(const std::string_view diffuse, const std::str
     //upload
     uint32_t totalSize = std::max(sizeDiffuse, std::max(sizeNormal, sizeMask));
     GPUBufferDescriptor upload_buffer{};
-    upload_buffer.size         = totalSize;
+    upload_buffer.size         = totalSize * 3;
     upload_buffer.flags        = GPU_BCF_OWN_MEMORY_BIT | GPU_BCF_PERSISTENT_MAP_BIT;
     upload_buffer.descriptors  = GPU_RESOURCE_TYPE_NONE;
     upload_buffer.memory_usage = GPU_MEM_USAGE_CPU_ONLY;
@@ -89,12 +90,14 @@ MaterialInstanceID CreateMaterial(const std::string_view diffuse, const std::str
         };
         GPUCmdTransferBufferToTexture(cmd, &trans_texture_buffer_desc);
 
-        memcpy(uploadBuffer->cpu_mapped_address, normal_pixel, sizeNormal);
-        trans_texture_buffer_desc.dst = m->normalTexture;
+        memcpy((uint8_t*)uploadBuffer->cpu_mapped_address + sizeMask, normal_pixel, sizeNormal);
+        trans_texture_buffer_desc.dst        = m->normalTexture;
+        trans_texture_buffer_desc.src_offset = sizeMask;
         GPUCmdTransferBufferToTexture(cmd, &trans_texture_buffer_desc);
 
-        memcpy(uploadBuffer->cpu_mapped_address, mask_pixel, sizeMask);
-        trans_texture_buffer_desc.dst = m->maskTexture;
+        memcpy((uint8_t*)uploadBuffer->cpu_mapped_address + sizeMask * 2, mask_pixel, sizeMask);
+        trans_texture_buffer_desc.dst        = m->maskTexture;
+        trans_texture_buffer_desc.src_offset = sizeMask * 2;
         GPUCmdTransferBufferToTexture(cmd, &trans_texture_buffer_desc);
 
         GPUTextureBarrier barrier1 = {
@@ -345,8 +348,8 @@ void CharacterModel::LoadModel(const std::string_view file)
                         reader.Value(texName);
                         reader.EndObject();
                         diffuse_textures.insert(std::make_pair(materialIndex, texName));
-                    } */
-                    reader.EndObject();
+                    }
+                    reader.EndObject(); */
                     //texture end
                 }
                 reader.EndObject();
@@ -410,11 +413,11 @@ void CharacterModel::InitMaterials(GPUDeviceID device, GPUQueueID gfxQueue)
     {
         uint32_t
     } */
-    MaterialInstanceID m1 = CreateMaterial("C:/Dev/Garam (v1.0)/_maps/Garam_diff_2.tga", "C:/Dev/Garam (v1.0)/_maps/Garam_norm.tga", "C:/Dev/Garam (v1.0)/_maps/Garam_mask.tga", device, gfxQueue);
+    MaterialInstanceID m1 = CreateMaterial("../../../../asset/objects/character/_maps/Garam_diff_3.tga", "../../../../asset/objects/character/_maps/Garam_norm.tga", "../../../../asset/objects/character/_maps/Garam_mask.tga", device, gfxQueue);
     mMaterials.insert(std::make_pair(1, m1));
-    MaterialInstanceID m2 = CreateMaterial("C:/Dev/Garam (v1.0)/_maps/Garam_diff_2.tga", "C:/Dev/Garam (v1.0)/_maps/Garam_norm.tga", "C:/Dev/Garam (v1.0)/_maps/Garam_mask.tga", device, gfxQueue);
+    MaterialInstanceID m2 = CreateMaterial("../../../../asset/objects/character/_maps/Garam_diff_1.tga", "../../../../asset/objects/character/_maps/Garam_norm.tga", "../../../../asset/objects/character/_maps/Garam_mask.tga", device, gfxQueue);
     mMaterials.insert(std::make_pair(2, m2));
-    MaterialInstanceID m3 = CreateMaterial("C:/Dev/Garam (v1.0)/_maps/_DiffuseTexture.tga", "C:/Dev/Garam (v1.0)/_maps/Garam_norm.tga", "C:/Dev/Garam (v1.0)/_maps/Garam_mask.tga", device, gfxQueue);
+    MaterialInstanceID m3 = CreateMaterial("../../../../asset/objects/character/_maps/_DiffuseTexture.tga", "../../../../asset/objects/character/_maps/Garam_norm.tga", "../../../../asset/objects/character/_maps/Garam_mask.tga", device, gfxQueue, false);
     mMaterials.insert(std::make_pair(3, m3));
 }
 

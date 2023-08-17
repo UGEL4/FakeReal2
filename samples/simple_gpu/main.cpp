@@ -749,7 +749,7 @@ void CreateModelRenderObjects()
 
     //pModel = new Model("C:\\Dev\\nanosuit\\out\\nanosuit.json");
     //pModel = new Model("D:\\c++\\nanosuit\\out\\nanosuit.json");
-    pModel = new Model("C:\\Dev\\Garam (v1.0)\\garam_obj.json");
+    pModel = new Model("../../../../asset/objects/character/garam_obj.json");
     modelTextures.reserve(pModel->mMesh.subMeshes.size());
     {
         for (size_t i = 0; i < pModel->mMesh.subMeshes.size(); i++)
@@ -759,7 +759,7 @@ void CreateModelRenderObjects()
                 auto& res = modelTextures.emplace_back();
                 //res.LoadTexture("C:\\Dev\\nanosuit\\" +pModel->mMesh.subMeshes[i].diffuse_tex_url, device, graphicQueue);
                 //res.LoadTexture("D:\\c++\\nanosuit\\" + pModel->mMesh.subMeshes[i].diffuse_tex_url, device, graphicQueue);
-                res.LoadTexture("C:\\Dev\\Garam (v1.0)\\_maps\\" + pModel->mMesh.subMeshes[i].diffuse_tex_url, device, graphicQueue);
+                res.LoadTexture("../../../../asset/objects/character/_maps/" + pModel->mMesh.subMeshes[i].diffuse_tex_url, device, graphicQueue);
                 res.SetDescriptorSet(modelRS);
             }
         }
@@ -1082,9 +1082,9 @@ void NormalRenderSimple()
     presentSemaphore = GPUCreateSemaphore(device);
 
     ////model
-    //CreateModelRenderObjects();
+    CreateModelRenderObjects();
     CharacterModel* chModel = new CharacterModel();
-    chModel->LoadModel("C:/Dev/Garam (v1.0)/garam_obj.json");
+    chModel->LoadModel("../../../../asset/objects/character/garam_obj.json");
     chModel->InitModelResource(device, graphicQueue);
     ////model
     ///skybox
@@ -1211,7 +1211,7 @@ void NormalRenderSimple()
 
                     glm::vec4 viewPos = glm::vec4(gCamera.position.x, gCamera.position.y, gCamera.position.z, 1.0);
                     //DrawNormalObject(encoder, lightInfo, -viewPos, gCamera.matrices.view, gCamera.matrices.perspective);
-                    //DrawModel(encoder, lightInfo, -viewPos, gCamera.matrices.view, gCamera.matrices.perspective);
+                    DrawModel(encoder, lightInfo, -viewPos, gCamera.matrices.view, gCamera.matrices.perspective);
                     chModel->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, -viewPos);
                      //skyybox
                     skyBox->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, -viewPos);
@@ -1272,7 +1272,7 @@ void NormalRenderSimple()
     FreeModelRendderObjects();
     ////////////model
     ///normal
-    //FreeNormalRenderObjects();
+    FreeNormalRenderObjects();
     delete chModel;
     ///normal
     ///skybox

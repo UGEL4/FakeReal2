@@ -25,7 +25,7 @@ struct MaterialInstance
 };
 typedef const MaterialInstance* MaterialInstanceID;
 
-MaterialInstanceID CreateMaterial(const std::string_view diffuse, const std::string_view normal, const std::string_view mask, GPUDeviceID device, GPUQueueID gfxQueue);
+MaterialInstanceID CreateMaterial(const std::string_view diffuse, const std::string_view normal, const std::string_view mask, GPUDeviceID device, GPUQueueID gfxQueue, bool flip = true);
 void DestryMaterial(MaterialInstanceID m);
 
 class CharacterModel
