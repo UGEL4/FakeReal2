@@ -3,7 +3,9 @@
 
 layout (push_constant) uniform PushConsts
 {
-    mat4 mvp;
+    mat4 m;
+    mat4 v;
+    mat4 p;
 } pushConsts;
 
 layout(location = 0) in vec3 inPos;
@@ -21,7 +23,7 @@ void main()
 {
     //mat3 normalMatrix = mat3(transpose(inverse(ubo.model)));
     //vec4 worldPos     = pushConsts.objPos + ubo.model * vec4(inPos, 1.0);
-    gl_Position       = pushConsts.mvp * vec4(inPos, 1.0);
+    gl_Position       = pushConsts.p * pushConsts.v * pushConsts.m * vec4(inPos, 1.0);
     //outWorldPos       = worldPos.xyz;
     //outNormal         = normalMatrix * inNormal;
     outUV             = inUV;

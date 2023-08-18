@@ -4,8 +4,9 @@
 #include "Utils/Json/JsonReader.h"
 #include <map>
 #include <stdint.h>
+#include "glm/gtc/matrix_transform.hpp"
 
-MaterialInstanceID CreateMaterial(const std::string_view diffuse, const std::string_view normal, const std::string_view mask, GPUDeviceID device, GPUQueueID gfxQueue, bool flip)
+/* MaterialInstanceID CreateMaterial(const std::string_view diffuse, const std::string_view normal, const std::string_view mask, GPUDeviceID device, GPUQueueID gfxQueue, bool flip)
 {
     MaterialInstance* m = (MaterialInstance*)calloc(1, sizeof(MaterialInstance));
 
@@ -19,21 +20,23 @@ MaterialInstanceID CreateMaterial(const std::string_view diffuse, const std::str
     }
     uint32_t sizeDiffuse = w * h * 4;
 
-    void* normal_pixel = stbi_load(normal.data(), &w, &h, &n, 4);
+    int n_w, n_h;
+    void* normal_pixel = stbi_load(normal.data(), &n_w, &n_h, &n, 4);
     if (!normal_pixel)
     {
         assert(0 && "load normal failed!");
         return nullptr;
     }
-    uint32_t sizeNormal = w * h * 4;
+    uint32_t sizeNormal = n_w * n_h * 4;
     
-    void* mask_pixel = stbi_load(mask.data(), &w, &h, &n, 4);
+    int m_w, m_h;
+    void* mask_pixel = stbi_load(mask.data(), &m_w, &m_h, &n, 4);
     if (!mask_pixel)
     {
         assert(0 && "load mask failed!");
         return nullptr;
     }
-    uint32_t sizeMask = w * h * 4;
+    uint32_t sizeMask = m_w * m_h * 4;
 
     GPUTextureDescriptor desc = {
         .flags       = GPU_TCF_OWN_MEMORY_BIT,
@@ -57,18 +60,24 @@ MaterialInstanceID CreateMaterial(const std::string_view diffuse, const std::str
         .baseArrayLayer  = 0,
         .arrayLayerCount = 1,
     };
-    m->diffuseTextureView  = GPUCreateTextureView(device, &tex_view_desc);
+    m->diffuseTextureView = GPUCreateTextureView(device, &tex_view_desc);
+
+    desc.width             = n_w;
+    desc.height            = n_h;
     m->normalTexture       = GPUCreateTexture(device, &desc);
     tex_view_desc.pTexture = m->normalTexture;
     m->normalTextureView   = GPUCreateTextureView(device, &tex_view_desc);
+
+    desc.width             = m_w;
+    desc.height            = m_h;
     m->maskTexture         = GPUCreateTexture(device, &desc);
     tex_view_desc.pTexture = m->maskTexture;
     m->maskTextureView     = GPUCreateTextureView(device, &tex_view_desc);
 
     //upload
-    uint32_t totalSize = std::max(sizeDiffuse, std::max(sizeNormal, sizeMask));
+    //uint32_t totalSize = std::max(sizeDiffuse, std::max(sizeNormal, sizeMask));
     GPUBufferDescriptor upload_buffer{};
-    upload_buffer.size         = totalSize * 3;
+    upload_buffer.size         = sizeDiffuse + sizeNormal + sizeMask;
     upload_buffer.flags        = GPU_BCF_OWN_MEMORY_BIT | GPU_BCF_PERSISTENT_MAP_BIT;
     upload_buffer.descriptors  = GPU_RESOURCE_TYPE_NONE;
     upload_buffer.memory_usage = GPU_MEM_USAGE_CPU_ONLY;
@@ -90,14 +99,14 @@ MaterialInstanceID CreateMaterial(const std::string_view diffuse, const std::str
         };
         GPUCmdTransferBufferToTexture(cmd, &trans_texture_buffer_desc);
 
-        memcpy((uint8_t*)uploadBuffer->cpu_mapped_address + sizeMask, normal_pixel, sizeNormal);
+        memcpy((uint8_t*)uploadBuffer->cpu_mapped_address + sizeDiffuse, normal_pixel, sizeNormal);
         trans_texture_buffer_desc.dst        = m->normalTexture;
-        trans_texture_buffer_desc.src_offset = sizeMask;
+        trans_texture_buffer_desc.src_offset = sizeDiffuse;
         GPUCmdTransferBufferToTexture(cmd, &trans_texture_buffer_desc);
 
-        memcpy((uint8_t*)uploadBuffer->cpu_mapped_address + sizeMask * 2, mask_pixel, sizeMask);
+        memcpy((uint8_t*)uploadBuffer->cpu_mapped_address + (sizeDiffuse + sizeNormal), mask_pixel, sizeMask);
         trans_texture_buffer_desc.dst        = m->maskTexture;
-        trans_texture_buffer_desc.src_offset = sizeMask * 2;
+        trans_texture_buffer_desc.src_offset = sizeDiffuse + sizeNormal;
         GPUCmdTransferBufferToTexture(cmd, &trans_texture_buffer_desc);
 
         GPUTextureBarrier barrier1 = {
@@ -221,6 +230,254 @@ MaterialInstanceID CreateMaterial(const std::string_view diffuse, const std::str
     m->set = GPUCreateDescriptorSet(device, &set_desc);
 
     return m;
+} */
+
+MaterialInstanceID CreateMaterial(const std::vector<std::pair<MaterialTextureType, std::pair<std::string_view, bool>>>& textures,
+                                  const std::vector<std::pair<EGPUShaderStage, std::string_view>>& shaders,
+                                  GPUDeviceID device, GPUQueueID gfxQueue)
+{
+    MaterialInstance* m = (MaterialInstance*)calloc(1, sizeof(MaterialInstance));
+    m->textures.reserve(textures.size());
+
+    std::vector<void*> pixels(textures.size());
+    uint32_t totalBytes = 0u;
+    EGPUFormat format = GPU_FORMAT_R8G8B8A8_UNORM;
+    for (size_t i = 0; i < textures.size(); i++)
+    {
+        MaterialTextureType type = textures[i].first;
+        std::string_view file    = textures[i].second.first;
+        bool flip                = textures[i].second.second;
+        stbi_set_flip_vertically_on_load(flip);
+        int w, h, n;
+        pixels[i] = stbi_load(file.data(), &w, &h, &n, 4);
+        if (!pixels[i])
+        {
+            assert(0);
+            free(m);
+            return nullptr;
+        }
+
+        totalBytes += w * h * 4u;
+
+        auto& pack = m->textures.emplace_back();
+        GPUTextureDescriptor desc = {
+            .flags       = GPU_TCF_OWN_MEMORY_BIT,
+            .width       = (uint32_t)w,
+            .height      = (uint32_t)h,
+            .depth       = 1,
+            .array_size  = 1,
+            .format      = format,
+            .owner_queue = gfxQueue,
+            .start_state = GPU_RESOURCE_STATE_COPY_DEST,
+            .descriptors = GPU_RESOURCE_TYPE_TEXTURE
+        };
+        pack.texture = GPUCreateTexture(device, &desc);
+        GPUTextureViewDescriptor tex_view_desc = {
+            .pTexture        = pack.texture,
+            .format          = (EGPUFormat)pack.texture->format,
+            .usages          = EGPUTexutreViewUsage::GPU_TVU_SRV,
+            .aspectMask      = EGPUTextureViewAspect::GPU_TVA_COLOR,
+            .baseMipLevel    = 0,
+            .mipLevelCount   = 1,
+            .baseArrayLayer  = 0,
+            .arrayLayerCount = 1,
+        };
+        pack.textureView = GPUCreateTextureView(device, &tex_view_desc);
+        pack.textureType = type;
+        pack.slotIndex   = type;
+    }
+
+    GPUBufferDescriptor upload_buffer = {
+        .size         = totalBytes,
+        .descriptors  = GPU_RESOURCE_TYPE_NONE,
+        .memory_usage = GPU_MEM_USAGE_CPU_ONLY,
+        .flags        = GPU_BCF_OWN_MEMORY_BIT | GPU_BCF_PERSISTENT_MAP_BIT
+    };
+    GPUBufferID uploadBuffer = GPUCreateBuffer(device, &upload_buffer);
+
+    GPUCommandPoolID pool              = GPUCreateCommandPool(gfxQueue);
+    GPUCommandBufferDescriptor cmdDesc = { .isSecondary = false };
+    GPUCommandBufferID cmd             = GPUCreateCommandBuffer(pool, &cmdDesc);
+    GPUResetCommandPool(pool);
+    GPUCmdBegin(cmd);
+    {
+        std::vector<GPUTextureBarrier> barriers(m->textures.size());
+        uint32_t srcOffset = 0;
+        for (uint32_t i = 0; i < m->textures.size(); i++)
+        {
+            uint32_t size = m->textures[i].texture->width * m->textures[i].texture->height * 4;
+            memcpy((uint8_t*)uploadBuffer->cpu_mapped_address + srcOffset, pixels[i], size);
+
+            GPUBufferToTextureTransfer trans_texture_buffer_desc = {
+                .dst                              = m->textures[i].texture,
+                .dst_subresource.mip_level        = 0,
+                .dst_subresource.base_array_layer = 0,
+                .dst_subresource.layer_count      = 1,
+                .src                              = uploadBuffer,
+                .src_offset                       = srcOffset,
+            };
+            GPUCmdTransferBufferToTexture(cmd, &trans_texture_buffer_desc);
+
+            srcOffset += size;
+
+            barriers[i].texture = m->textures[i].texture;
+            barriers[i].src_state = GPU_RESOURCE_STATE_COPY_DEST;
+            barriers[i].dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE;
+        }
+        GPUResourceBarrierDescriptor rs_barrer = {
+            .texture_barriers       = barriers.data(),
+            .texture_barriers_count = (uint32_t)barriers.size()
+        };
+        GPUCmdResourceBarrier(cmd, &rs_barrer);
+    }
+    GPUCmdEnd(cmd);
+    GPUQueueSubmitDescriptor texture_cpy_submit = { .cmds = &cmd, .cmds_count = 1 };
+    GPUSubmitQueue(gfxQueue, &texture_cpy_submit);
+    GPUWaitQueueIdle(gfxQueue);
+    GPUFreeBuffer(uploadBuffer);
+    GPUFreeCommandBuffer(cmd);
+    GPUFreeCommandPool(pool);
+    for (size_t i = 0; i < pixels.size(); i++)
+    {
+        stbi_image_free(pixels[i]);
+    }
+
+    GPURenderPipelineDescriptor pipelineDesc {};
+    // shader
+    GPUShaderEntryDescriptor shaderEntries[5] = {nullptr};
+    std::vector<GPUShaderLibraryID> shaderLibs;;
+    uint32_t shaderCount = 0;
+    for (size_t i = 0; i < shaders.size() && i < 5; i++)
+    {
+        uint32_t* shaderCode;
+        uint32_t size = 0;
+        ReadShaderBytes((char8_t*)shaders[i].second.data(), &shaderCode, &size);
+        GPUShaderLibraryDescriptor shaderDesc = {
+            .pName    = (char8_t*)shaders[i].second.data(),
+            .code     = shaderCode,
+            .codeSize = size,
+            .stage    = shaders[i].first
+        };
+        shaderLibs.push_back(GPUCreateShaderLibrary(device, &shaderDesc));
+
+        switch (shaders[i].first)
+        {
+            case GPU_SHADER_STAGE_VERT:
+            {
+                shaderEntries[shaderCount].stage    = GPU_SHADER_STAGE_VERT;
+                shaderEntries[shaderCount].entry    = u8"main";
+                shaderEntries[shaderCount].pLibrary = shaderLibs[i];
+                pipelineDesc.pVertexShader          = &shaderEntries[shaderCount];
+                shaderCount++;
+            }
+            break;
+            case GPU_SHADER_STAGE_FRAG:
+            {
+                shaderEntries[shaderCount].stage    = GPU_SHADER_STAGE_FRAG;
+                shaderEntries[shaderCount].entry    = u8"main";
+                shaderEntries[shaderCount].pLibrary = shaderLibs[i];
+                pipelineDesc.pFragmentShader        = &shaderEntries[shaderCount];
+                shaderCount++;
+            }
+            break;
+            case GPU_SHADER_STAGE_GEOM:
+            {
+                shaderEntries[shaderCount].stage    = GPU_SHADER_STAGE_GEOM;
+                shaderEntries[shaderCount].entry    = u8"main";
+                shaderEntries[shaderCount].pLibrary = shaderLibs[i];
+                pipelineDesc.pGeometryShader        = &shaderEntries[shaderCount];
+                shaderCount++;
+            }
+            break;
+            case GPU_SHADER_STAGE_TESC: break;
+            case GPU_SHADER_STAGE_TESE: break;
+            default:
+                assert(false && "Shader Stage not supported!");
+                break;
+        }
+
+        free(shaderCode);
+    }
+
+    // create root signature
+    GPURootSignatureDescriptor rootRSDesc = {
+        .shaders      = shaderEntries,
+        .shader_count = shaderCount
+    };
+    m->rootSignature = GPUCreateRootSignature(device, &rootRSDesc);
+
+    // vertex layout
+    GPUVertexLayout vertexLayout {};
+    vertexLayout.attributeCount = 3;
+    vertexLayout.attributes[0]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, 0, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
+    vertexLayout.attributes[1]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 3, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
+    vertexLayout.attributes[2]  = { 1, GPU_FORMAT_R32G32_SFLOAT, 0, sizeof(float) * 6, sizeof(float) * 2, GPU_INPUT_RATE_VERTEX };
+    // renderpipeline
+    GPURasterizerStateDescriptor rasterizerState = {
+        .cullMode             = GPU_CULL_MODE_BACK,
+        .fillMode             = GPU_FILL_MODE_SOLID,
+        .frontFace            = GPU_FRONT_FACE_CCW,
+        .depthBias            = 0,
+        .slopeScaledDepthBias = 0.f,
+        .enableMultiSample    = false,
+        .enableScissor        = false,
+        .enableDepthClamp     = false
+    };
+    GPUDepthStateDesc depthDesc = {
+        .depthTest  = true,
+        .depthWrite = true,
+        .depthFunc  = GPU_CMP_LEQUAL
+    };
+    EGPUFormat swapchainFormat = GPU_FORMAT_B8G8R8A8_UNORM;
+    pipelineDesc.pRootSignature     = m->rootSignature;
+    pipelineDesc.pVertexLayout      = &vertexLayout;
+    pipelineDesc.pDepthState        = &depthDesc;
+    pipelineDesc.pRasterizerState   = &rasterizerState;
+    pipelineDesc.primitiveTopology  = GPU_PRIM_TOPO_TRI_LIST;
+    pipelineDesc.pColorFormats      = const_cast<EGPUFormat*>(&swapchainFormat);
+    pipelineDesc.renderTargetCount  = 1;
+    pipelineDesc.depthStencilFormat = GPU_FORMAT_D32_SFLOAT;
+    m->pipeline = GPUCreateRenderPipeline(device, &pipelineDesc);
+    for (size_t i = 0; i < shaderLibs.size(); i++)
+    {
+        GPUFreeShaderLibrary(shaderLibs[i]);
+    }
+
+    GPUDescriptorSetDescriptor set_desc = {
+        .root_signature = m->rootSignature,
+        .set_index = 0
+    };
+    m->set = GPUCreateDescriptorSet(device, &set_desc);
+
+    GPUSamplerDescriptor sampleDesc = {
+        .min_filter   = GPU_FILTER_TYPE_LINEAR,
+        .mag_filter   = GPU_FILTER_TYPE_LINEAR,
+        .mipmap_mode  = GPU_MIPMAP_MODE_LINEAR,
+        .address_u    = GPU_ADDRESS_MODE_CLAMP_TO_EDGE,
+        .address_v    = GPU_ADDRESS_MODE_CLAMP_TO_EDGE,
+        .address_w    = GPU_ADDRESS_MODE_CLAMP_TO_EDGE,
+        .compare_func = GPU_CMP_NEVER,
+    };
+    m->sampler = GPUCreateSampler(device, &sampleDesc);
+
+    //update descriptor set
+    std::vector<GPUDescriptorData> desc_data(1 + m->textures.size()); // 1 sampler + all textures
+    desc_data[0].name              = u8"texSamp";
+    desc_data[0].binding           = 0;
+    desc_data[0].binding_type      = GPU_RESOURCE_TYPE_SAMPLER;
+    desc_data[0].count             = 1;
+    desc_data[0].samplers          = &m->sampler;
+    for (size_t i = 0; i < m->textures.size(); i++)
+    {
+        desc_data[i + 1].name         = nullptr;
+        desc_data[i + 1].binding      = m->textures[i].slotIndex + desc_data[0].binding + 1; // todo : a better way?
+        desc_data[i + 1].binding_type = GPU_RESOURCE_TYPE_TEXTURE;
+        desc_data[i + 1].count        = 1;
+        desc_data[i + 1].textures     = &m->textures[i].textureView;
+    }
+    GPUUpdateDescriptorSet(m->set, desc_data.data(), (uint32_t)desc_data.size());
+
+    return m;
 }
 
 void DestryMaterial(MaterialInstanceID m)
@@ -228,15 +485,22 @@ void DestryMaterial(MaterialInstanceID m)
     MaterialInstance* mat = (MaterialInstance*)m;
     if (mat)
     {
-        GPUFreeTextureView(mat->diffuseTextureView);
-        GPUFreeTextureView(mat->normalTextureView);
-        GPUFreeTextureView(mat->maskTextureView);
-        GPUFreeTexture(mat->maskTexture);
-        GPUFreeTexture(mat->normalTexture);
-        GPUFreeTexture(mat->diffuseTexture);
-        GPUFreeDescriptorSet(mat->set);
-        GPUFreeRootSignature(mat->rootSignature);
-        GPUFreeRenderPipeline(mat->pipeline);
+        if (mat->diffuseTextureView) GPUFreeTextureView(mat->diffuseTextureView);
+        if (mat->normalTextureView) GPUFreeTextureView(mat->normalTextureView);
+        if (mat->maskTextureView) GPUFreeTextureView(mat->maskTextureView);
+        if (mat->maskTexture) GPUFreeTexture(mat->maskTexture);
+        if (mat->normalTexture) GPUFreeTexture(mat->normalTexture);
+        if (mat->diffuseTexture) GPUFreeTexture(mat->diffuseTexture);
+        if (mat->set) GPUFreeDescriptorSet(mat->set);
+        if (m->sampler) GPUFreeSampler(m->sampler);
+        if (mat->rootSignature) GPUFreeRootSignature(mat->rootSignature);
+        if (mat->pipeline) GPUFreeRenderPipeline(mat->pipeline);
+        for (auto& pack : mat->textures)
+        {
+            if(pack.textureView) GPUFreeTextureView(pack.textureView);
+            if (pack.texture) GPUFreeTexture(pack.texture);
+        }
+        mat->textures.clear();
 
         free(mat);
     }
@@ -254,9 +518,9 @@ CharacterModel::~CharacterModel()
         DestryMaterial(m.second);
     }
 
-    GPUFreeBuffer(mVertexBuffer);
-    GPUFreeBuffer(mIndexBuffer);
-    GPUFreeSampler(mSampler);
+    if (mVertexBuffer) GPUFreeBuffer(mVertexBuffer);
+    if (mIndexBuffer) GPUFreeBuffer(mIndexBuffer);
+    if (mSampler) GPUFreeSampler(mSampler);
 }
 
 void CharacterModel::LoadModel(const std::string_view file)
@@ -409,15 +673,38 @@ void CharacterModel::LoadModel(const std::string_view file)
 
 void CharacterModel::InitMaterials(GPUDeviceID device, GPUQueueID gfxQueue)
 {
-    /* for (size_t i = 0; i < mMesh.subMeshes.size(); i++)
-    {
-        uint32_t
-    } */
-    MaterialInstanceID m1 = CreateMaterial("../../../../asset/objects/character/_maps/Garam_diff_3.tga", "../../../../asset/objects/character/_maps/Garam_norm.tga", "../../../../asset/objects/character/_maps/Garam_mask.tga", device, gfxQueue);
+    std::vector<std::pair<MaterialTextureType, std::pair<std::string_view, bool>>> m1_tex = {
+        {MaterialTextureType::MTT_DIFFUSE, {"../../../../asset/objects/character/_maps/Garam_diff_1.tga", true}},
+        {MaterialTextureType::MTT_NORMAL, {"../../../../asset/objects/character/_maps/Garam_norm.tga", true}},
+        {MaterialTextureType::MTT_MASK, {"../../../../asset/objects/character/_maps/Garam_mask.tga", true}}
+    };
+    std::vector<std::pair<MaterialTextureType, std::pair<std::string_view, bool>>> m2_tex = {
+        {MaterialTextureType::MTT_DIFFUSE, {"../../../../asset/objects/character/_maps/Garam_diff_1.tga", true}},
+        {MaterialTextureType::MTT_NORMAL, {"../../../../asset/objects/character/_maps/Garam_norm.tga", true}},
+        {MaterialTextureType::MTT_MASK, {"../../../../asset/objects/character/_maps/Garam_mask.tga", true}}
+    };
+    std::vector<std::pair<MaterialTextureType, std::pair<std::string_view, bool>>> m3_tex = {
+        {MaterialTextureType::MTT_DIFFUSE, {"../../../../asset/objects/character/_maps/_DiffuseTexture.tga", true}},
+        {MaterialTextureType::MTT_NORMAL, {"../../../../asset/objects/character/_maps/Garam_norm.tga", true}},
+        {MaterialTextureType::MTT_MASK, {"../../../../asset/objects/character/_maps/Garam_mask.tga", true}}
+    };
+    std::vector<std::pair<EGPUShaderStage, std::string_view>> m1_shaders = {
+        {GPU_SHADER_STAGE_VERT, "../../../../samples/simple_gpu/shader/character.vert"},
+        {GPU_SHADER_STAGE_FRAG, "../../../../samples/simple_gpu/shader/character.frag"}
+    };
+    std::vector<std::pair<EGPUShaderStage, std::string_view>> m2_shaders = {
+        {GPU_SHADER_STAGE_VERT, "../../../../samples/simple_gpu/shader/character.vert"},
+        {GPU_SHADER_STAGE_FRAG, "../../../../samples/simple_gpu/shader/character.frag"}
+    };
+    std::vector<std::pair<EGPUShaderStage, std::string_view>> m3_shaders = {
+        {GPU_SHADER_STAGE_VERT, "../../../../samples/simple_gpu/shader/character.vert"},
+        {GPU_SHADER_STAGE_FRAG, "../../../../samples/simple_gpu/shader/character.frag"}
+    };
+    MaterialInstanceID m1 = CreateMaterial(m1_tex, m1_shaders, device, gfxQueue);
+    MaterialInstanceID m2 = CreateMaterial(m2_tex, m2_shaders, device, gfxQueue);
+    MaterialInstanceID m3 = CreateMaterial(m3_tex, m3_shaders, device, gfxQueue);
     mMaterials.insert(std::make_pair(1, m1));
-    MaterialInstanceID m2 = CreateMaterial("../../../../asset/objects/character/_maps/Garam_diff_1.tga", "../../../../asset/objects/character/_maps/Garam_norm.tga", "../../../../asset/objects/character/_maps/Garam_mask.tga", device, gfxQueue);
     mMaterials.insert(std::make_pair(2, m2));
-    MaterialInstanceID m3 = CreateMaterial("../../../../asset/objects/character/_maps/_DiffuseTexture.tga", "../../../../asset/objects/character/_maps/Garam_norm.tga", "../../../../asset/objects/character/_maps/Garam_mask.tga", device, gfxQueue, false);
     mMaterials.insert(std::make_pair(3, m3));
 }
 
@@ -516,17 +803,17 @@ void CharacterModel::InitModelResource(GPUDeviceID device, GPUQueueID gfxQueue)
 
     InitMaterials(device, gfxQueue);
 
-    GPUSamplerDescriptor desc{};
+    /* GPUSamplerDescriptor desc{};
     desc.min_filter   = GPU_FILTER_TYPE_LINEAR;
     desc.mag_filter   = GPU_FILTER_TYPE_LINEAR;
     desc.mipmap_mode  = GPU_MIPMAP_MODE_LINEAR;
-    desc.address_u    = GPU_ADDRESS_MODE_CLAMP_TO_EDGE;
-    desc.address_v    = GPU_ADDRESS_MODE_CLAMP_TO_EDGE;
-    desc.address_w    = GPU_ADDRESS_MODE_CLAMP_TO_EDGE;
+    desc.address_u    = GPU_ADDRESS_MODE_REPEAT;
+    desc.address_v    = GPU_ADDRESS_MODE_REPEAT;
+    desc.address_w    = GPU_ADDRESS_MODE_REPEAT;
     desc.compare_func = GPU_CMP_NEVER;
-    mSampler = GPUCreateSampler(device, &desc);
+    mSampler = GPUCreateSampler(device, &desc); */
 
-    for (const auto m : mMaterials)
+    /* for (const auto m : mMaterials)
     {
         GPUTextureViewID v = (GPUTextureViewID)(m.second->diffuseTextureView);
         GPUDescriptorData desc_data[2] = {};
@@ -541,7 +828,7 @@ void CharacterModel::InitModelResource(GPUDeviceID device, GPUQueueID gfxQueue)
         desc_data[1].count             = 1;
         desc_data[1].samplers          = &mSampler;
         GPUUpdateDescriptorSet(m.second->set, desc_data, 2);
-    }
+    } */
 }
 
 void CharacterModel::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos)
@@ -560,7 +847,9 @@ void CharacterModel::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view,
 
     struct
     {
-        glm::mat4 mvp;
+        glm::mat4 m;
+        glm::mat4 v;
+        glm::mat4 p;
     } pushData;
     uint32_t stride = sizeof(Vertex);
     GPURenderEncoderBindVertexBuffers(encoder, 1, &mVertexBuffer, &stride, nullptr);
@@ -572,7 +861,10 @@ void CharacterModel::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view,
         auto& m = mMaterials[mMesh.subMeshes[i].materialIndex];
         GPURenderEncoderBindPipeline(encoder, m->pipeline);
         GPURenderEncoderBindDescriptorSet(encoder, m->set);
-        pushData.mvp = proj * view * glm::mat4(1.0f);
+        //pushData.mvp = proj * view * glm::translate(glm::mat4(1.f), { 0.f, 0.f, 0.f });
+        pushData.m = glm::translate(glm::mat4(1.f), { 0.f, 0.f, 0.f });
+        pushData.v = view;
+        pushData.p = proj;
         GPURenderEncoderPushConstant(encoder, m->set->root_signature, &pushData);
 
         uint32_t indexCount = mMesh.subMeshes[i].indexCount;

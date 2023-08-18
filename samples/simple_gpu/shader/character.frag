@@ -51,8 +51,10 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
     vec4 viewPos;
 }ubo; */
 
-layout(set = 0, binding = 0) uniform texture2D tex;
-layout(set = 0, binding = 1) uniform sampler texSamp; //static sampler
+layout(set = 0, binding = 0) uniform sampler texSamp; //static sampler
+layout(set = 0, binding = 1) uniform texture2D texDiffuse;
+layout(set = 0, binding = 2) uniform texture2D texNormal;
+layout(set = 0, binding = 3) uniform texture2D texMask;
 
 /* const int MAX_LIGHT_NUM = 4;
 layout(set = 2, binding = 0) uniform LightParam
@@ -117,6 +119,6 @@ void main()
     //outColor = vec4(inColor.rgb, 1.0);
     //outClor = texture(tex, outUv);
     //outClor = albedo;
-    vec4 albedo     = texture(sampler2D(tex, texSamp), inUV);
+    vec4 albedo     = texture(sampler2D(texDiffuse, texSamp), inUV);
     outColor = albedo;
 }
