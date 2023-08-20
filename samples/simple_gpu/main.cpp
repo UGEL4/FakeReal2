@@ -710,10 +710,12 @@ void CreateModelRenderObjects()
     // start create renderpipeline
     //vertex layout
     GPUVertexLayout vertexLayout{};
-    vertexLayout.attributeCount = 3;
+    vertexLayout.attributeCount = 5;
     vertexLayout.attributes[0]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, 0, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
     vertexLayout.attributes[1]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 3, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
     vertexLayout.attributes[2]  = { 1, GPU_FORMAT_R32G32_SFLOAT, 0, sizeof(float) * 6, sizeof(float) * 2, GPU_INPUT_RATE_VERTEX };
+    vertexLayout.attributes[3]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 8, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
+    vertexLayout.attributes[4]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 11, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
     // renderpipeline
     GPURasterizerStateDescriptor rasterizerState = {
         .cullMode             = GPU_CULL_MODE_BACK,
@@ -748,8 +750,8 @@ void CreateModelRenderObjects()
     // end create renderpipeline
 
     //pModel = new Model("C:\\Dev\\nanosuit\\out\\nanosuit.json");
-    //pModel = new Model("D:\\c++\\nanosuit\\out\\nanosuit.json");
-    pModel = new Model("../../../../asset/objects/character/garam_obj.json");
+    pModel = new Model("D:\\c++\\nanosuit\\out\\nanosuit.json");
+    //pModel = new Model("../../../../asset/objects/character/garam_obj.json");
     modelTextures.reserve(pModel->mMesh.subMeshes.size());
     {
         for (size_t i = 0; i < pModel->mMesh.subMeshes.size(); i++)
@@ -758,8 +760,8 @@ void CreateModelRenderObjects()
             {
                 auto& res = modelTextures.emplace_back();
                 //res.LoadTexture("C:\\Dev\\nanosuit\\" +pModel->mMesh.subMeshes[i].diffuse_tex_url, device, graphicQueue);
-                //res.LoadTexture("D:\\c++\\nanosuit\\" + pModel->mMesh.subMeshes[i].diffuse_tex_url, device, graphicQueue);
-                res.LoadTexture("../../../../asset/objects/character/_maps/" + pModel->mMesh.subMeshes[i].diffuse_tex_url, device, graphicQueue);
+                res.LoadTexture("D:\\c++\\nanosuit\\" + pModel->mMesh.subMeshes[i].diffuse_tex_url, device, graphicQueue);
+                //res.LoadTexture("../../../../asset/objects/character/_maps/" + pModel->mMesh.subMeshes[i].diffuse_tex_url, device, graphicQueue);
                 res.SetDescriptorSet(modelRS);
             }
         }
@@ -913,7 +915,7 @@ void DrawModel(GPURenderPassEncoderID encoder, const LightParam& light, const gl
     {
         GPURenderEncoderBindPipeline(encoder, modelRenderPipeline);
         // bind vertexbuffer
-        uint32_t stride = sizeof(Vertex);
+        uint32_t stride = sizeof(NewVertex);
         GPURenderEncoderBindVertexBuffers(encoder, 1, &modelVertexBuffer, &stride, nullptr);
         uint32_t indexStride = sizeof(uint32_t);
         GPURenderEncoderBindIndexBuffer(encoder, modelIndexBuffer, 0, indexStride);
@@ -1083,9 +1085,7 @@ void NormalRenderSimple()
 
     ////model
     CreateModelRenderObjects();
-    CharacterModel* chModel = new CharacterModel();
-    chModel->LoadModel("../../../../asset/objects/character/garam_obj.json");
-    chModel->InitModelResource(device, graphicQueue);
+    
     ////model
     ///skybox
     SkyBox* skyBox = new SkyBox(new HDRIBLCubeMapTextureData);
@@ -1120,6 +1120,12 @@ void NormalRenderSimple()
     ///normal
     CreateNormalRendeObjects(skyBox);
     ///normal
+
+CharacterModel* chModel = new CharacterModel();
+    //chModel->LoadModel("../../../../asset/objects/character/garam_obj.json");
+    chModel->LoadModel("D:/c++/Garam (v1.0)/garam_obj.json");
+    chModel->InitModelResource(device, graphicQueue, skyBox);
+    //chModel->BindEnvTexture(skyBox->mIrradianceMap->mTextureView, skyBox->mPrefilteredMap->mTextureView, skyBox->mBRDFLut->mTextureView);
 
 
     //light

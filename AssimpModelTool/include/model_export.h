@@ -9,6 +9,8 @@ struct Vertex
     float x, y, z;
     float nx, ny, nz;
     float u, v;
+    float tx, ty, tz;
+    float btx, bty, btz;
 };
 
 struct TextureDate
@@ -23,7 +25,7 @@ struct MeshData
     std::vector<uint32_t> indices;
     std::vector<TextureDate> diffuse;
     std::vector<TextureDate> specular;
-    std::vector<TextureDate> metalness;
+    std::vector<TextureDate> metallic;
     std::vector<TextureDate> roughness;
     std::vector<TextureDate> normal;
     uint32_t materialIndex;

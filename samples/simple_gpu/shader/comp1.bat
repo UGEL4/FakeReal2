@@ -11,4 +11,12 @@ D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V gen_cube.vert -o gen_cube.ver
 D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V gen_cube.frag -o gen_cube.frag.spv
 D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V gen_irradiance_cube.vert -o gen_irradiance_cube.vert.spv
 D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V gen_irradiance_cube.frag -o gen_irradiance_cube.frag.spv
+D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V gen_prefiltered_cube.vert -o gen_prefiltered_cube.vert.spv
+D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V gen_prefiltered_cube.frag -o gen_prefiltered_cube.frag.spv
+D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V gen_brdf_lut.vert -o gen_brdf_lut.vert.spv
+D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V gen_brdf_lut.frag -o gen_brdf_lut.frag.spv
+D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V character.vert -o character.vert.spv
+D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V character.frag -o character.frag.spv
+D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V character_body.frag -o character_body.frag.spv
+D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V character_fur.frag -o character_fur.frag.spv
 pause

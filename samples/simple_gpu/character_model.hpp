@@ -45,7 +45,7 @@ typedef const MaterialInstance* MaterialInstanceID;
 //std::pair<texture_type, std::pair<texture_file, flip_uv>>
 MaterialInstanceID CreateMaterial(const std::vector<std::pair<MaterialTextureType, std::pair<std::string_view, bool>>>& textures,
                                   const std::vector<std::pair<EGPUShaderStage, std::string_view>>& shaders,
-                                  GPUDeviceID device, GPUQueueID gfxQueue);
+                                  GPUDeviceID device, GPUQueueID gfxQueue,  class SkyBox* skyBox);
 void DestryMaterial(MaterialInstanceID m);
 
 class CharacterModel
@@ -54,9 +54,10 @@ public:
     CharacterModel();
     ~CharacterModel();
     void LoadModel(const std::string_view file);
-    void InitMaterials(GPUDeviceID device, GPUQueueID gfxQueue);
-    void InitModelResource(GPUDeviceID device, GPUQueueID gfxQueue);
+    void InitMaterials(GPUDeviceID device, GPUQueueID gfxQueue,  class SkyBox* skyBox);
+    void InitModelResource(GPUDeviceID device, GPUQueueID gfxQueue,  class SkyBox* skyBox);
     void Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos);
+    void BindEnvTexture(GPUTextureViewID irradianceMap, GPUTextureViewID prefilteredMap, GPUTextureViewID brdfLutMap);
 
     std::unordered_map<uint32_t, MaterialInstanceID> mMaterials;
     Mesh mMesh;

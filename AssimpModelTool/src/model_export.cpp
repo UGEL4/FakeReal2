@@ -52,6 +52,14 @@ void ProcessMesh(const aiMesh* mesh)
         {
             v.u = mesh->mTextureCoords[0][i].x;
             v.v = mesh->mTextureCoords[0][i].y;
+
+            v.tx = mesh->mTangents[i].x;
+            v.ty = mesh->mTangents[i].y;
+            v.tz = mesh->mTangents[i].z;
+
+            v.btx = mesh->mBitangents[i].x;
+            v.bty = mesh->mBitangents[i].y;
+            v.btz = mesh->mBitangents[i].z;
         }
         else
         {
@@ -77,8 +85,8 @@ void ProcessMesh(const aiMesh* mesh)
         auto material = g_scene->mMaterials[mesh->mMaterialIndex];
         LoadTexture(material, aiTextureType_DIFFUSE, meshData.diffuse, "texture_diffuse");
         LoadTexture(material, aiTextureType_SPECULAR, meshData.specular, "texture_specular");
-        //LoadTexture(material, aiTextureType_METALNESS, meshData.specular, "texture_metalness");
-        //LoadTexture(material, aiTextureType_DIFFUSE_ROUGHNESS, meshData.specular, "texture_roughness");
+        LoadTexture(material, aiTextureType_METALNESS, meshData.metallic, "texture_metallic");
+        LoadTexture(material, aiTextureType_DIFFUSE_ROUGHNESS, meshData.roughness, "texture_roughness");
         LoadTexture(material, aiTextureType_NORMALS, meshData.normal, "texture_normal");
     }
 
@@ -117,7 +125,8 @@ void SaveFile(const std::string_view filePath)
         {
             out << "                {";
             auto& v = g_meshes[i].vertices[vn];
-            out << std::format("\"x\":{:f}, \"y\":{:f}, \"z\":{:f}, \"nx\":{:f}, \"ny\":{:f}, \"nz\":{:f}, \"tx\":{:f}, \"ty\":{:f}", v.x, v.y, v.z, v.nx, v.ny, v.nz, v.u, v.v);
+            out << std::format("\"x\":{:f}, \"y\":{:f}, \"z\":{:f}, \"nx\":{:f}, \"ny\":{:f}, \"nz\":{:f}, \"tx\":{:f}, \"ty\":{:f}, \"tanx\":{:f}, \"tany\":{:f}, \"tanz\":{:f}, \"btanx\":{:f}, \"btany\":{:f}, \"btanz\":{:f}", 
+            v.x, v.y, v.z, v.nx, v.ny, v.nz, v.u, v.v, v.tx, v.ty, v.tz, v.btx, v.bty, v.btz);
             if (vn == g_meshes[i].vertices.size() - 1)
             {
                 out << '}';
@@ -158,44 +167,48 @@ void SaveFile(const std::string_view filePath)
 
         //texture
         out <<"            \"mTexture\": {\n";
+        out << "                \"diffuse\":{\n";
         if (g_meshes[i].diffuse.size())
         {
-            out << "                \"diffuse\":{\n";
             out << "                    \"url\":\"" << g_meshes[i].diffuse[0].url << "\",\n";
             out << "                    \"type\":\"" << g_meshes[i].diffuse[0].typeName << "\"";
-            if (g_meshes[i].specular.size())
-                out << "\n                },\n";
-            else
-                out << "\n                }";
         }
+        out << "\n                },\n";
+
+        out << "                \"specular\":{\n";
         if (g_meshes[i].specular.size())
         {
-            out << "                \"specular\":{\n";
             out << "                    \"url\":\"" << g_meshes[i].specular[0].url << "\",\n";
             out << "                    \"type\":\"" << g_meshes[i].specular[0].typeName << "\"";
-            if (g_meshes[i].metalness.size())
-                out << "\n                },\n";
-            else
-                out << "\n                }";
         }
-        if (g_meshes[i].metalness.size())
+        out << "\n                },\n";
+        
+        out << "                \"metallic\":{\n";
+        if (g_meshes[i].metallic.size())
         {
-            out << "                \"metalness\":{\n";
-            out << "                    \"url\":\"" << g_meshes[i].metalness[0].url << "\",\n";
-            out << "                    \"type\":\"" << g_meshes[i].metalness[0].typeName << "\"";
-            if (g_meshes[i].roughness.size())
-                out << "\n                },\n";
-            else
-                out << "\n                }";
+            out << "                    \"url\":\"" << g_meshes[i].metallic[0].url << "\",\n";
+            out << "                    \"type\":\"" << g_meshes[i].metallic[0].typeName << "\"";
         }
+        out << "\n                },\n";
+
+        out << "                \"roughness\":{\n";
         if (g_meshes[i].roughness.size())
         {
-            out << "                \"roughness\":{\n";
             out << "                    \"url\":\"" << g_meshes[i].roughness[0].url << "\",\n";
             out << "                    \"type\":\"" << g_meshes[i].roughness[0].typeName << "\"";
-            out << "\n                }";
         }
+        out << "\n                },\n";
+        
+        out << "                \"normal\":{\n";
+        if (g_meshes[i].normal.size())
+        {
+            out << "                    \"url\":\"" << g_meshes[i].normal[0].url << "\",\n";
+            out << "                    \"type\":\"" << g_meshes[i].normal[0].typeName << "\"";
+        }
+        out << "\n                }";
+        
         out << "\n            },";
+        //texture
 
         out <<"\n            \"mMaterialIndex\": " << g_meshes[i].materialIndex;
 

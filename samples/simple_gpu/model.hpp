@@ -20,9 +20,25 @@ struct Vertex
     }
 };
 
+struct NewVertex
+{
+    float x, y, z;
+    float nx, ny, nz;
+    float u, v;
+    float tan_x, tan_y, tan_z;
+    float btan_x, btan_y, btan_z;
+
+    bool operator ==(const NewVertex& other) const
+    {
+        return (x == other.x && y == other.y && z == other.z && nx == other.nx && ny == other.ny && nz == other.nz && u == other.u && v == other.v
+        && tan_x == other.tan_x && tan_y == other.tan_y && tan_z == other.tan_z
+        && btan_x == other.btan_x && btan_y == other.btan_y && btan_z == other.btan_z);
+    }
+};
+
 struct MeshData
 {
-    std::vector<Vertex> vertices;
+    std::vector<NewVertex> vertices;
     std::vector<uint32_t> indices;
     //std::unordered_map<std::string, std::vector<std::string>> textures;
 };
@@ -39,15 +55,12 @@ struct SubMesh
 
 struct Mesh
 {
-    /* std::vector<Vertex> vertices;
-    std::vector<uint32_t> indices;
-    uint32_t materialIndex; */
     MeshData meshData;
     std::vector<SubMesh> subMeshes;
 
     uint32_t GetMeshDataVerticesByteSize() const
     {
-        return (uint32_t)(sizeof(Vertex) * meshData.vertices.size());
+        return (uint32_t)(sizeof(NewVertex) * meshData.vertices.size());
     }
 
     uint32_t GetMeshDataIndicesByteSize() const
@@ -66,7 +79,6 @@ struct Mesh
     }
 };
 
-class Texture;
 class Model
 {
 public:
@@ -77,7 +89,7 @@ private:
     void LoadModel(const std::string_view file);
 
 public:
-    const std::vector<Vertex>& GetVertexBufferData() const
+    const std::vector<NewVertex>& GetVertexBufferData() const
     {
         return mMesh.meshData.vertices;
     }
@@ -280,13 +292,6 @@ struct Sphere
         };
         return indeces;
     }
-};
-
-struct TestPanel
-{
-    GPURenderPipelineID pipeline;
-    GPUDescriptorSetID set;
-    GPURootSignatureID rs;
 };
 
 struct PBRMaterialParam

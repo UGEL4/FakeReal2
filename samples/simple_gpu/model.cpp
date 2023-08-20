@@ -57,7 +57,7 @@ void Model::LoadModel(const std::string_view file)
                     meshData.vertices.reserve(count);
                     for (size_t i = 0; i < count; i++)
                     {
-                        Vertex v{};
+                        NewVertex v{};
                         reader.StartObject();
                         {
                             reader.Key("x");
@@ -122,7 +122,7 @@ void Model::LoadModel(const std::string_view file)
     reader.EndObject();
 
     //
-    std::vector<Vertex> tmpVertices;
+    std::vector<NewVertex> tmpVertices;
     std::vector<uint32_t> tmpIndices;
     MeshData newMesh{};
     uint32_t vertexOffset = 0;
@@ -137,7 +137,7 @@ void Model::LoadModel(const std::string_view file)
         {
             for (uint32_t i = 0; i < meshData.vertices.size(); i++)
             {
-                Vertex& v = meshData.vertices[i];
+                NewVertex& v = meshData.vertices[i];
                 uint32_t f = 0;
                 for (f = 0; f < tmpVertices.size(); f++)
                 {

@@ -5,243 +5,17 @@
 #include <map>
 #include <stdint.h>
 #include "glm/gtc/matrix_transform.hpp"
-
-/* MaterialInstanceID CreateMaterial(const std::string_view diffuse, const std::string_view normal, const std::string_view mask, GPUDeviceID device, GPUQueueID gfxQueue, bool flip)
-{
-    MaterialInstance* m = (MaterialInstance*)calloc(1, sizeof(MaterialInstance));
-
-    stbi_set_flip_vertically_on_load(flip);
-    int w, h, n;
-    void* pixel = stbi_load(diffuse.data(), &w, &h, &n, 4);
-    if (!pixel)
-    {
-        assert(0 && "load diffuse failed!");
-        return nullptr;
-    }
-    uint32_t sizeDiffuse = w * h * 4;
-
-    int n_w, n_h;
-    void* normal_pixel = stbi_load(normal.data(), &n_w, &n_h, &n, 4);
-    if (!normal_pixel)
-    {
-        assert(0 && "load normal failed!");
-        return nullptr;
-    }
-    uint32_t sizeNormal = n_w * n_h * 4;
-    
-    int m_w, m_h;
-    void* mask_pixel = stbi_load(mask.data(), &m_w, &m_h, &n, 4);
-    if (!mask_pixel)
-    {
-        assert(0 && "load mask failed!");
-        return nullptr;
-    }
-    uint32_t sizeMask = m_w * m_h * 4;
-
-    GPUTextureDescriptor desc = {
-        .flags       = GPU_TCF_OWN_MEMORY_BIT,
-        .width       = (uint32_t)w,
-        .height      = (uint32_t)h,
-        .depth       = 1,
-        .array_size  = 1,
-        .format      = GPU_FORMAT_R8G8B8A8_UNORM,
-        .owner_queue = gfxQueue,
-        .start_state = GPU_RESOURCE_STATE_COPY_DEST,
-        .descriptors = GPU_RESOURCE_TYPE_TEXTURE
-    };
-    m->diffuseTexture = GPUCreateTexture(device, &desc);
-    GPUTextureViewDescriptor tex_view_desc = {
-        .pTexture        = m->diffuseTexture,
-        .format          = (EGPUFormat)m->diffuseTexture->format,
-        .usages          = EGPUTexutreViewUsage::GPU_TVU_SRV,
-        .aspectMask      = EGPUTextureViewAspect::GPU_TVA_COLOR,
-        .baseMipLevel    = 0,
-        .mipLevelCount   = 1,
-        .baseArrayLayer  = 0,
-        .arrayLayerCount = 1,
-    };
-    m->diffuseTextureView = GPUCreateTextureView(device, &tex_view_desc);
-
-    desc.width             = n_w;
-    desc.height            = n_h;
-    m->normalTexture       = GPUCreateTexture(device, &desc);
-    tex_view_desc.pTexture = m->normalTexture;
-    m->normalTextureView   = GPUCreateTextureView(device, &tex_view_desc);
-
-    desc.width             = m_w;
-    desc.height            = m_h;
-    m->maskTexture         = GPUCreateTexture(device, &desc);
-    tex_view_desc.pTexture = m->maskTexture;
-    m->maskTextureView     = GPUCreateTextureView(device, &tex_view_desc);
-
-    //upload
-    //uint32_t totalSize = std::max(sizeDiffuse, std::max(sizeNormal, sizeMask));
-    GPUBufferDescriptor upload_buffer{};
-    upload_buffer.size         = sizeDiffuse + sizeNormal + sizeMask;
-    upload_buffer.flags        = GPU_BCF_OWN_MEMORY_BIT | GPU_BCF_PERSISTENT_MAP_BIT;
-    upload_buffer.descriptors  = GPU_RESOURCE_TYPE_NONE;
-    upload_buffer.memory_usage = GPU_MEM_USAGE_CPU_ONLY;
-    GPUBufferID uploadBuffer   = GPUCreateBuffer(device, &upload_buffer);
-    GPUCommandPoolID pool = GPUCreateCommandPool(gfxQueue);
-    GPUCommandBufferDescriptor cmdDesc = { .isSecondary = false };
-    GPUCommandBufferID cmd = GPUCreateCommandBuffer(pool, &cmdDesc);
-    GPUResetCommandPool(pool);
-    GPUCmdBegin(cmd);
-    {
-        memcpy(uploadBuffer->cpu_mapped_address, pixel, sizeDiffuse);
-        GPUBufferToTextureTransfer trans_texture_buffer_desc = {
-            .dst                              = m->diffuseTexture,
-            .dst_subresource.mip_level        = 0,
-            .dst_subresource.base_array_layer = 0,
-            .dst_subresource.layer_count      = 1,
-            .src                              = uploadBuffer,
-            .src_offset                       = 0,
-        };
-        GPUCmdTransferBufferToTexture(cmd, &trans_texture_buffer_desc);
-
-        memcpy((uint8_t*)uploadBuffer->cpu_mapped_address + sizeDiffuse, normal_pixel, sizeNormal);
-        trans_texture_buffer_desc.dst        = m->normalTexture;
-        trans_texture_buffer_desc.src_offset = sizeDiffuse;
-        GPUCmdTransferBufferToTexture(cmd, &trans_texture_buffer_desc);
-
-        memcpy((uint8_t*)uploadBuffer->cpu_mapped_address + (sizeDiffuse + sizeNormal), mask_pixel, sizeMask);
-        trans_texture_buffer_desc.dst        = m->maskTexture;
-        trans_texture_buffer_desc.src_offset = sizeDiffuse + sizeNormal;
-        GPUCmdTransferBufferToTexture(cmd, &trans_texture_buffer_desc);
-
-        GPUTextureBarrier barrier1 = {
-            .texture   = m->diffuseTexture,
-            .src_state = GPU_RESOURCE_STATE_COPY_DEST,
-            .dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE
-        };
-        GPUTextureBarrier barrier2 = {
-            .texture   = m->normalTexture,
-            .src_state = GPU_RESOURCE_STATE_COPY_DEST,
-            .dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE
-        };
-        GPUTextureBarrier barrier3 = {
-            .texture   = m->maskTexture,
-            .src_state = GPU_RESOURCE_STATE_COPY_DEST,
-            .dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE
-        };
-        GPUTextureBarrier barriers[3] = {barrier1, barrier2, barrier3};
-        GPUResourceBarrierDescriptor rs_barrer = {
-            .texture_barriers       = barriers,
-            .texture_barriers_count = 3
-        };
-        GPUCmdResourceBarrier(cmd, &rs_barrer);
-    }
-    GPUCmdEnd(cmd);
-    GPUQueueSubmitDescriptor texture_cpy_submit = { .cmds = &cmd, .cmds_count = 1 };
-    GPUSubmitQueue(gfxQueue, &texture_cpy_submit);
-    GPUWaitQueueIdle(gfxQueue);
-    GPUFreeBuffer(uploadBuffer);
-    GPUFreeCommandBuffer(cmd);
-    GPUFreeCommandPool(pool);
-
-    stbi_image_free(pixel);
-    stbi_image_free(normal_pixel);
-    stbi_image_free(mask_pixel);
-
-    // shader
-    uint32_t* vShaderCode;
-    uint32_t vSize = 0;
-    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/character.vert", &vShaderCode, &vSize);
-    uint32_t* fShaderCode;
-    uint32_t fSize = 0;
-    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/character.frag", &fShaderCode, &fSize);
-    GPUShaderLibraryDescriptor vShaderDesc = {
-        .pName    = u8"character_vertex_shader",
-        .code     = vShaderCode,
-        .codeSize = vSize,
-        .stage    = GPU_SHADER_STAGE_VERT
-    };
-    GPUShaderLibraryDescriptor fShaderDesc = {
-        .pName    = u8"character_fragment_shader",
-        .code     = fShaderCode,
-        .codeSize = fSize,
-        .stage    = GPU_SHADER_STAGE_FRAG
-    };
-    GPUShaderLibraryID pVShader = GPUCreateShaderLibrary(device, &vShaderDesc);
-    GPUShaderLibraryID pFShader = GPUCreateShaderLibrary(device, &fShaderDesc);
-    free(vShaderCode);
-    free(fShaderCode);
-
-    GPUShaderEntryDescriptor shaderEntries[2] = { 0 };
-    {
-        shaderEntries[0].stage    = GPU_SHADER_STAGE_VERT;
-        shaderEntries[0].entry    = u8"main";
-        shaderEntries[0].pLibrary = pVShader;
-        shaderEntries[1].stage    = GPU_SHADER_STAGE_FRAG;
-        shaderEntries[1].entry    = u8"main";
-        shaderEntries[1].pLibrary = pFShader;
-    }
-
-    // create root signature
-    GPURootSignatureDescriptor rootRSDesc = {
-        .shaders      = shaderEntries,
-        .shader_count = 2
-    };
-    m->rootSignature = GPUCreateRootSignature(device, &rootRSDesc);
-
-    // vertex layout
-    GPUVertexLayout vertexLayout {};
-    vertexLayout.attributeCount = 3;
-    vertexLayout.attributes[0]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, 0, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
-    vertexLayout.attributes[1]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 3, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
-    vertexLayout.attributes[2]  = { 1, GPU_FORMAT_R32G32_SFLOAT, 0, sizeof(float) * 6, sizeof(float) * 2, GPU_INPUT_RATE_VERTEX };
-    // renderpipeline
-    GPURasterizerStateDescriptor rasterizerState = {
-        .cullMode             = GPU_CULL_MODE_BACK,
-        .fillMode             = GPU_FILL_MODE_SOLID,
-        .frontFace            = GPU_FRONT_FACE_CCW,
-        .depthBias            = 0,
-        .slopeScaledDepthBias = 0.f,
-        .enableMultiSample    = false,
-        .enableScissor        = false,
-        .enableDepthClamp     = false
-    };
-    GPUDepthStateDesc depthDesc = {
-        .depthTest  = true,
-        .depthWrite = true,
-        .depthFunc  = GPU_CMP_LEQUAL
-    };
-    EGPUFormat format = GPU_FORMAT_B8G8R8A8_UNORM;
-    GPURenderPipelineDescriptor pipelineDesc = {
-        .pRootSignature     = m->rootSignature,
-        .pVertexShader      = &shaderEntries[0],
-        .pFragmentShader    = &shaderEntries[1],
-        .pVertexLayout      = &vertexLayout,
-        .pDepthState        = &depthDesc,
-        .pRasterizerState   = &rasterizerState,
-        .primitiveTopology  = GPU_PRIM_TOPO_TRI_LIST,
-        .pColorFormats      = const_cast<EGPUFormat*>(&format),
-        .renderTargetCount  = 1,
-        .depthStencilFormat = GPU_FORMAT_D32_SFLOAT,
-    };
-    m->pipeline = GPUCreateRenderPipeline(device, &pipelineDesc);
-    GPUFreeShaderLibrary(pVShader);
-    GPUFreeShaderLibrary(pFShader);
-
-    GPUDescriptorSetDescriptor set_desc = {
-        .root_signature = m->rootSignature,
-        .set_index = 0
-    };
-    m->set = GPUCreateDescriptorSet(device, &set_desc);
-
-    return m;
-} */
+#include "sky_box.hpp"
 
 MaterialInstanceID CreateMaterial(const std::vector<std::pair<MaterialTextureType, std::pair<std::string_view, bool>>>& textures,
                                   const std::vector<std::pair<EGPUShaderStage, std::string_view>>& shaders,
-                                  GPUDeviceID device, GPUQueueID gfxQueue)
+                                  GPUDeviceID device, GPUQueueID gfxQueue,  class SkyBox* skyBox)
 {
     MaterialInstance* m = (MaterialInstance*)calloc(1, sizeof(MaterialInstance));
     m->textures.reserve(textures.size());
 
     std::vector<void*> pixels(textures.size());
     uint32_t totalBytes = 0u;
-    EGPUFormat format = GPU_FORMAT_R8G8B8A8_UNORM;
     for (size_t i = 0; i < textures.size(); i++)
     {
         MaterialTextureType type = textures[i].first;
@@ -259,6 +33,7 @@ MaterialInstanceID CreateMaterial(const std::vector<std::pair<MaterialTextureTyp
 
         totalBytes += w * h * 4u;
 
+        EGPUFormat format = type == MTT_DIFFUSE ? GPU_FORMAT_R8G8B8A8_SRGB : GPU_FORMAT_R8G8B8A8_UNORM;
         auto& pack = m->textures.emplace_back();
         GPUTextureDescriptor desc = {
             .flags       = GPU_TCF_OWN_MEMORY_BIT,
@@ -408,10 +183,12 @@ MaterialInstanceID CreateMaterial(const std::vector<std::pair<MaterialTextureTyp
 
     // vertex layout
     GPUVertexLayout vertexLayout {};
-    vertexLayout.attributeCount = 3;
+    vertexLayout.attributeCount = 5;
     vertexLayout.attributes[0]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, 0, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
     vertexLayout.attributes[1]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 3, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
     vertexLayout.attributes[2]  = { 1, GPU_FORMAT_R32G32_SFLOAT, 0, sizeof(float) * 6, sizeof(float) * 2, GPU_INPUT_RATE_VERTEX };
+    vertexLayout.attributes[3]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 8, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
+    vertexLayout.attributes[4]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 11, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
     // renderpipeline
     GPURasterizerStateDescriptor rasterizerState = {
         .cullMode             = GPU_CULL_MODE_BACK,
@@ -461,7 +238,8 @@ MaterialInstanceID CreateMaterial(const std::vector<std::pair<MaterialTextureTyp
     m->sampler = GPUCreateSampler(device, &sampleDesc);
 
     //update descriptor set
-    std::vector<GPUDescriptorData> desc_data(1 + m->textures.size()); // 1 sampler + all textures
+    if (skyBox == nullptr)
+    {std::vector<GPUDescriptorData> desc_data(1 + m->textures.size()); // 1 sampler + all textures
     desc_data[0].name              = u8"texSamp";
     desc_data[0].binding           = 0;
     desc_data[0].binding_type      = GPU_RESOURCE_TYPE_SAMPLER;
@@ -475,7 +253,39 @@ MaterialInstanceID CreateMaterial(const std::vector<std::pair<MaterialTextureTyp
         desc_data[i + 1].count        = 1;
         desc_data[i + 1].textures     = &m->textures[i].textureView;
     }
+    GPUUpdateDescriptorSet(m->set, desc_data.data(), (uint32_t)desc_data.size());}
+    else {
+    std::vector<GPUDescriptorData> desc_data(1 + m->textures.size() + 3); // 1 sampler + all textures + 3 IBL texture
+    desc_data[0].name              = u8"texSamp";
+    desc_data[0].binding           = 0;
+    desc_data[0].binding_type      = GPU_RESOURCE_TYPE_SAMPLER;
+    desc_data[0].count             = 1;
+    desc_data[0].samplers          = &m->sampler;
+    for (size_t i = 0; i < m->textures.size(); i++)
+    {
+        desc_data[i + 1].name         = nullptr;
+        desc_data[i + 1].binding      = m->textures[i].slotIndex + desc_data[0].binding + 1; // todo : a better way?
+        desc_data[i + 1].binding_type = GPU_RESOURCE_TYPE_TEXTURE;
+        desc_data[i + 1].count        = 1;
+        desc_data[i + 1].textures     = &m->textures[i].textureView;
+    }
+    desc_data[4].name              = u8"irradianceMap";
+    desc_data[4].binding           = 4;
+    desc_data[4].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
+    desc_data[4].count             = 1;
+    desc_data[4].textures          = &skyBox->mIrradianceMap->mTextureView;
+    desc_data[5].name              = u8"preFilteredMap";
+    desc_data[5].binding           = 5;
+    desc_data[5].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
+    desc_data[5].count             = 1;
+    desc_data[5].textures          = &skyBox->mPrefilteredMap->mTextureView;
+    desc_data[6].name              = u8"brdfLutTex";
+    desc_data[6].binding           = 6;
+    desc_data[6].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
+    desc_data[6].count             = 1;
+    desc_data[6].textures          = &skyBox->mBRDFLut->mTextureView;
     GPUUpdateDescriptorSet(m->set, desc_data.data(), (uint32_t)desc_data.size());
+    }
 
     return m;
 }
@@ -563,7 +373,7 @@ void CharacterModel::LoadModel(const std::string_view file)
                     meshData.vertices.reserve(count);
                     for (size_t i = 0; i < count; i++)
                     {
-                        Vertex v{};
+                        NewVertex v{};
                         reader.StartObject();
                         {
                             reader.Key("x");
@@ -582,6 +392,18 @@ void CharacterModel::LoadModel(const std::string_view file)
                             reader.Value(v.u);
                             reader.Key("ty");
                             reader.Value(v.v);
+                            reader.Key("tanx");
+                            reader.Value(v.tan_x);
+                            reader.Key("tany");
+                            reader.Value(v.tan_y);
+                            reader.Key("tanz");
+                            reader.Value(v.tan_z);
+                            reader.Key("btanx");
+                            reader.Value(v.btan_x);
+                            reader.Key("btany");
+                            reader.Value(v.btan_y);
+                            reader.Key("btanz");
+                            reader.Value(v.tan_z);
                         }
                         reader.EndObject();
                         meshData.vertices.emplace_back(v);
@@ -627,7 +449,7 @@ void CharacterModel::LoadModel(const std::string_view file)
     reader.EndObject();
 
     //
-    std::vector<Vertex> tmpVertices;
+    std::vector<NewVertex> tmpVertices;
     std::vector<uint32_t> tmpIndices;
     MeshData newMesh{};
     uint32_t vertexOffset = 0;
@@ -642,7 +464,7 @@ void CharacterModel::LoadModel(const std::string_view file)
         {
             for (uint32_t i = 0; i < meshData.vertices.size(); i++)
             {
-                Vertex& v  = meshData.vertices[i];
+                NewVertex& v  = meshData.vertices[i];
                 uint32_t f = 0;
                 for (f = 0; f < tmpVertices.size(); f++)
                 {
@@ -671,7 +493,7 @@ void CharacterModel::LoadModel(const std::string_view file)
     }
 }
 
-void CharacterModel::InitMaterials(GPUDeviceID device, GPUQueueID gfxQueue)
+void CharacterModel::InitMaterials(GPUDeviceID device, GPUQueueID gfxQueue,  class SkyBox* skyBox)
 {
     std::vector<std::pair<MaterialTextureType, std::pair<std::string_view, bool>>> m1_tex = {
         {MaterialTextureType::MTT_DIFFUSE, {"../../../../asset/objects/character/_maps/Garam_diff_1.tga", true}},
@@ -681,7 +503,7 @@ void CharacterModel::InitMaterials(GPUDeviceID device, GPUQueueID gfxQueue)
     std::vector<std::pair<MaterialTextureType, std::pair<std::string_view, bool>>> m2_tex = {
         {MaterialTextureType::MTT_DIFFUSE, {"../../../../asset/objects/character/_maps/Garam_diff_1.tga", true}},
         {MaterialTextureType::MTT_NORMAL, {"../../../../asset/objects/character/_maps/Garam_norm.tga", true}},
-        {MaterialTextureType::MTT_MASK, {"../../../../asset/objects/character/_maps/Garam_mask.tga", true}}
+        {MaterialTextureType::MTT_MASK, {"../../../../asset/objects/character/_maps/_fur_01.tga", true}}
     };
     std::vector<std::pair<MaterialTextureType, std::pair<std::string_view, bool>>> m3_tex = {
         {MaterialTextureType::MTT_DIFFUSE, {"../../../../asset/objects/character/_maps/_DiffuseTexture.tga", true}},
@@ -690,25 +512,25 @@ void CharacterModel::InitMaterials(GPUDeviceID device, GPUQueueID gfxQueue)
     };
     std::vector<std::pair<EGPUShaderStage, std::string_view>> m1_shaders = {
         {GPU_SHADER_STAGE_VERT, "../../../../samples/simple_gpu/shader/character.vert"},
-        {GPU_SHADER_STAGE_FRAG, "../../../../samples/simple_gpu/shader/character.frag"}
+        {GPU_SHADER_STAGE_FRAG, "../../../../samples/simple_gpu/shader/character_body.frag"}
     };
     std::vector<std::pair<EGPUShaderStage, std::string_view>> m2_shaders = {
         {GPU_SHADER_STAGE_VERT, "../../../../samples/simple_gpu/shader/character.vert"},
-        {GPU_SHADER_STAGE_FRAG, "../../../../samples/simple_gpu/shader/character.frag"}
+        {GPU_SHADER_STAGE_FRAG, "../../../../samples/simple_gpu/shader/character_fur.frag"}
     };
     std::vector<std::pair<EGPUShaderStage, std::string_view>> m3_shaders = {
         {GPU_SHADER_STAGE_VERT, "../../../../samples/simple_gpu/shader/character.vert"},
         {GPU_SHADER_STAGE_FRAG, "../../../../samples/simple_gpu/shader/character.frag"}
     };
-    MaterialInstanceID m1 = CreateMaterial(m1_tex, m1_shaders, device, gfxQueue);
-    MaterialInstanceID m2 = CreateMaterial(m2_tex, m2_shaders, device, gfxQueue);
-    MaterialInstanceID m3 = CreateMaterial(m3_tex, m3_shaders, device, gfxQueue);
+    MaterialInstanceID m1 = CreateMaterial(m1_tex, m1_shaders, device, gfxQueue, skyBox);
+    MaterialInstanceID m2 = CreateMaterial(m2_tex, m2_shaders, device, gfxQueue, skyBox);
+    MaterialInstanceID m3 = CreateMaterial(m3_tex, m3_shaders, device, gfxQueue, nullptr);
     mMaterials.insert(std::make_pair(1, m1));
     mMaterials.insert(std::make_pair(2, m2));
     mMaterials.insert(std::make_pair(3, m3));
 }
 
-void CharacterModel::InitModelResource(GPUDeviceID device, GPUQueueID gfxQueue)
+void CharacterModel::InitModelResource(GPUDeviceID device, GPUQueueID gfxQueue,  class SkyBox* skyBox)
 {
     GPUBufferDescriptor v_desc = {
         .size         = mMesh.GetMeshDataVerticesByteSize(),
@@ -801,57 +623,19 @@ void CharacterModel::InitModelResource(GPUDeviceID device, GPUQueueID gfxQueue)
     GPUFreeCommandBuffer(cmd);
     GPUFreeCommandPool(pool);
 
-    InitMaterials(device, gfxQueue);
-
-    /* GPUSamplerDescriptor desc{};
-    desc.min_filter   = GPU_FILTER_TYPE_LINEAR;
-    desc.mag_filter   = GPU_FILTER_TYPE_LINEAR;
-    desc.mipmap_mode  = GPU_MIPMAP_MODE_LINEAR;
-    desc.address_u    = GPU_ADDRESS_MODE_REPEAT;
-    desc.address_v    = GPU_ADDRESS_MODE_REPEAT;
-    desc.address_w    = GPU_ADDRESS_MODE_REPEAT;
-    desc.compare_func = GPU_CMP_NEVER;
-    mSampler = GPUCreateSampler(device, &desc); */
-
-    /* for (const auto m : mMaterials)
-    {
-        GPUTextureViewID v = (GPUTextureViewID)(m.second->diffuseTextureView);
-        GPUDescriptorData desc_data[2] = {};
-        desc_data[0].name              = u8"tex"; // shader texture2D`s name
-        desc_data[0].binding           = 0;
-        desc_data[0].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
-        desc_data[0].count             = 1;
-        desc_data[0].textures          = &v;
-        desc_data[1].name              = u8"texSamp";
-        desc_data[1].binding           = 1;
-        desc_data[1].binding_type      = GPU_RESOURCE_TYPE_SAMPLER;
-        desc_data[1].count             = 1;
-        desc_data[1].samplers          = &mSampler;
-        GPUUpdateDescriptorSet(m.second->set, desc_data, 2);
-    } */
+    InitMaterials(device, gfxQueue, skyBox);
 }
 
 void CharacterModel::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos)
 {
-    /* UniformBuffer ubo = {
-        .model   = glm::mat4(glm::mat3(view)),
-        .proj    = proj,
-        .viewPos = viewPos
-    };
-    GPUBufferRange rang{};
-    rang.offset = 0;
-    rang.size   = sizeof(UniformBuffer);
-    GPUMapBuffer(mUniformBuffer, &rang);
-    memcpy(mUniformBuffer->cpu_mapped_address, &ubo, rang.size);
-    GPUUnmapBuffer(mUniformBuffer); */
-
     struct
     {
         glm::mat4 m;
         glm::mat4 v;
         glm::mat4 p;
+        glm::vec3 viewPos;
     } pushData;
-    uint32_t stride = sizeof(Vertex);
+    uint32_t stride = sizeof(NewVertex);
     GPURenderEncoderBindVertexBuffers(encoder, 1, &mVertexBuffer, &stride, nullptr);
     uint32_t indexStride = sizeof(uint32_t);
     GPURenderEncoderBindIndexBuffer(encoder, mIndexBuffer, 0, indexStride);
@@ -862,12 +646,51 @@ void CharacterModel::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view,
         GPURenderEncoderBindPipeline(encoder, m->pipeline);
         GPURenderEncoderBindDescriptorSet(encoder, m->set);
         //pushData.mvp = proj * view * glm::translate(glm::mat4(1.f), { 0.f, 0.f, 0.f });
-        pushData.m = glm::translate(glm::mat4(1.f), { 0.f, 0.f, 0.f });
+        pushData.m = glm::mat4(1.f);
         pushData.v = view;
         pushData.p = proj;
+        pushData.viewPos = glm::vec3(viewPos.x, viewPos.y, viewPos.z);
         GPURenderEncoderPushConstant(encoder, m->set->root_signature, &pushData);
 
         uint32_t indexCount = mMesh.subMeshes[i].indexCount;
         GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, mMesh.subMeshes[i].indexOffset, mMesh.subMeshes[i].vertexOffset, 0);
     }
+}
+
+void CharacterModel::BindEnvTexture(GPUTextureViewID irradianceMap, GPUTextureViewID prefilteredMap, GPUTextureViewID brdfLutMap)
+{
+    // todo: complete this
+    // test
+    GPUSamplerID s = mMaterials[1]->sampler;
+    std::vector<GPUDescriptorData> desc_data(1 + mMaterials[1]->textures.size() + 3); // 1 sampler + all textures + 3 IBL texture
+    desc_data[0].name              = u8"texSamp";
+    desc_data[0].binding           = 0;
+    desc_data[0].binding_type      = GPU_RESOURCE_TYPE_SAMPLER;
+    desc_data[0].count             = 1;
+    desc_data[0].samplers          = &s;
+    for (size_t i = 0; i < mMaterials[1]->textures.size(); i++)
+    {
+        desc_data[i + 1].name         = nullptr;
+        desc_data[i + 1].binding      = mMaterials[1]->textures[i].slotIndex + desc_data[0].binding + 1; // todo : a better way?
+        desc_data[i + 1].binding_type = GPU_RESOURCE_TYPE_TEXTURE;
+        desc_data[i + 1].count        = 1;
+        GPUTextureViewID tv = mMaterials[1]->textures[i].textureView;
+        desc_data[i + 1].textures     = &tv;
+    }
+    desc_data[4].name              = u8"irradianceMap";
+    desc_data[4].binding           = 4;
+    desc_data[4].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
+    desc_data[4].count             = 1;
+    desc_data[4].textures          = &irradianceMap;
+    desc_data[5].name              = u8"preFilteredMap";
+    desc_data[5].binding           = 5;
+    desc_data[5].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
+    desc_data[5].count             = 1;
+    desc_data[5].textures          = &prefilteredMap;
+    desc_data[6].name              = u8"brdfLutTex";
+    desc_data[6].binding           = 6;
+    desc_data[6].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
+    desc_data[6].count             = 1;
+    desc_data[6].textures          = &brdfLutMap;
+    GPUUpdateDescriptorSet(mMaterials[1]->set, desc_data.data(), (uint32_t)desc_data.size());
 }
