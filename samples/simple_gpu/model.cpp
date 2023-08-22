@@ -3,15 +3,32 @@
 #include <sstream>
 #include "Utils/Json/JsonReader.h"
 #include <unordered_map>
+#include "sky_box.hpp"
 
-Model::Model(const std::string_view file)
+Model::Model(const std::string_view file, GPUDeviceID device, GPUQueueID gfxQueue)
+: mDevice(device), mGfxQueue(gfxQueue)
 {
     LoadModel(file);
 }
 
 Model::~Model()
 {
-
+    for (auto& mat : mMaterials)
+    {
+        for (auto& tex : mat.second->textures)
+        {
+            if (tex.textureView) GPUFreeTextureView(tex.textureView);
+            if (tex.texture) GPUFreeTexture(tex.texture);
+            if (mat.second->set) GPUFreeDescriptorSet(mat.second->set);
+        }
+    }
+    if (mUBO) GPUFreeBuffer(mUBO);
+    if (mVertexBuffer) GPUFreeBuffer(mVertexBuffer);
+    if (mIndexBuffer) GPUFreeBuffer(mIndexBuffer);
+    if (mSampler) GPUFreeSampler(mSampler);
+    if (mSet) GPUFreeDescriptorSet(mSet);
+    if (mRootSignature) GPUFreeRootSignature(mRootSignature);
+    if (mPbrPipeline) GPUFreeRenderPipeline(mPbrPipeline);
 }
 
 void Model::LoadModel(const std::string_view file)
@@ -50,6 +67,11 @@ void Model::LoadModel(const std::string_view file)
                 {
                     reader.Key("mMaterialIndex");
                     reader.Value(materialIndex);
+
+                    if (materialIndex == 12)
+                    {
+                        int a = 0;
+                    }
 
                     reader.Key("mVertices");
                     size_t count = 0;
@@ -101,9 +123,12 @@ void Model::LoadModel(const std::string_view file)
                     {
                         reader.Key("diffuse");
                         reader.StartObject();
-                        reader.Key("url");
-                        std::string texName;
-                        reader.Value(texName);
+                        std::string texName("");
+                        if (reader.HasKey("url"))
+                        {
+                            reader.Key("url");
+                            reader.Value(texName);
+                        }
                         reader.EndObject();
                         diffuse_textures.insert(std::make_pair(materialIndex, texName));
                     }
@@ -164,7 +189,7 @@ void Model::LoadModel(const std::string_view file)
         
         //texture
         auto tex_iter = diffuse_textures.find(mat_idx);
-        if (tex_iter != diffuse_textures.end())
+        if (tex_iter != diffuse_textures.end() && tex_iter->second != "")
         {
             subMesh.diffuse_tex_url = tex_iter->second;
         }
@@ -174,5 +199,410 @@ void Model::LoadModel(const std::string_view file)
         }
 
         mMesh.subMeshes.emplace_back(subMesh);
+    }
+}
+
+void Model::UploadResource(class SkyBox* skyBox)
+{
+    GPUBufferDescriptor v_desc = {
+        .size         = mMesh.GetMeshDataVerticesByteSize(),
+        .descriptors  = GPU_RESOURCE_TYPE_VERTEX_BUFFER,
+        .memory_usage = GPU_MEM_USAGE_GPU_ONLY,
+        .flags        = GPU_BCF_OWN_MEMORY_BIT
+    };
+    mVertexBuffer = GPUCreateBuffer(mDevice, &v_desc);
+
+    GPUBufferDescriptor i_desc = {
+        .size         = mMesh.GetMeshDataIndicesByteSize(),
+        .descriptors  = GPU_RESOURCE_TYPE_INDEX_BUFFER,
+        .memory_usage = GPU_MEM_USAGE_GPU_ONLY,
+        .flags        = GPU_BCF_OWN_MEMORY_BIT
+    };
+    mIndexBuffer = GPUCreateBuffer(mDevice, &i_desc);
+
+    uint32_t uploadBufferSize         = v_desc.size + i_desc.size;
+    GPUBufferDescriptor upload_buffer = {
+        .size         = uploadBufferSize,
+        .descriptors  = GPU_RESOURCE_TYPE_NONE,
+        .memory_usage = GPU_MEM_USAGE_CPU_ONLY,
+        .flags        = GPU_BCF_OWN_MEMORY_BIT | GPU_BCF_PERSISTENT_MAP_BIT,
+    };
+    GPUBufferID uploadBuffer = GPUCreateBuffer(mDevice, &upload_buffer);
+
+    GPUCommandPoolID pool               = GPUCreateCommandPool(mGfxQueue);
+    GPUCommandBufferDescriptor cmd_desc = {
+        .isSecondary = false
+    };
+    GPUCommandBufferID cmd = GPUCreateCommandBuffer(pool, &cmd_desc);
+
+    GPUResetCommandPool(pool);
+    GPUCmdBegin(cmd);
+    {
+        memcpy(uploadBuffer->cpu_mapped_address, mMesh.meshData.vertices.data(), v_desc.size);
+        GPUBufferToBufferTransfer trans_desc = {
+            .dst        = mVertexBuffer,
+            .dst_offset = 0,
+            .src        = uploadBuffer,
+            .src_offset = 0,
+            .size       = v_desc.size
+        };
+        GPUCmdTransferBufferToBuffer(cmd, &trans_desc);
+
+        memcpy((uint8_t*)uploadBuffer->cpu_mapped_address + v_desc.size, mMesh.meshData.indices.data(), i_desc.size);
+        trans_desc = {
+            .dst        = mIndexBuffer,
+            .dst_offset = 0,
+            .src        = uploadBuffer,
+            .src_offset = v_desc.size,
+            .size       = i_desc.size
+        };
+        GPUCmdTransferBufferToBuffer(cmd, &trans_desc);
+        
+        GPUBufferBarrier barriers[2] = {};
+        barriers[0].buffer    = mVertexBuffer;
+        barriers[0].src_state = GPU_RESOURCE_STATE_COPY_DEST;
+        barriers[0].dst_state = GPU_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+        barriers[1].buffer    = mIndexBuffer;
+        barriers[1].src_state = GPU_RESOURCE_STATE_COPY_DEST;
+        barriers[1].dst_state = GPU_RESOURCE_STATE_INDEX_BUFFER;
+        GPUResourceBarrierDescriptor rs_barrer = {
+            .buffer_barriers       = barriers,
+            .buffer_barriers_count = 2
+        };
+        GPUCmdResourceBarrier(cmd, &rs_barrer);
+    }
+    GPUCmdEnd(cmd);
+    GPUQueueSubmitDescriptor cpy_submit = { .cmds = &cmd, .cmds_count = 1 };
+    GPUSubmitQueue(mGfxQueue, &cpy_submit);
+    GPUWaitQueueIdle(mGfxQueue);
+
+    GPUFreeBuffer(uploadBuffer);
+    GPUFreeCommandBuffer(cmd);
+    GPUFreeCommandPool(pool);
+
+    GPUSamplerDescriptor sampleDesc = {
+        .min_filter   = GPU_FILTER_TYPE_LINEAR,
+        .mag_filter   = GPU_FILTER_TYPE_LINEAR,
+        .mipmap_mode  = GPU_MIPMAP_MODE_LINEAR,
+        .address_u    = GPU_ADDRESS_MODE_REPEAT,
+        .address_v    = GPU_ADDRESS_MODE_REPEAT,
+        .address_w    = GPU_ADDRESS_MODE_REPEAT,
+        .compare_func = GPU_CMP_NEVER,
+    };
+    mSampler = GPUCreateSampler(mDevice, &sampleDesc);
+    const char8_t* samplerName = u8"texSamp";
+
+    uint32_t* shaderCode;
+    uint32_t size = 0;
+    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/pbr_scene_model.vert", &shaderCode, &size);
+    GPUShaderLibraryDescriptor shaderDesc = {
+        .pName    = u8"",
+        .code     = shaderCode,
+        .codeSize = size,
+        .stage    = GPU_SHADER_STAGE_VERT
+    };
+    GPUShaderLibraryID vsShader = GPUCreateShaderLibrary(mDevice, &shaderDesc);
+    size = 0;
+    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/pbr_scene_model.frag", &shaderCode, &size);
+    shaderDesc = {
+        .pName    = u8"",
+        .code     = shaderCode,
+        .codeSize = size,
+        .stage    = GPU_SHADER_STAGE_FRAG
+    };
+    GPUShaderLibraryID psShader = GPUCreateShaderLibrary(mDevice, &shaderDesc);
+
+    CGPUShaderEntryDescriptor entry_desc[2] = {};
+    entry_desc[0].pLibrary = vsShader;
+    entry_desc[0].entry    = u8"main";
+    entry_desc[0].stage    = GPU_SHADER_STAGE_VERT;
+    entry_desc[1].pLibrary = psShader;
+    entry_desc[1].entry    = u8"main";
+    entry_desc[1].stage    = GPU_SHADER_STAGE_FRAG;
+
+    GPURootSignatureDescriptor rs_desc = {
+        .shaders              = entry_desc,
+        .shader_count         = 2,
+    };
+    mRootSignature = GPUCreateRootSignature(mDevice, &rs_desc);
+
+    // vertex layout
+    GPUVertexLayout vertexLayout {};
+    vertexLayout.attributeCount = 5;
+    vertexLayout.attributes[0]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, 0, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
+    vertexLayout.attributes[1]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 3, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
+    vertexLayout.attributes[2]  = { 1, GPU_FORMAT_R32G32_SFLOAT, 0, sizeof(float) * 6, sizeof(float) * 2, GPU_INPUT_RATE_VERTEX };
+    vertexLayout.attributes[3]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 8, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
+    vertexLayout.attributes[4]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 11, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
+    // renderpipeline
+    GPURasterizerStateDescriptor rasterizerState = {
+        .cullMode             = GPU_CULL_MODE_BACK,
+        .fillMode             = GPU_FILL_MODE_SOLID,
+        .frontFace            = GPU_FRONT_FACE_CCW,
+        .depthBias            = 0,
+        .slopeScaledDepthBias = 0.f,
+        .enableMultiSample    = false,
+        .enableScissor        = false,
+        .enableDepthClamp     = false
+    };
+    GPUDepthStateDesc depthDesc = {
+        .depthTest  = true,
+        .depthWrite = true,
+        .depthFunc  = GPU_CMP_LEQUAL
+    };
+    EGPUFormat swapchainFormat = GPU_FORMAT_B8G8R8A8_UNORM;
+    GPURenderPipelineDescriptor pipelineDesc = {
+        .pRootSignature     = mRootSignature,
+        .pVertexShader      = &entry_desc[0],
+        .pFragmentShader    = &entry_desc[1],
+        .pVertexLayout      = &vertexLayout,
+        .pDepthState        = &depthDesc,
+        .pRasterizerState   = &rasterizerState,
+        .primitiveTopology  = GPU_PRIM_TOPO_TRI_LIST,
+        .pColorFormats      = const_cast<EGPUFormat*>(&swapchainFormat),
+        .renderTargetCount  = 1,
+        .depthStencilFormat = GPU_FORMAT_D32_SFLOAT
+    };
+    mPbrPipeline = GPUCreateRenderPipeline(mDevice, &pipelineDesc);
+    GPUFreeShaderLibrary(vsShader);
+    GPUFreeShaderLibrary(psShader);
+
+    GPUDescriptorSetDescriptor setDesc = {
+        .root_signature = mRootSignature,
+        .set_index      = 0
+    };
+    mSet = GPUCreateDescriptorSet(mDevice, &setDesc);
+
+    GPUBufferDescriptor uboDesc = {
+        .size = sizeof(CommonUniformBuffer),
+        .descriptors = GPU_RESOURCE_TYPE_UNIFORM_BUFFER,
+        .memory_usage = GPU_MEM_USAGE_CPU_TO_GPU,
+        .flags = GPU_BCF_PERSISTENT_MAP_BIT,
+        .prefer_on_device = true
+    };
+    mUBO = GPUCreateBuffer(mDevice, &uboDesc);
+
+    GPUDescriptorData dataDesc[5] = {};
+    dataDesc[0].binding           = 0;
+    dataDesc[0].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
+    dataDesc[0].textures          = &skyBox->mIrradianceMap->mTextureView;
+    dataDesc[0].count             = 1;
+    dataDesc[1].binding           = 1;
+    dataDesc[1].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
+    dataDesc[1].textures          = &skyBox->mPrefilteredMap->mTextureView;
+    dataDesc[1].count             = 1;
+    dataDesc[2].binding           = 2;
+    dataDesc[2].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
+    dataDesc[2].textures          = &skyBox->mBRDFLut->mTextureView;
+    dataDesc[2].count             = 1;
+    dataDesc[3].binding           = 3;
+    dataDesc[3].binding_type      = GPU_RESOURCE_TYPE_SAMPLER;
+    dataDesc[3].samplers          = &skyBox->mSamplerRef;
+    dataDesc[3].count             = 1;
+    dataDesc[4].binding           = 4;
+    dataDesc[4].binding_type      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
+    dataDesc[4].buffers           = &mUBO;
+    dataDesc[4].count             = 1;
+    GPUUpdateDescriptorSet(mSet, dataDesc, 5);
+
+    //material
+    for (size_t i = 0; i < mMesh.subMeshes.size(); i++)
+    {
+        auto iter = mMaterials.find(mMesh.subMeshes[i].materialIndex);
+        if (iter != mMaterials.end()) continue;
+        if (mMesh.subMeshes[i].diffuse_tex_url == "") continue;
+        std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string_view, bool>>> textures = {
+            { PBR_MTT_DIFFUSE, { "../../../../asset/objects/sponza/" + mMesh.subMeshes[i].diffuse_tex_url, true } }
+        };
+        PBRMaterial* mat                             = CreateMaterial(textures);
+        mMaterials[mMesh.subMeshes[i].materialIndex] = mat;
+    }
+}
+
+PBRMaterial* Model::CreateMaterial(const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string_view, bool>>>& textures)
+{
+    PBRMaterial* m = (PBRMaterial*)calloc(1, sizeof(PBRMaterial));
+    m->textures.reserve(textures.size());
+
+    std::vector<void*> pixels(textures.size());
+    uint32_t totalBytes = 0u;
+    for (size_t i = 0; i < textures.size(); i++)
+    {
+        PBRMaterialTextureType type = textures[i].first;
+        std::string_view file       = textures[i].second.first;
+        bool flip                   = textures[i].second.second;
+        stbi_set_flip_vertically_on_load(flip);
+        int w, h, n;
+        pixels[i] = stbi_load(file.data(), &w, &h, &n, 4);
+        if (!pixels[i])
+        {
+            assert(0);
+            free(m);
+            return nullptr;
+        }
+
+        totalBytes += w * h * 4u;
+
+        EGPUFormat format = type == PBR_MTT_DIFFUSE ? GPU_FORMAT_R8G8B8A8_SRGB : GPU_FORMAT_R8G8B8A8_UNORM;
+        auto& pack = m->textures.emplace_back();
+        GPUTextureDescriptor desc = {
+            .flags       = GPU_TCF_OWN_MEMORY_BIT,
+            .width       = (uint32_t)w,
+            .height      = (uint32_t)h,
+            .depth       = 1,
+            .array_size  = 1,
+            .format      = format,
+            .owner_queue = mGfxQueue,
+            .start_state = GPU_RESOURCE_STATE_COPY_DEST,
+            .descriptors = GPU_RESOURCE_TYPE_TEXTURE
+        };
+        pack.texture = GPUCreateTexture(mDevice, &desc);
+        GPUTextureViewDescriptor tex_view_desc = {
+            .pTexture        = pack.texture,
+            .format          = (EGPUFormat)pack.texture->format,
+            .usages          = EGPUTexutreViewUsage::GPU_TVU_SRV,
+            .aspectMask      = EGPUTextureViewAspect::GPU_TVA_COLOR,
+            .baseMipLevel    = 0,
+            .mipLevelCount   = 1,
+            .baseArrayLayer  = 0,
+            .arrayLayerCount = 1,
+        };
+        pack.textureView = GPUCreateTextureView(mDevice, &tex_view_desc);
+        pack.textureType = type;
+        pack.slotIndex   = type;
+    }
+
+    GPUBufferDescriptor upload_buffer = {
+        .size         = totalBytes,
+        .descriptors  = GPU_RESOURCE_TYPE_NONE,
+        .memory_usage = GPU_MEM_USAGE_CPU_ONLY,
+        .flags        = GPU_BCF_OWN_MEMORY_BIT | GPU_BCF_PERSISTENT_MAP_BIT
+    };
+    GPUBufferID uploadBuffer = GPUCreateBuffer(mDevice, &upload_buffer);
+
+    GPUCommandPoolID pool              = GPUCreateCommandPool(mGfxQueue);
+    GPUCommandBufferDescriptor cmdDesc = { .isSecondary = false };
+    GPUCommandBufferID cmd             = GPUCreateCommandBuffer(pool, &cmdDesc);
+    GPUResetCommandPool(pool);
+    GPUCmdBegin(cmd);
+    {
+        std::vector<GPUTextureBarrier> barriers(m->textures.size());
+        uint32_t srcOffset = 0;
+        for (uint32_t i = 0; i < m->textures.size(); i++)
+        {
+            uint32_t size = m->textures[i].texture->width * m->textures[i].texture->height * 4;
+            memcpy((uint8_t*)uploadBuffer->cpu_mapped_address + srcOffset, pixels[i], size);
+
+            GPUBufferToTextureTransfer trans_texture_buffer_desc = {
+                .dst                              = m->textures[i].texture,
+                .dst_subresource.mip_level        = 0,
+                .dst_subresource.base_array_layer = 0,
+                .dst_subresource.layer_count      = 1,
+                .src                              = uploadBuffer,
+                .src_offset                       = srcOffset,
+            };
+            GPUCmdTransferBufferToTexture(cmd, &trans_texture_buffer_desc);
+
+            srcOffset += size;
+
+            barriers[i].texture = m->textures[i].texture;
+            barriers[i].src_state = GPU_RESOURCE_STATE_COPY_DEST;
+            barriers[i].dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE;
+        }
+        GPUResourceBarrierDescriptor rs_barrer = {
+            .texture_barriers       = barriers.data(),
+            .texture_barriers_count = (uint32_t)barriers.size()
+        };
+        GPUCmdResourceBarrier(cmd, &rs_barrer);
+    }
+    GPUCmdEnd(cmd);
+    GPUQueueSubmitDescriptor texture_cpy_submit = { .cmds = &cmd, .cmds_count = 1 };
+    GPUSubmitQueue(mGfxQueue, &texture_cpy_submit);
+    GPUWaitQueueIdle(mGfxQueue);
+    GPUFreeBuffer(uploadBuffer);
+    GPUFreeCommandBuffer(cmd);
+    GPUFreeCommandPool(pool);
+    for (size_t i = 0; i < pixels.size(); i++)
+    {
+        stbi_image_free(pixels[i]);
+    }
+
+    GPUDescriptorSetDescriptor setDesc = {
+        .root_signature = mRootSignature,
+        .set_index      = 1
+    };
+    m->set     = GPUCreateDescriptorSet(mDevice, &setDesc);
+    m->sampler = mSampler;
+
+    std::vector<GPUDescriptorData> desc_data(1 + m->textures.size()); // 1 sampler + all textures
+    desc_data[0].name              = u8"texSamp";
+    desc_data[0].binding           = 0;
+    desc_data[0].binding_type      = GPU_RESOURCE_TYPE_SAMPLER;
+    desc_data[0].count             = 1;
+    desc_data[0].samplers          = &m->sampler;
+    for (size_t i = 0; i < m->textures.size(); i++)
+    {
+        desc_data[i + 1].name         = nullptr;
+        desc_data[i + 1].binding      = m->textures[i].slotIndex + desc_data[0].binding + 1; // todo : a better way?
+        desc_data[i + 1].binding_type = GPU_RESOURCE_TYPE_TEXTURE;
+        desc_data[i + 1].count        = 1;
+        desc_data[i + 1].textures     = &m->textures[i].textureView;
+    }
+    GPUUpdateDescriptorSet(m->set, desc_data.data(), (uint32_t)desc_data.size());
+
+    return m;
+}
+
+void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos)
+{
+    //update uniform bffer
+    CommonUniformBuffer ubo = {
+        .view    = view,
+        .proj    = proj,
+        .viewPos = viewPos
+    };
+    memcpy(mUBO->cpu_mapped_address, &ubo, sizeof(ubo));
+
+    // reorganize mesh
+    std::unordered_map<PBRMaterial*, std::vector<SubMesh*>> drawNodesInfo;
+    for (size_t i = 0; i < mMesh.subMeshes.size(); i++)
+    {
+        const auto itr = mMaterials.find(mMesh.subMeshes[i].materialIndex);
+        if (itr != mMaterials.end())
+        {
+            auto cur_pair = drawNodesInfo.find(itr->second);
+            if (cur_pair != drawNodesInfo.end())
+            {
+                cur_pair->second.push_back(&mMesh.subMeshes[i]);
+            }
+            else
+            {
+                auto& nodes = drawNodesInfo[itr->second];
+                nodes.push_back(&mMesh.subMeshes[i]);
+            }
+        }
+    }
+
+    //draw call
+    GPURenderEncoderBindPipeline(encoder, mPbrPipeline);
+    GPURenderEncoderBindDescriptorSet(encoder, mSet);
+    uint32_t strides = sizeof(NewVertex);
+    GPURenderEncoderBindVertexBuffers(encoder, 1, &mVertexBuffer, &strides, nullptr);
+    GPURenderEncoderBindIndexBuffer(encoder, mIndexBuffer, 0, sizeof(uint32_t));
+    glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
+    for (auto& nodePair : drawNodesInfo)
+    {
+        //per material
+        auto& mat = nodePair.first;
+        GPURenderEncoderBindDescriptorSet(encoder, mat->set);
+        for (size_t i = 0; i < nodePair.second.size() && i < 1 ; i++)
+        {
+            //per mesh
+            auto& mesh = nodePair.second[i];
+            uint32_t indexCount = mesh->indexCount;
+            //glm::mat4 model(1.0f);
+            GPURenderEncoderPushConstant(encoder, mRootSignature, &model);
+            GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, mesh->indexOffset, mesh->vertexOffset, 0);
+        }
     }
 }

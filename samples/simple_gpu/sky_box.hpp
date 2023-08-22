@@ -282,6 +282,7 @@ public:
 
     void CreateRenderPipeline(GPUDeviceID device, GPUSamplerID staticSampler, const char8_t* samplerName, EGPUFormat colorFormat)
     {
+        mSamplerRef = staticSampler;
         // shader
         uint32_t* vShaderCode;
         uint32_t vSize = 0;
@@ -1516,4 +1517,5 @@ public:
     GPURootSignatureID mRS{ nullptr };
     GPUDescriptorSetID mSet{ nullptr };
     GPUBufferID mUniformBuffer{ nullptr };
+    GPUSamplerID mSamplerRef{ nullptr };
 };

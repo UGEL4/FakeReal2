@@ -7,16 +7,16 @@ int main(int argc, char** argv)
 	std::string srcFile;
 	std::string destFile;
 	std::string argstr;
-	FBXSDK_printf("\n\nFBX模型文件:\n\n");
+	FBXSDK_printf("\n\nFBX模锟斤拷锟侥硷拷:\n\n");
 	std::getline(std::cin, srcFile);
-	FBXSDK_printf("\n\n导出模型文件:\n\n");
+	FBXSDK_printf("\n\n锟斤拷锟斤拷模锟斤拷锟侥硷拷:\n\n");
 	std::getline(std::cin, destFile);
-	FBXSDK_printf("\n\n导出模型参数:\n\n");
+	FBXSDK_printf("\n\n锟斤拷锟斤拷模锟酵诧拷锟斤拷:\n\n");
 	std::getline(std::cin, argstr);
 	char* args[3];
-	args[0] = &srcFile[0];
-	args[1] = &destFile[0];
-	args[2] = &argstr[0];
+	args[0] = "C:\\Dev\\FakeReal2\\asset\\objects\\sponza\\Sponza.fbx";
+	args[1] = "C:\\Dev\\FakeReal2\\asset\\objects\\sponza\\Sponza_.json";
+	args[2] = "-s";
 
 	FakeReal::FbxConverter converter(3, args);
 	converter.ExportFile();

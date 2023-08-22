@@ -17,4 +17,6 @@ C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V gen_brdf_lut.vert -o gen_brdf
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V gen_brdf_lut.frag -o gen_brdf_lut.frag.spv
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V character.vert -o character.vert.spv
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V character.frag -o character.frag.spv
+C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V pbr_scene_model.vert -o pbr_scene_model.vert.spv
+C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V pbr_scene_model.frag -o pbr_scene_model.frag.spv
 pause

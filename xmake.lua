@@ -74,6 +74,7 @@ includes("FakeRealRuntime/xmake.lua")
 includes("FakeRealEditor/xmake.lua")
 includes("MateParser/xmake.lua")
 includes("AssimpModelTool/xmake.lua")
+includes("FbxConverter/xmake.lua")
 
 includes("samples/app/sample_render/xmake.lua")
 includes("samples/simple_gpu/xmake.lua")

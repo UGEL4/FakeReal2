@@ -750,7 +750,7 @@ void CreateModelRenderObjects()
     // end create renderpipeline
 
     //pModel = new Model("C:\\Dev\\nanosuit\\out\\nanosuit.json");
-    pModel = new Model("D:\\c++\\nanosuit\\out\\nanosuit.json");
+    pModel = new Model("D:\\c++\\nanosuit\\out\\nanosuit.json", device, graphicQueue);
     //pModel = new Model("../../../../asset/objects/character/garam_obj.json");
     modelTextures.reserve(pModel->mMesh.subMeshes.size());
     {
@@ -1084,7 +1084,7 @@ void NormalRenderSimple()
     presentSemaphore = GPUCreateSemaphore(device);
 
     ////model
-    CreateModelRenderObjects();
+    //CreateModelRenderObjects();
     
     ////model
     ///skybox
@@ -1121,11 +1121,12 @@ void NormalRenderSimple()
     CreateNormalRendeObjects(skyBox);
     ///normal
 
-CharacterModel* chModel = new CharacterModel();
+    Model* pModel = new Model("../../../../asset/objects/sponza/sponzafbx.json", device, graphicQueue);
+    pModel->UploadResource(skyBox);
+    /* CharacterModel* chModel = new CharacterModel();
     //chModel->LoadModel("../../../../asset/objects/character/garam_obj.json");
     chModel->LoadModel("D:/c++/Garam (v1.0)/garam_obj.json");
-    chModel->InitModelResource(device, graphicQueue, skyBox);
-    //chModel->BindEnvTexture(skyBox->mIrradianceMap->mTextureView, skyBox->mPrefilteredMap->mTextureView, skyBox->mBRDFLut->mTextureView);
+    chModel->InitModelResource(device, graphicQueue, skyBox); */
 
 
     //light
@@ -1139,14 +1140,6 @@ CharacterModel* chModel = new CharacterModel();
     lightInfo.lightColor[1] = glm::vec4(300.f, 300.f, 300.f, 1.f);
     lightInfo.lightColor[2] = glm::vec4(300.f, 300.f, 300.f, 1.f);
     lightInfo.lightColor[3] = glm::vec4(300.f, 300.f, 300.f, 1.f);
-
-    //glm::vec4 viewPos = glm::vec4(-6.f, 0.f, 6.f, 1.f);
-    //glm::mat4 view    = glm::lookAt(glm::vec3(viewPos.x, viewPos.y, viewPos.z), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
-    //glm::mat4 proj    = glm::perspective(glm::radians(90.f), (float)WIDTH / HEIGHT, 0.1f, 1000.f);
-
-    /* glm::vec4 viewPos = glm::vec4(gCamera.position.x, gCamera.position.y, gCamera.position.z, 1.0);
-    glm::mat4 view    = gCamera.matrices.view;
-    glm::mat4 proj    = gCamera.matrices.perspective; */
 
     //render loop begin
     uint32_t backbufferIndex = 0;
@@ -1217,9 +1210,10 @@ CharacterModel* chModel = new CharacterModel();
 
                     glm::vec4 viewPos = glm::vec4(gCamera.position.x, gCamera.position.y, gCamera.position.z, 1.0);
                     //DrawNormalObject(encoder, lightInfo, -viewPos, gCamera.matrices.view, gCamera.matrices.perspective);
-                    DrawModel(encoder, lightInfo, -viewPos, gCamera.matrices.view, gCamera.matrices.perspective);
-                    chModel->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, -viewPos);
-                     //skyybox
+                    //DrawModel(encoder, lightInfo, -viewPos, gCamera.matrices.view, gCamera.matrices.perspective);
+                    //chModel->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, -viewPos);
+                    pModel->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, -viewPos);
+                    //skyybox
                     skyBox->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, -viewPos);
                 }
                 GPUCmdEndRenderPass(cmd, encoder);
@@ -1275,11 +1269,12 @@ CharacterModel* chModel = new CharacterModel();
     GPUFreeSampler(staticSampler);
     
     ////////////model
-    FreeModelRendderObjects();
+    //FreeModelRendderObjects();
+    delete pModel;
     ////////////model
     ///normal
     FreeNormalRenderObjects();
-    delete chModel;
+    //delete chModel;
     ///normal
     ///skybox
     //skyBox.~SkyBox(); Dont do this!

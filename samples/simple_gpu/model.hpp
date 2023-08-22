@@ -79,10 +79,30 @@ struct Mesh
     }
 };
 
+enum PBRMaterialTextureType
+{
+    PBR_MTT_DIFFUSE = 0,
+    PBR_MTT_NORMAL = 1
+};
+
+struct PBRMaterial
+{
+    struct Pack
+    {
+        GPUTextureID texture;
+        GPUTextureViewID textureView;
+        PBRMaterialTextureType textureType;
+        uint32_t slotIndex;
+    };
+    std::vector<Pack> textures;
+    GPUSamplerID sampler;
+    GPUDescriptorSetID set;
+};
+
 class Model
 {
 public:
-    Model(const std::string_view file);
+    Model(const std::string_view file, GPUDeviceID device, GPUQueueID gfxQueue);
     ~Model();
 
 private:
@@ -118,9 +138,22 @@ public:
     {
         return mMesh.GetIndexCount();
     }
-//private:
-    //std::vector<Mesh> mMeshes;
+
+    void UploadResource(class SkyBox* skyBox);
+    PBRMaterial* CreateMaterial(const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string_view, bool>>>& textures);
+    void Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos);
+
     Mesh mMesh;
+    std::unordered_map<uint32_t, PBRMaterial*> mMaterials;
+    GPUDeviceID mDevice;
+    GPUQueueID mGfxQueue;
+    GPURenderPipelineID mPbrPipeline;
+    GPURootSignatureID mRootSignature;
+    GPUDescriptorSetID mSet;
+    GPUBufferID mVertexBuffer;
+    GPUBufferID mIndexBuffer;
+    GPUSamplerID mSampler;
+    GPUBufferID mUBO;
 };
 
 struct Sphere
@@ -321,6 +354,13 @@ struct PushConstant
 struct UniformBuffer
 {
     glm::mat4 model;
+    glm::mat4 view;
+    glm::mat4 proj;
+    glm::vec4 viewPos;
+};
+
+struct CommonUniformBuffer
+{
     glm::mat4 view;
     glm::mat4 proj;
     glm::vec4 viewPos;

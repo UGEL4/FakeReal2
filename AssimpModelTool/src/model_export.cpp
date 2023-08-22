@@ -17,6 +17,7 @@ void ExportModel(std::string_view file, std::string_view outFile)
     g_scene =  aiImportFile(file.data(), aiProcess_CalcTangentSpace | aiProcess_Triangulate);
     ProcessNode(g_scene->mRootNode);
     SaveFile(outFile);
+    aiReleaseImport(g_scene);
 }
 
 void ProcessNode(const aiNode* node)
