@@ -71,7 +71,7 @@ namespace FakeReal
         void GetMesh(FbxNode* pNode);
         // void ProcessSkeleton(FbxNode* pNode, Bone* pParentBone = nullptr);
         // void GetOffsetMatrix(FbxSkin* pSkin);
-        void LoadTexture(FbxMesh* pMesh, std::vector<FbxTextureData>& outList);
+        void LoadTexture(FbxMesh* pMesh, uint32_t materialIndex);
         // void FbxMatToGlmMat(glm::mat4& out, const FbxAMatrix& in);
         void BoneSkin(FbxSkin* pSkin, std::vector<std::string>& Bones, std::vector<float>& Weights, int ctrlPointIndex);
         void GetAnim(FbxNode* pNode);
@@ -85,7 +85,7 @@ namespace FakeReal
         void ReadVertex(FbxMesh* pMesh, int ctrlPointIndex, FbxVector4& V);
         void ReadNormal(FbxMesh* pMesh, int ctrlPointIndex, int vertexCounter, FbxVector4& N);
         void ReadUV(FbxMesh* pMesh, int ctrlPointIndex, int triangleIndex, int triangleVertexIndex, int uvIndex, FbxVector2& UV);
-        void CreateStaticMesh(const std::string& name, int UVNum, bool hasSkin, uint32_t materialIndex);
+        void CreateStaticMesh(const std::string& name, int UVNum, bool hasSkin);
 
     private:
         FbxManager* m_pManager;
@@ -102,7 +102,8 @@ namespace FakeReal
 
         //std::unordered_map<std::string, Mesh> mMeshes;
         std::vector<Mesh> mMeshes;
-        std::unordered_map<uint32_t, std::vector<FbxTextureData>> mTextures;
+        std::unordered_map<FbxSurfaceMaterial*, std::vector<FbxTextureData>> mTextures;
+        uint32_t mMaterialCount{ 0 };
         // MeshData* m_pMeshData;
         // GeometryNode* m_pGeoNode;
         // Skeleton* m_pSkeleton;

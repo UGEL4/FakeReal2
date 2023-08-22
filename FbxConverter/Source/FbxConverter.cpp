@@ -103,8 +103,8 @@ namespace FakeReal
         else
         {
             // �����λ�
-            FbxGeometryConverter converter(m_pManager);
-            converter.Triangulate(m_pScene, true);
+            /* FbxGeometryConverter converter(m_pManager);
+            converter.Triangulate(m_pScene, true); */
 
             // DisplayMetaData();
             // �����ڵ�
@@ -355,6 +355,18 @@ namespace FakeReal
         // ��������
         FbxMesh* pMesh    = (FbxMesh*)pNode->GetNodeAttribute();
         FbxSkin* pFBXSkin = nullptr;
+
+        FbxGeometryConverter converter(m_pManager);
+        FbxNodeAttribute* attrib = converter.Triangulate(pMesh, true);
+        if (attrib && attrib->GetAttributeType() == fbxsdk::FbxNodeAttribute::eMesh)
+        {
+            pMesh = (FbxMesh*)attrib;
+        }
+        else
+        {
+            return;
+        }
+
         /*if (mExportType == ET_SKELECTON_MESH)
         {
             int deformerCount = pMesh->GetDeformerCount();
@@ -526,12 +538,14 @@ namespace FakeReal
             } // for i = 0
 
             // ��������
-            CreateStaticMesh(pMesh->GetName(), UVNum, (pFBXSkin != nullptr), k);
+            CreateStaticMesh(pMesh->GetName(), UVNum, (pFBXSkin != nullptr));
+            //texture
+            LoadTexture(pMesh, k);
         } // for k = 0
 
         // texture
-        std::vector<FbxTextureData> outList;
-        LoadTexture(pMesh, outList);
+        /* std::vector<FbxTextureData> outList;
+        LoadTexture(pMesh, outList); */
 
         // m_MeshList.push_back(meshData);
     }
@@ -605,53 +619,45 @@ namespace FakeReal
         }
     }*/
 
-    void FbxConverter::LoadTexture(FbxMesh* pMesh, std::vector<FbxTextureData>& outList)
+    void FbxConverter::LoadTexture(FbxMesh* pMesh, uint32_t materialIndex)
     {
         FbxNode* pNode = pMesh->GetNode();
         int materialCount = pNode->GetMaterialCount();
-        if (!materialCount)
+        if (!materialCount || materialCount <= materialIndex)
         {
             return;
         }
-        /* FbxLayerElementMaterial* pMaterial = pMesh->GetElementMaterial();
-        if (!pMaterial)
+
+        FbxSurfaceMaterial* surfaceMat = pNode->GetMaterial(materialIndex);
+        if (!surfaceMat) return;
+
+        auto iter = mTextures.find(surfaceMat);
+        if (iter != mTextures.end()) return;
+
+        auto& texList = mTextures[surfaceMat];
+        mMaterialCount++;
+        for (int textureLayerIndex = 0; textureLayerIndex < FbxLayerElement::sTypeTextureCount; textureLayerIndex++)
         {
-            return;
-        } */
-
-        for (int m = 0; m < materialCount; m++)
-        {
-            auto iter = mTextures.find(m);
-            if (iter != mTextures.end()) continue;
-
-            FbxSurfaceMaterial* surfaceMat = pNode->GetMaterial(m);
-            if (!surfaceMat) continue;
-
-            auto& texList = mTextures[m];
-
-            for (int textureLayerIndex = 0; textureLayerIndex < FbxLayerElement::sTypeTextureCount; textureLayerIndex++)
+            FbxProperty prop = surfaceMat->FindProperty(FbxLayerElement::sTextureChannelNames[textureLayerIndex]);
+            if (prop.IsValid())
             {
-                FbxProperty prop = surfaceMat->FindProperty(FbxLayerElement::sTextureChannelNames[textureLayerIndex]);
-                if (prop.IsValid())
+                int textureCount = prop.GetSrcObjectCount<FbxTexture>();
+                for (int t = 0; t < textureCount; t++)
                 {
-                    int textureCount = prop.GetSrcObjectCount<FbxTexture>();
-                    for (int t = 0; t < textureCount; t++)
+                    FbxTexture* tex = FbxCast<FbxTexture>(prop.GetSrcObject<FbxTexture>(t));
+                    if (tex)
                     {
-                        FbxTexture* tex = FbxCast<FbxTexture>(prop.GetSrcObject<FbxTexture>(t));
-                        if (tex)
-                        {
-                            FbxFileTexture* fileTex = FbxCast<FbxFileTexture>(tex);
-                            std::string name = fileTex->GetFileName();
-                            std::string type(fileTex->GetTextureType());
+                        FbxFileTexture* fileTex = FbxCast<FbxFileTexture>(tex);
+                        std::string name        = fileTex->GetFileName();
+                        std::string type(FbxLayerElement::sTextureChannelNames[textureLayerIndex]);
 
-                            FbxTextureData data = {
-                                .m_Name = name,
-                                .m_Path = name,
-                                .m_RelativePath = name,
-                                .m_TypeName = type
-                            };
-                            texList.emplace_back(data);
-                        }
+                        FbxTextureData data = {
+                            .m_Name         = name,
+                            .m_Path         = name,
+                            .m_RelativePath = name,
+                            .m_TypeName     = type
+                        };
+                        texList.emplace_back(data);
                     }
                 }
             }
@@ -918,13 +924,13 @@ namespace FakeReal
         //out << "\n    ]\n}";
         out << "\n    ],\n";
         out << "    \"mTextures\": [\n";
+        uint32_t matIdx = 0;
         for (const auto& pair : mTextures)
         {
-            uint32_t matIdx = pair.first;
-            out << "        \"" << matIdx << "\": [\n";
+            out << "        \"" << matIdx++ << "\": [\n";
             for (size_t i = 0; i < pair.second.size(); i++)
             {
-                out << "{\n";
+                out << "{";
                 out << "n:" << "\"" << pair.second[i].m_Name << "\",";
                 out << "t:" << "\"" << pair.second[i].m_TypeName << "\",";
                 out << "},\n";
@@ -1165,7 +1171,7 @@ namespace FakeReal
         }
     }
 
-    void FbxConverter::CreateStaticMesh(const std::string& name, int UVNum, bool hasSkin, uint32_t materialIndex)
+    void FbxConverter::CreateStaticMesh(const std::string& name, int UVNum, bool hasSkin)
     {
         if (mVertexArray.size() == 0)
         {
@@ -1187,7 +1193,7 @@ namespace FakeReal
             mesh.vertices.emplace_back(v);
         }
         mesh.indices       = mIndexArray;
-        mesh.materialIndex = materialIndex;
+        mesh.materialIndex = mMaterialCount;
         mMeshes.emplace_back(mesh);
 
         /* MeshData tmp;
