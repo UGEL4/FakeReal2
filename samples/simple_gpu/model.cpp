@@ -421,6 +421,8 @@ void Model::UploadResource(class SkyBox* skyBox)
 
 PBRMaterial* Model::CreateMaterial(const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string_view, bool>>>& textures)
 {
+    //find and return
+
     PBRMaterial* m = (PBRMaterial*)calloc(1, sizeof(PBRMaterial));
     m->textures.reserve(textures.size());
 
@@ -431,6 +433,18 @@ PBRMaterial* Model::CreateMaterial(const std::vector<std::pair<PBRMaterialTextur
         PBRMaterialTextureType type = textures[i].first;
         std::string_view file       = textures[i].second.first;
         bool flip                   = textures[i].second.second;
+
+        auto tex_iter = mTexturePool.find(file);
+        if (tex_iter != mTexturePool.end())
+        {
+            auto& pack = m->textures.emplace_back();
+            pack.texture = tex_iter->second.mTexture;
+            pack.textureView = tex_iter->second.mTextureView;
+            pack.textureType = type;
+            pack.slotIndex   = type;
+            continue;
+        }
+
         stbi_set_flip_vertically_on_load(flip);
         int w, h, n;
         pixels[i] = stbi_load(file.data(), &w, &h, &n, 4);

@@ -27,8 +27,15 @@ namespace FakeReal
     {
         std::string m_Name;
         std::string m_Path;
-        std::string m_RelativePath;
+        std::string m_RelativeName;
         std::string m_TypeName = "texture_diffuse";
+    };
+
+    struct FbxMaterialData
+    {
+        uint32_t materialIndex;
+        std::string name;
+        std::vector<FbxTextureData> textures;
     };
 
     struct FbxKeyFrameData
@@ -71,7 +78,8 @@ namespace FakeReal
         void GetMesh(FbxNode* pNode);
         // void ProcessSkeleton(FbxNode* pNode, Bone* pParentBone = nullptr);
         // void GetOffsetMatrix(FbxSkin* pSkin);
-        void LoadTexture(FbxMesh* pMesh, uint32_t materialIndex);
+        uint32_t LoadMaterial(FbxMesh* pMesh, int materialIndex);
+        void LoadTexture(FbxSurfaceMaterial* pMateril, std::vector<FbxTextureData>& textures);
         // void FbxMatToGlmMat(glm::mat4& out, const FbxAMatrix& in);
         void BoneSkin(FbxSkin* pSkin, std::vector<std::string>& Bones, std::vector<float>& Weights, int ctrlPointIndex);
         void GetAnim(FbxNode* pNode);
@@ -85,7 +93,7 @@ namespace FakeReal
         void ReadVertex(FbxMesh* pMesh, int ctrlPointIndex, FbxVector4& V);
         void ReadNormal(FbxMesh* pMesh, int ctrlPointIndex, int vertexCounter, FbxVector4& N);
         void ReadUV(FbxMesh* pMesh, int ctrlPointIndex, int triangleIndex, int triangleVertexIndex, int uvIndex, FbxVector2& UV);
-        void CreateStaticMesh(const std::string& name, int UVNum, bool hasSkin);
+        void CreateStaticMesh(const std::string& name, int UVNum, bool hasSkin, uint32_t materialIndex);
 
     private:
         FbxManager* m_pManager;
@@ -102,8 +110,7 @@ namespace FakeReal
 
         //std::unordered_map<std::string, Mesh> mMeshes;
         std::vector<Mesh> mMeshes;
-        std::unordered_map<FbxSurfaceMaterial*, std::vector<FbxTextureData>> mTextures;
-        uint32_t mMaterialCount{ 0 };
+        std::unordered_map<FbxSurfaceMaterial*, FbxMaterialData> mMaterials;
         // MeshData* m_pMeshData;
         // GeometryNode* m_pGeoNode;
         // Skeleton* m_pSkeleton;

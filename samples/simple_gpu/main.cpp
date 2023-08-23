@@ -760,9 +760,9 @@ void CreateModelRenderObjects()
             {
                 auto& res = modelTextures.emplace_back();
                 //res.LoadTexture("C:\\Dev\\nanosuit\\" +pModel->mMesh.subMeshes[i].diffuse_tex_url, device, graphicQueue);
-                res.LoadTexture("D:\\c++\\nanosuit\\" + pModel->mMesh.subMeshes[i].diffuse_tex_url, device, graphicQueue);
+                res.LoadTexture("D:\\c++\\nanosuit\\" + pModel->mMesh.subMeshes[i].diffuse_tex_url, GPU_FORMAT_R8G8B8A8_SRGB, device, graphicQueue, true);
                 //res.LoadTexture("../../../../asset/objects/character/_maps/" + pModel->mMesh.subMeshes[i].diffuse_tex_url, device, graphicQueue);
-                res.SetDescriptorSet(modelRS);
+                //res.SetDescriptorSet(modelRS);
             }
         }
     }
@@ -885,7 +885,7 @@ void CreateModelRenderObjects()
         desc_data.binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
         desc_data.count             = 1;
         desc_data.textures          = &modelTextures[i].mTextureView;
-        GPUUpdateDescriptorSet(modelTextures[i].mSet, &desc_data, 1);
+        //GPUUpdateDescriptorSet(modelTextures[i].mSet, &desc_data, 1);
     }
 }
 
@@ -931,7 +931,7 @@ void DrawModel(GPURenderPassEncoderID encoder, const LightParam& light, const gl
         GPURenderEncoderPushConstant(encoder, modelRS, &push_constant);
         for (uint32_t i = 0; i < pModel->mMesh.subMeshes.size(); i++)
         {
-            GPURenderEncoderBindDescriptorSet(encoder, modelTextures[i].mSet);
+            //GPURenderEncoderBindDescriptorSet(encoder, modelTextures[i].mSet);
             uint32_t indexCount = pModel->mMesh.subMeshes[i].indexCount;
             GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, pModel->mMesh.subMeshes[i].indexOffset, pModel->mMesh.subMeshes[i].vertexOffset, 0);
         }
