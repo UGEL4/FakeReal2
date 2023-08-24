@@ -105,7 +105,10 @@ public:
     GPUTextureID mTexture {nullptr};
     GPUTextureViewID mTextureView {nullptr};
 
-    TextureData() = default;
+    TextureData()
+    {
+
+    };
     ~TextureData()
     {
         if (mTextureView) GPUFreeTextureView(mTextureView);
@@ -119,15 +122,19 @@ public:
         return mTextureView != nullptr && mTexture != nullptr;
     }
 
-    void LoadTexture(const std::string& file, EGPUFormat format, GPUDeviceID device, GPUQueueID gfxQueue, bool flip = true)
+    void LoadTexture(const std::string_view& file, EGPUFormat format, GPUDeviceID device, GPUQueueID gfxQueue, bool flip = true)
     {
         // todo: opitional
         stbi_set_flip_vertically_on_load(flip);
         int width, height, comp;
-        void* pixel = stbi_load(file.c_str(), &width, &height, &comp, STBI_rgb_alpha);
+        void* pixel = stbi_load(file.data(), &width, &height, &comp, STBI_rgb_alpha);
         if (!pixel)
         {
           return;
+        }
+        if (file == "C:/Dev/FakeReal2/asset/objects/sponza/ChainTexture_Normal.png")
+        {
+            int q = 1;
         }
         uint32_t bytes = width * height * 4; //R8G8BA8
         switch (format)
@@ -225,6 +232,7 @@ public:
 
 private:
     void LoadModel(const std::string_view file);
+    void LoadMaterial();
 
 public:
     const std::vector<NewVertex>& GetVertexBufferData() const
@@ -258,10 +266,11 @@ public:
     }
 
     void UploadResource(class SkyBox* skyBox);
-    PBRMaterial* CreateMaterial(const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string_view, bool>>>& textures);
+    PBRMaterial* CreateMaterial(uint32_t materialIndex, const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string_view, bool>>>& textures);
     void Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos);
 
     Mesh mMesh;
+    std::string mMeshFile;
     std::unordered_map<uint32_t, PBRMaterial*> mMaterials;
     std::unordered_map<std::string_view, TextureData> mTexturePool;
     GPUDeviceID mDevice;

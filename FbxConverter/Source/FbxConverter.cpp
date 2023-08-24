@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <format>
+#include <filesystem>
 // #include <Resource/AssetManager/AssetManager.h>
 // #include <_generated/MeshData_gen.h>
 
@@ -396,9 +397,9 @@ namespace FakeReal
         TriangleMaterialIndex.resize(triangleCount, 0);
         GetTriangleMaterialIndex(pMesh, triangleCount, TriangleMaterialIndex);
 
-        std::vector<int> TriangleSmGroupIndex;
-        TriangleSmGroupIndex.resize(triangleCount, 0);
-        GetTriangleSmGroupIndex(pMesh, triangleCount, TriangleSmGroupIndex);
+        //std::vector<int> TriangleSmGroupIndex;
+        //TriangleSmGroupIndex.resize(triangleCount, 0);
+        //GetTriangleSmGroupIndex(pMesh, triangleCount, TriangleSmGroupIndex);
 
         int MaterialCount = pNode->GetMaterialCount();
         int UVNum         = pMesh->GetElementUVCount();
@@ -431,12 +432,12 @@ namespace FakeReal
                             UVArray.emplace_back(UV);
                         }
 
-                        int f = 0;
-                        for (f = 0; f < mVertexArray.size(); ++f)
+                        int f = mVertexArray.size();
+                        /* for (f = 0; f < mVertexArray.size(); ++f)
                         {
                             if (V == mVertexArray[f])
                             {
-                                if (TriangleSmGroupIndex[i] == mVertexSmGroupArray[f])
+                                //if (TriangleSmGroupIndex[i] == mVertexSmGroupArray[f])
                                 {
                                     int uvChannel = 0;
                                     for (; uvChannel < UVNum; ++uvChannel)
@@ -455,7 +456,7 @@ namespace FakeReal
                                         break;
                                 }
                             }
-                        }
+                        } */
                         // ��û���������v�����Ӷ���v
                         if (f == mVertexArray.size())
                         {
@@ -465,7 +466,7 @@ namespace FakeReal
                             {
                                 mTexCoordArray[uvChannel].emplace_back(UVArray[uvChannel]);
                             }
-                            mVertexSmGroupArray.emplace_back(TriangleSmGroupIndex[i]);
+                            //mVertexSmGroupArray.emplace_back(TriangleSmGroupIndex[i]);
 
                             /*if (pFBXSkin)
                             {
@@ -665,8 +666,9 @@ namespace FakeReal
                         FbxLayeredTexture::EBlendMode blendMode;
                         layeredTex->GetTextureBlendMode(k, blendMode);
                         FbxFileTexture* fileTex = FbxCast<FbxFileTexture>(tex);
+                        std::filesystem::path name(fileTex->GetFileName());
                         FbxTextureData data = {
-                            .m_Name         = fileTex->GetFileName(),
+                            .m_Name         = name.generic_string(),
                             .m_RelativeName = fileTex->GetRelativeFileName(),
                             .m_TypeName     = FbxLayerElement::sTextureChannelNames[textureIndex]
                         };
@@ -679,8 +681,9 @@ namespace FakeReal
                     if (!tex) continue;
 
                     FbxFileTexture* fileTex = FbxCast<FbxFileTexture>(tex);
+                    std::filesystem::path name(fileTex->GetFileName());
                     FbxTextureData data = {
-                        .m_Name         = fileTex->GetFileName(),
+                        .m_Name         = name.generic_string(),
                         .m_RelativeName = fileTex->GetRelativeFileName(),
                         .m_TypeName     = FbxLayerElement::sTextureChannelNames[textureIndex]
                     };
@@ -904,7 +907,7 @@ namespace FakeReal
             for (size_t i = 0; i < pair.second.textures.size(); i++)
             {
                 out << "               {";
-                out << "\"name\":" << "\"" << pair.second.textures[i].m_RelativeName << "\", ";
+                out << "\"name\":" << "\"" << pair.second.textures[i].m_Name << "\", ";
                 out << "\"type\":" << "\"" << pair.second.textures[i].m_TypeName << "\"";
                 if (i < (pair.second.textures.size() - 1))
                 {

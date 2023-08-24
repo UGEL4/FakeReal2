@@ -17,11 +17,11 @@ Model::~Model()
     {
         for (auto& tex : mat.second->textures)
         {
-            if (tex.textureView) GPUFreeTextureView(tex.textureView);
-            if (tex.texture) GPUFreeTexture(tex.texture);
             if (mat.second->set) GPUFreeDescriptorSet(mat.second->set);
         }
+        free(mat.second);
     }
+    mTexturePool.clear();
     if (mUBO) GPUFreeBuffer(mUBO);
     if (mVertexBuffer) GPUFreeBuffer(mVertexBuffer);
     if (mIndexBuffer) GPUFreeBuffer(mIndexBuffer);
@@ -33,6 +33,7 @@ Model::~Model()
 
 void Model::LoadModel(const std::string_view file)
 {
+    mMeshFile = file;
     //std::filesystem::path assetFilePath = GetFullPath(assetUrl);
     std::ifstream is(file.data());
     if (!is.is_open())
@@ -117,7 +118,7 @@ void Model::LoadModel(const std::string_view file)
                     reader.EndArray();
 
                     //texture begin
-                    reader.Key("mTexture");
+                    /* reader.Key("mTexture");
                     reader.StartObject();
                     if (reader.HasKey("diffuse"))
                     {
@@ -132,7 +133,7 @@ void Model::LoadModel(const std::string_view file)
                         reader.EndObject();
                         diffuse_textures.insert(std::make_pair(materialIndex, texName));
                     }
-                    reader.EndObject();
+                    reader.EndObject(); */
                     //texture end
                 }
                 reader.EndObject();
@@ -188,7 +189,7 @@ void Model::LoadModel(const std::string_view file)
         indexOffset  += subMesh.indexCount;
         
         //texture
-        auto tex_iter = diffuse_textures.find(mat_idx);
+       /*  auto tex_iter = diffuse_textures.find(mat_idx);
         if (tex_iter != diffuse_textures.end() && tex_iter->second != "")
         {
             subMesh.diffuse_tex_url = tex_iter->second;
@@ -196,10 +197,72 @@ void Model::LoadModel(const std::string_view file)
         else
         {
             subMesh.diffuse_tex_url = "";
-        }
+        } */
 
         mMesh.subMeshes.emplace_back(subMesh);
     }
+}
+
+void Model::LoadMaterial()
+{
+    std::ifstream is(mMeshFile.data());
+    if (!is.is_open())
+    {
+        return;
+    }
+    std::stringstream ss;
+    ss << is.rdbuf();
+    std::string json_str(ss.str());
+
+    is.close();
+
+    FakeReal::JsonReader reader(json_str.c_str());
+    reader.StartObject();
+    {
+        struct Temp
+        {
+            std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string_view, bool>>> textures;
+        };
+        size_t materialNum = 0;
+        reader.Key("mMaterials");
+        reader.StartArray(&materialNum);
+        for (size_t i = 0; i < materialNum; i++)
+        {
+            Temp tempMat;
+            tempMat.textures.clear();
+            reader.StartObject();
+
+            uint32_t materialIndex = 0;
+            reader.Key("index");
+            reader.Value(materialIndex);
+
+            size_t textureNum = 0;
+            reader.Key("textures");
+            reader.StartArray(&textureNum);
+            for (size_t t = 0; t < textureNum; t++)
+            {
+                reader.StartObject();
+                std::string name;
+                reader.Key("name");
+                reader.Value(name);
+                std::string type;
+                reader.Key("type");
+                reader.Value(type);
+                reader.EndObject();
+                if (type == "DiffuseColor")
+                {
+                    std::pair<PBRMaterialTextureType, std::pair<std::string_view, bool>> pair = {PBR_MTT_DIFFUSE, {name, true}};
+                    tempMat.textures.emplace_back(pair);
+                }
+            }
+            reader.EndArray();
+
+            reader.EndObject();
+            if (tempMat.textures.size()) CreateMaterial(materialIndex, tempMat.textures);
+        }
+        reader.EndArray();
+    }
+    reader.EndObject();
 }
 
 void Model::UploadResource(class SkyBox* skyBox)
@@ -406,28 +469,26 @@ void Model::UploadResource(class SkyBox* skyBox)
     GPUUpdateDescriptorSet(mSet, dataDesc, 5);
 
     //material
-    for (size_t i = 0; i < mMesh.subMeshes.size(); i++)
+    /* for (size_t i = 0; i < mMesh.subMeshes.size(); i++)
     {
-        auto iter = mMaterials.find(mMesh.subMeshes[i].materialIndex);
-        if (iter != mMaterials.end()) continue;
         if (mMesh.subMeshes[i].diffuse_tex_url == "") continue;
         std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string_view, bool>>> textures = {
             { PBR_MTT_DIFFUSE, { "../../../../asset/objects/sponza/" + mMesh.subMeshes[i].diffuse_tex_url, true } }
         };
-        PBRMaterial* mat                             = CreateMaterial(textures);
-        mMaterials[mMesh.subMeshes[i].materialIndex] = mat;
-    }
+        CreateMaterial(mMesh.subMeshes[i].materialIndex, textures);
+    } */
+    LoadMaterial();
 }
 
-PBRMaterial* Model::CreateMaterial(const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string_view, bool>>>& textures)
+PBRMaterial* Model::CreateMaterial(uint32_t materialIndex, const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string_view, bool>>>& textures)
 {
     //find and return
+    auto mat_iter = mMaterials.find(materialIndex);
+    if (mat_iter != mMaterials.end()) return mat_iter->second;
 
     PBRMaterial* m = (PBRMaterial*)calloc(1, sizeof(PBRMaterial));
     m->textures.reserve(textures.size());
 
-    std::vector<void*> pixels(textures.size());
-    uint32_t totalBytes = 0u;
     for (size_t i = 0; i < textures.size(); i++)
     {
         PBRMaterialTextureType type = textures[i].first;
@@ -445,100 +506,17 @@ PBRMaterial* Model::CreateMaterial(const std::vector<std::pair<PBRMaterialTextur
             continue;
         }
 
-        stbi_set_flip_vertically_on_load(flip);
-        int w, h, n;
-        pixels[i] = stbi_load(file.data(), &w, &h, &n, 4);
-        if (!pixels[i])
-        {
-            assert(0);
-            free(m);
-            return nullptr;
-        }
-
-        totalBytes += w * h * 4u;
-
         EGPUFormat format = type == PBR_MTT_DIFFUSE ? GPU_FORMAT_R8G8B8A8_SRGB : GPU_FORMAT_R8G8B8A8_UNORM;
+        TextureData temp;
+        auto&& result = mTexturePool.emplace(file, std::move(temp));
+        result.first->second.LoadTexture(file, format, mDevice, mGfxQueue, flip);
+        //textureData.LoadTexture(file, format, mDevice, mGfxQueue, flip);
+
         auto& pack = m->textures.emplace_back();
-        GPUTextureDescriptor desc = {
-            .flags       = GPU_TCF_OWN_MEMORY_BIT,
-            .width       = (uint32_t)w,
-            .height      = (uint32_t)h,
-            .depth       = 1,
-            .array_size  = 1,
-            .format      = format,
-            .owner_queue = mGfxQueue,
-            .start_state = GPU_RESOURCE_STATE_COPY_DEST,
-            .descriptors = GPU_RESOURCE_TYPE_TEXTURE
-        };
-        pack.texture = GPUCreateTexture(mDevice, &desc);
-        GPUTextureViewDescriptor tex_view_desc = {
-            .pTexture        = pack.texture,
-            .format          = (EGPUFormat)pack.texture->format,
-            .usages          = EGPUTexutreViewUsage::GPU_TVU_SRV,
-            .aspectMask      = EGPUTextureViewAspect::GPU_TVA_COLOR,
-            .baseMipLevel    = 0,
-            .mipLevelCount   = 1,
-            .baseArrayLayer  = 0,
-            .arrayLayerCount = 1,
-        };
-        pack.textureView = GPUCreateTextureView(mDevice, &tex_view_desc);
+        pack.texture     = result.first->second.mTexture;
+        pack.textureView = result.first->second.mTextureView;
         pack.textureType = type;
         pack.slotIndex   = type;
-    }
-
-    GPUBufferDescriptor upload_buffer = {
-        .size         = totalBytes,
-        .descriptors  = GPU_RESOURCE_TYPE_NONE,
-        .memory_usage = GPU_MEM_USAGE_CPU_ONLY,
-        .flags        = GPU_BCF_OWN_MEMORY_BIT | GPU_BCF_PERSISTENT_MAP_BIT
-    };
-    GPUBufferID uploadBuffer = GPUCreateBuffer(mDevice, &upload_buffer);
-
-    GPUCommandPoolID pool              = GPUCreateCommandPool(mGfxQueue);
-    GPUCommandBufferDescriptor cmdDesc = { .isSecondary = false };
-    GPUCommandBufferID cmd             = GPUCreateCommandBuffer(pool, &cmdDesc);
-    GPUResetCommandPool(pool);
-    GPUCmdBegin(cmd);
-    {
-        std::vector<GPUTextureBarrier> barriers(m->textures.size());
-        uint32_t srcOffset = 0;
-        for (uint32_t i = 0; i < m->textures.size(); i++)
-        {
-            uint32_t size = m->textures[i].texture->width * m->textures[i].texture->height * 4;
-            memcpy((uint8_t*)uploadBuffer->cpu_mapped_address + srcOffset, pixels[i], size);
-
-            GPUBufferToTextureTransfer trans_texture_buffer_desc = {
-                .dst                              = m->textures[i].texture,
-                .dst_subresource.mip_level        = 0,
-                .dst_subresource.base_array_layer = 0,
-                .dst_subresource.layer_count      = 1,
-                .src                              = uploadBuffer,
-                .src_offset                       = srcOffset,
-            };
-            GPUCmdTransferBufferToTexture(cmd, &trans_texture_buffer_desc);
-
-            srcOffset += size;
-
-            barriers[i].texture = m->textures[i].texture;
-            barriers[i].src_state = GPU_RESOURCE_STATE_COPY_DEST;
-            barriers[i].dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE;
-        }
-        GPUResourceBarrierDescriptor rs_barrer = {
-            .texture_barriers       = barriers.data(),
-            .texture_barriers_count = (uint32_t)barriers.size()
-        };
-        GPUCmdResourceBarrier(cmd, &rs_barrer);
-    }
-    GPUCmdEnd(cmd);
-    GPUQueueSubmitDescriptor texture_cpy_submit = { .cmds = &cmd, .cmds_count = 1 };
-    GPUSubmitQueue(mGfxQueue, &texture_cpy_submit);
-    GPUWaitQueueIdle(mGfxQueue);
-    GPUFreeBuffer(uploadBuffer);
-    GPUFreeCommandBuffer(cmd);
-    GPUFreeCommandPool(pool);
-    for (size_t i = 0; i < pixels.size(); i++)
-    {
-        stbi_image_free(pixels[i]);
     }
 
     GPUDescriptorSetDescriptor setDesc = {
@@ -562,8 +540,9 @@ PBRMaterial* Model::CreateMaterial(const std::vector<std::pair<PBRMaterialTextur
         desc_data[i + 1].count        = 1;
         desc_data[i + 1].textures     = &m->textures[i].textureView;
     }
-    GPUUpdateDescriptorSet(m->set, desc_data.data(), (uint32_t)desc_data.size());
+    GPUUpdateDescriptorSet(m->set, desc_data.data(), desc_data.size());
 
+    mMaterials.emplace(materialIndex, m);
     return m;
 }
 

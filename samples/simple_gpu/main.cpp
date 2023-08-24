@@ -1121,7 +1121,7 @@ void NormalRenderSimple()
     CreateNormalRendeObjects(skyBox);
     ///normal
 
-    Model* pModel = new Model("../../../../asset/objects/sponza/sponzafbx.json", device, graphicQueue);
+    Model* pModel = new Model("../../../../asset/objects/sponza/Sponza_new3.json", device, graphicQueue);
     pModel->UploadResource(skyBox);
     /* CharacterModel* chModel = new CharacterModel();
     //chModel->LoadModel("../../../../asset/objects/character/garam_obj.json");
