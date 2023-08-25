@@ -2,6 +2,7 @@
 #include <assimp/cimport.h>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <filesystem>
 #include <vector>
 #include <fstream>
 #include <sstream>
@@ -161,6 +162,7 @@ void ProcessMaterials()
 
         aiString roughnessMapPath;
         //if(mat->GetTexture(aiTextureType_SHININESS, 0, &roughnessMapPath) == aiReturn_SUCCESS)
+        if(SponzaRoughnessMaps[i])
         {
             auto&& tex = material.textures.emplace_back();
             tex.url = (const char*)SponzaRoughnessMaps[i];
@@ -198,6 +200,9 @@ void LoadTexture(const aiMaterial* material, aiTextureType type, std::vector<Tex
 
 void SaveFile(const std::string_view filePath)
 {
+    std::filesystem::path file(filePath);
+    std::cout << file.parent_path().generic_string() << std::endl;
+    std::string directory = file.has_parent_path() ? file.parent_path().generic_string() + "/" : "";
     std::stringstream out;
     out << "{\n"
            "    \"mMeshes\": [\n";
@@ -322,7 +327,7 @@ void SaveFile(const std::string_view filePath)
         {
             out << "               {";
             out << "\"name\":"
-                << "\"" << "C:/Dev/FakeReal2/asset/objects/sponza/" + mat.textures[i].url << "\", ";
+                << "\"" << directory + mat.textures[i].url << "\", ";
             out << "\"type\":"
                 << "\"" << mat.textures[i].typeName << "\"";
             if (i < (mat.textures.size() - 1))
