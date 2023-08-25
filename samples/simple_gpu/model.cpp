@@ -216,20 +216,16 @@ void Model::LoadMaterial()
 
     is.close();
 
+    std::unordered_map<uint32_t, std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string, bool>>>> materials;
     FakeReal::JsonReader reader(json_str.c_str());
     reader.StartObject();
     {
-        struct Temp
-        {
-            std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string_view, bool>>> textures;
-        };
         size_t materialNum = 0;
         reader.Key("mMaterials");
         reader.StartArray(&materialNum);
         for (size_t i = 0; i < materialNum; i++)
         {
-            Temp tempMat;
-            tempMat.textures.clear();
+            std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string, bool>>> textures;
             reader.StartObject();
 
             uint32_t materialIndex = 0;
@@ -249,20 +245,27 @@ void Model::LoadMaterial()
                 reader.Key("type");
                 reader.Value(type);
                 reader.EndObject();
-                if (type == "DiffuseColor")
+                if (type == "diffuse")
                 {
-                    std::pair<PBRMaterialTextureType, std::pair<std::string_view, bool>> pair = {PBR_MTT_DIFFUSE, {name, true}};
-                    tempMat.textures.emplace_back(pair);
+                    textures.emplace_back(std::pair<PBRMaterialTextureType, std::pair<std::string, bool>>{PBR_MTT_DIFFUSE, {name, true}});
                 }
             }
             reader.EndArray();
 
             reader.EndObject();
-            if (tempMat.textures.size()) CreateMaterial(materialIndex, tempMat.textures);
+            if (textures.size())
+            {
+                materials.emplace(materialIndex, textures);
+            }
         }
         reader.EndArray();
     }
     reader.EndObject();
+
+    for (const auto& pair: materials)
+    {
+        if (pair.second.size()) CreateMaterial(pair.first, pair.second);
+    }
 }
 
 void Model::UploadResource(class SkyBox* skyBox)
@@ -480,7 +483,7 @@ void Model::UploadResource(class SkyBox* skyBox)
     LoadMaterial();
 }
 
-PBRMaterial* Model::CreateMaterial(uint32_t materialIndex, const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string_view, bool>>>& textures)
+PBRMaterial* Model::CreateMaterial(uint32_t materialIndex, const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string, bool>>>& textures)
 {
     //find and return
     auto mat_iter = mMaterials.find(materialIndex);
@@ -503,6 +506,7 @@ PBRMaterial* Model::CreateMaterial(uint32_t materialIndex, const std::vector<std
             pack.textureView = tex_iter->second.mTextureView;
             pack.textureType = type;
             pack.slotIndex   = type;
+            pack.name = file;
             continue;
         }
 
@@ -517,6 +521,7 @@ PBRMaterial* Model::CreateMaterial(uint32_t materialIndex, const std::vector<std
         pack.textureView = result.first->second.mTextureView;
         pack.textureType = type;
         pack.slotIndex   = type;
+        pack.name = file;
     }
 
     GPUDescriptorSetDescriptor setDesc = {

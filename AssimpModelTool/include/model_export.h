@@ -31,8 +31,15 @@ struct MeshData
     uint32_t materialIndex;
 };
 
+struct Materials
+{
+    uint32_t index;
+    std::vector<TextureDate> textures;
+};
+
 void ExportModel(std::string_view file, std::string_view outFile);
 void ProcessNode(const struct aiNode* node);
 void ProcessMesh(const struct aiMesh* mesh);
+void ProcessMaterials();
 void LoadTexture(const aiMaterial* material, aiTextureType type, std::vector<TextureDate>& tex, std::string_view typeName);
 void SaveFile(const std::string_view filePath);

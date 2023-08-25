@@ -93,6 +93,7 @@ struct PBRMaterial
         GPUTextureViewID textureView;
         PBRMaterialTextureType textureType;
         uint32_t slotIndex;
+        std::string name;
     };
     std::vector<Pack> textures;
     GPUSamplerID sampler;
@@ -132,10 +133,7 @@ public:
         {
           return;
         }
-        if (file == "C:/Dev/FakeReal2/asset/objects/sponza/ChainTexture_Normal.png")
-        {
-            int q = 1;
-        }
+
         uint32_t bytes = width * height * 4; //R8G8BA8
         switch (format)
         {
@@ -266,7 +264,7 @@ public:
     }
 
     void UploadResource(class SkyBox* skyBox);
-    PBRMaterial* CreateMaterial(uint32_t materialIndex, const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string_view, bool>>>& textures);
+    PBRMaterial* CreateMaterial(uint32_t materialIndex, const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string, bool>>>& textures);
     void Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos);
 
     Mesh mMesh;

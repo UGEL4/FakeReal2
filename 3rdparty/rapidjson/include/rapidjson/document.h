@@ -1114,7 +1114,10 @@ public:
     bool IsTrue()   const { return data_.f.flags == kTrueFlag; }
     bool IsBool()   const { return (data_.f.flags & kBoolFlag) != 0; }
     bool IsObject() const { return data_.f.flags == kObjectFlag; }
-    bool IsArray()  const { return data_.f.flags == kArrayFlag; }
+    bool IsArray()  const 
+    {
+        return data_.f.flags == kArrayFlag;
+    }
     bool IsNumber() const { return (data_.f.flags & kNumberFlag) != 0; }
     bool IsInt()    const { return (data_.f.flags & kIntFlag) != 0; }
     bool IsUint()   const { return (data_.f.flags & kUintFlag) != 0; }

@@ -397,9 +397,9 @@ namespace FakeReal
         TriangleMaterialIndex.resize(triangleCount, 0);
         GetTriangleMaterialIndex(pMesh, triangleCount, TriangleMaterialIndex);
 
-        //std::vector<int> TriangleSmGroupIndex;
-        //TriangleSmGroupIndex.resize(triangleCount, 0);
-        //GetTriangleSmGroupIndex(pMesh, triangleCount, TriangleSmGroupIndex);
+        std::vector<int> TriangleSmGroupIndex;
+        TriangleSmGroupIndex.resize(triangleCount, 0);
+        GetTriangleSmGroupIndex(pMesh, triangleCount, TriangleSmGroupIndex);
 
         int MaterialCount = pNode->GetMaterialCount();
         int UVNum         = pMesh->GetElementUVCount();
@@ -432,12 +432,12 @@ namespace FakeReal
                             UVArray.emplace_back(UV);
                         }
 
-                        int f = mVertexArray.size();
-                        /* for (f = 0; f < mVertexArray.size(); ++f)
+                        int f = 0;
+                        for (f = 0; f < mVertexArray.size(); ++f)
                         {
                             if (V == mVertexArray[f])
                             {
-                                //if (TriangleSmGroupIndex[i] == mVertexSmGroupArray[f])
+                                if (TriangleSmGroupIndex[i] == mVertexSmGroupArray[f])
                                 {
                                     int uvChannel = 0;
                                     for (; uvChannel < UVNum; ++uvChannel)
@@ -456,7 +456,7 @@ namespace FakeReal
                                         break;
                                 }
                             }
-                        } */
+                        }
                         // ��û���������v�����Ӷ���v
                         if (f == mVertexArray.size())
                         {
@@ -466,7 +466,7 @@ namespace FakeReal
                             {
                                 mTexCoordArray[uvChannel].emplace_back(UVArray[uvChannel]);
                             }
-                            //mVertexSmGroupArray.emplace_back(TriangleSmGroupIndex[i]);
+                            mVertexSmGroupArray.emplace_back(TriangleSmGroupIndex[i]);
 
                             /*if (pFBXSkin)
                             {
