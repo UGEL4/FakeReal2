@@ -82,7 +82,9 @@ struct Mesh
 enum PBRMaterialTextureType
 {
     PBR_MTT_DIFFUSE = 0,
-    PBR_MTT_NORMAL = 1
+    PBR_MTT_NORMAL = 1,
+    PBR_MTT_METALLIC = 2,
+    PBR_MTT_ROUGHNESS = 3,
 };
 
 struct PBRMaterial
@@ -266,6 +268,7 @@ public:
     void UploadResource(class SkyBox* skyBox);
     PBRMaterial* CreateMaterial(uint32_t materialIndex, const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string, bool>>>& textures);
     void Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos);
+    void UpdateShadowMapSet(GPUTextureViewID shadowMap);
 
     Mesh mMesh;
     std::string mMeshFile;
@@ -276,6 +279,7 @@ public:
     GPURenderPipelineID mPbrPipeline;
     GPURootSignatureID mRootSignature;
     GPUDescriptorSetID mSet;
+    GPUDescriptorSetID mShadowMapSet;
     GPUBufferID mVertexBuffer;
     GPUBufferID mIndexBuffer;
     GPUSamplerID mSampler;

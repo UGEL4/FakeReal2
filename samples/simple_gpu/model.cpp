@@ -27,6 +27,7 @@ Model::~Model()
     if (mIndexBuffer) GPUFreeBuffer(mIndexBuffer);
     if (mSampler) GPUFreeSampler(mSampler);
     if (mSet) GPUFreeDescriptorSet(mSet);
+    if (mShadowMapSet) GPUFreeDescriptorSet(mShadowMapSet);
     if (mRootSignature) GPUFreeRootSignature(mRootSignature);
     if (mPbrPipeline) GPUFreeRenderPipeline(mPbrPipeline);
 }
@@ -69,11 +70,6 @@ void Model::LoadModel(const std::string_view file)
                     reader.Key("mMaterialIndex");
                     reader.Value(materialIndex);
 
-                    if (materialIndex == 12)
-                    {
-                        int a = 0;
-                    }
-
                     reader.Key("mVertices");
                     size_t count = 0;
                     reader.StartArray(&count);
@@ -99,6 +95,18 @@ void Model::LoadModel(const std::string_view file)
                             reader.Value(v.u);
                             reader.Key("ty");
                             reader.Value(v.v);
+                            reader.Key("tanx");
+                            reader.Value(v.tan_x);
+                            reader.Key("tany");
+                            reader.Value(v.tan_y);
+                            reader.Key("tanz");
+                            reader.Value(v.tan_z);
+                            reader.Key("btanx");
+                            reader.Value(v.btan_x);
+                            reader.Key("btany");
+                            reader.Value(v.btan_y);
+                            reader.Key("btanz");
+                            reader.Value(v.btan_z);
                         }
                         reader.EndObject();
                         meshData.vertices.emplace_back(v);
@@ -245,9 +253,26 @@ void Model::LoadMaterial()
                 reader.Key("type");
                 reader.Value(type);
                 reader.EndObject();
-                if (type == "diffuse")
+                //if (type == "diffuse")
                 {
-                    textures.emplace_back(std::pair<PBRMaterialTextureType, std::pair<std::string, bool>>{PBR_MTT_DIFFUSE, {name, true}});
+                    PBRMaterialTextureType t = PBR_MTT_DIFFUSE;
+                    if (type == "diffuse")
+                    {
+                        t = PBR_MTT_DIFFUSE;
+                    }
+                    else if (type == "normal")
+                    {
+                        t = PBR_MTT_NORMAL;
+                    }
+                    else if (type == "metallic")
+                    {
+                        t = PBR_MTT_METALLIC;
+                    }
+                    else if (type == "roughness")
+                    {
+                        t = PBR_MTT_ROUGHNESS;
+                    }
+                    textures.emplace_back(std::pair<PBRMaterialTextureType, std::pair<std::string, bool>>{t, {name, true}});
                 }
             }
             reader.EndArray();
@@ -439,6 +464,12 @@ void Model::UploadResource(class SkyBox* skyBox)
     };
     mSet = GPUCreateDescriptorSet(mDevice, &setDesc);
 
+    setDesc = {
+        .root_signature = mRootSignature,
+        .set_index      = 2
+    };
+    mShadowMapSet = GPUCreateDescriptorSet(mDevice, &setDesc);
+
     GPUBufferDescriptor uboDesc = {
         .size = sizeof(CommonUniformBuffer),
         .descriptors = GPU_RESOURCE_TYPE_UNIFORM_BUFFER,
@@ -481,6 +512,16 @@ void Model::UploadResource(class SkyBox* skyBox)
         CreateMaterial(mMesh.subMeshes[i].materialIndex, textures);
     } */
     LoadMaterial();
+}
+
+void Model::UpdateShadowMapSet(GPUTextureViewID shadowMap)
+{
+    GPUDescriptorData dataDesc[1] = {};
+    dataDesc[0].binding           = 0;
+    dataDesc[0].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
+    dataDesc[0].textures          = &shadowMap;
+    dataDesc[0].count             = 1;
+    GPUUpdateDescriptorSet(mShadowMapSet, dataDesc, 1);
 }
 
 PBRMaterial* Model::CreateMaterial(uint32_t materialIndex, const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string, bool>>>& textures)

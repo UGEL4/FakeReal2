@@ -27,6 +27,15 @@ layout(location = 0) out vec3 outWorldPos;
 layout(location = 1) out vec3 outNormal;
 layout(location = 2) out vec2 outUV;
 
+layout(location = 3) out VS_TengentOut
+{
+    vec3 viewPos;
+    vec3 tangentViewPos;
+    vec3 tangentFragPos;
+    mat3 TBN;
+} vs_out;
+
+
 void main()
 {
     mat3 normalMatrix = mat3(transpose(inverse(pushConsts.model)));
@@ -35,4 +44,14 @@ void main()
     outWorldPos       = worldPos.xyz;
     outNormal         = normalMatrix * inNormal;
     outUV             = inUV;
+
+    vec3 T = normalize(normalMatrix * inTangent);
+    vec3 B = normalize(normalMatrix * inBiTangent);
+    vec3 N = normalize(normalMatrix * inNormal);
+    mat3 TBN = transpose(mat3(T, B, N));
+
+    vs_out.tangentViewPos  = TBN * ubo.viewPos.xyz;
+    vs_out.tangentFragPos  = TBN * outWorldPos;
+    vs_out.viewPos  = ubo.viewPos.xyz;
+    vs_out.TBN = mat3(T, B, N);
 }

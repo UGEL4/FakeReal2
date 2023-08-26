@@ -14,6 +14,7 @@
 #include "sky_box.hpp"
 #include "camera.hpp"
 #include "character_model.hpp"
+#include "shadow_pass.hpp"
 
 static int WIDTH = 1080;
 static int HEIGHT = 1080;
@@ -1121,12 +1122,17 @@ void NormalRenderSimple()
     CreateNormalRendeObjects(skyBox);
     ///normal
 
-    Model* pModel = new Model("../../../../asset/objects/sponza/Sponza_assimp.json", device, graphicQueue);
+    Model* pModel = new Model("../../../../asset/objects/sponza/Sponza_new.json", device, graphicQueue);
     pModel->UploadResource(skyBox);
     /* CharacterModel* chModel = new CharacterModel();
     //chModel->LoadModel("../../../../asset/objects/character/garam_obj.json");
     chModel->LoadModel("D:/c++/Garam (v1.0)/garam_obj.json");
     chModel->InitModelResource(device, graphicQueue, skyBox); */
+
+    ShadowPass* pShadowPass = new ShadowPass(device, graphicQueue);
+    pShadowPass->InitRenderObjects();
+
+    pModel->UpdateShadowMapSet(pShadowPass->mDepthTextureView);
 
 
     //light
@@ -1174,6 +1180,19 @@ void NormalRenderSimple()
             GPUResetCommandPool(pool);
             GPUCmdBegin(cmd);
             {
+                glm::vec4 viewPos = glm::vec4(gCamera.position.x, gCamera.position.y, gCamera.position.z, 1.0);
+                glm::vec3 directLightPos(-2.0f, 4.0f, -1.0f);
+                //render shadow
+                ShadowPass::ShadowDrawSceneInfo sceneInfo = {
+                    .vertexBuffer = pModel->mVertexBuffer,
+                    .indexBuffer = pModel->mIndexBuffer,
+                    .mesh = &(pModel->mMesh),
+                    .materials = &(pModel->mMaterials),
+                    .strides = sizeof(NewVertex)
+                };
+                pShadowPass->Draw(sceneInfo, cmd, gCamera.matrices.view, gCamera.matrices.perspective, -viewPos, directLightPos);
+
+                //render scene
                 GPUTextureBarrier tex_barrier{};
                 tex_barrier.texture   = backbuffer;
                 tex_barrier.src_state = GPU_RESOURCE_STATE_UNDEFINED;
@@ -1207,8 +1226,6 @@ void NormalRenderSimple()
                                                 0.f, 1.f);
                     GPURenderEncoderSetScissor(encoder, 0, 0, backbuffer->width,
                                                backbuffer->height);
-
-                    glm::vec4 viewPos = glm::vec4(gCamera.position.x, gCamera.position.y, gCamera.position.z, 1.0);
                     //DrawNormalObject(encoder, lightInfo, -viewPos, gCamera.matrices.view, gCamera.matrices.perspective);
                     //DrawModel(encoder, lightInfo, -viewPos, gCamera.matrices.view, gCamera.matrices.perspective);
                     //chModel->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, -viewPos);
@@ -1268,6 +1285,7 @@ void NormalRenderSimple()
     }
     GPUFreeSampler(staticSampler);
     
+    delete pShadowPass;
     ////////////model
     //FreeModelRendderObjects();
     delete pModel;
