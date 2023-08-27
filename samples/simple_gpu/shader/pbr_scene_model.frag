@@ -25,6 +25,7 @@ layout(location = 3) in VS_TengentOut
     vec3 viewPos;
     vec3 tangentViewPos;
     vec3 tangentFragPos;
+    vec4 lightSpacePos;
     mat3 TBN;
 } fs_in;
 
@@ -56,6 +57,37 @@ vec3 getNormalFromMap()
     mat3 TBN = mat3(T, B, N);
 
     return normalize(TBN * tangentNormal);
+}
+
+float ShadowCalculation(vec4 fragPosLightSpace)
+{
+    // perform perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // transform to [0,1] range
+    projCoords = projCoords * 0.5 + 0.5;
+    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+    float closestDepth = texture(sampler2D(shadowMap, texSamp), projCoords.xy).r; 
+    // get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
+    // check whether current frag pos is in shadow
+    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
+
+    return shadow;
+}
+
+float textureProj(vec4 fragPosLightSpace, vec2 off)
+{
+	float shadow = 1.0;
+    vec4 shadowCoord = fragPosLightSpace / fragPosLightSpace.w;
+	if ( shadowCoord.z > -1.0 && shadowCoord.z < 1.0 ) 
+	{
+		float dist = texture(sampler2D(shadowMap, texSamp), shadowCoord.st + off).r;
+		if ( shadowCoord.w > 0.0 && dist < shadowCoord.z ) 
+		{
+			shadow = 0.1;
+		}
+	}
+	return shadow;
 }
 
 void main()
@@ -118,6 +150,9 @@ void main()
     vec3 specular   = reflection * (F * brdf.x + brdf.y);
     vec3 ambient    = (Kd * diffuse + specular) * ao;
     vec3 color 	 = ambient + Lo;
+
+    float shadow = textureProj(fs_in.lightSpacePos, vec2(0.0));
+    color *= shadow;
     color        = color / (color + vec3(1.0));
     color        = pow(color, vec3(1.0 / 2.2));
     outColor     = vec4(color, 1.0);

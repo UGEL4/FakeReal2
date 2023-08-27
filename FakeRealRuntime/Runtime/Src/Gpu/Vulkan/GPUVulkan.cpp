@@ -1849,6 +1849,14 @@ GPURenderPassEncoderID GPUCmdBeginRenderPass_Vulkan(GPUCommandBufferID cmd, cons
     r_desc.depthStoreOp   = desc->depth_stencil ? desc->depth_stencil->depth_store_action : GPU_STORE_ACTION_STORE;
     r_desc.stencilLoadOp  = desc->depth_stencil ? desc->depth_stencil->stencil_load_action : GPU_LOAD_ACTION_DONTCARE;
     r_desc.stencilStoreOp = desc->depth_stencil ? desc->depth_stencil->stencil_store_action : GPU_STORE_ACTION_STORE;
+    if (desc->render_target_count == 0)
+    {
+        if (desc->depth_stencil && desc->depth_stencil->view)
+        {
+            Width = desc->depth_stencil->view->desc.pTexture->width;
+            Height = desc->depth_stencil->view->desc.pTexture->height;
+        }
+    }
     VulkanUtil_FindOrCreateRenderPass(D, &r_desc, &render_pass);
 
     VkFramebuffer framebuffer = VK_NULL_HANDLE;

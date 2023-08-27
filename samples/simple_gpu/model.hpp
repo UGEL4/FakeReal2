@@ -267,7 +267,7 @@ public:
 
     void UploadResource(class SkyBox* skyBox);
     PBRMaterial* CreateMaterial(uint32_t materialIndex, const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string, bool>>>& textures);
-    void Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos);
+    void Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos, const glm::mat4& lightSpaceMatrix);
     void UpdateShadowMapSet(GPUTextureViewID shadowMap);
 
     Mesh mMesh;

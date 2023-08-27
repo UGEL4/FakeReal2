@@ -592,7 +592,7 @@ PBRMaterial* Model::CreateMaterial(uint32_t materialIndex, const std::vector<std
     return m;
 }
 
-void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos)
+void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos, const glm::mat4& lightSpaceMatrix)
 {
     //update uniform bffer
     CommonUniformBuffer ubo = {
@@ -628,9 +628,13 @@ void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const gl
     uint32_t strides = sizeof(NewVertex);
     GPURenderEncoderBindVertexBuffers(encoder, 1, &mVertexBuffer, &strides, nullptr);
     GPURenderEncoderBindIndexBuffer(encoder, mIndexBuffer, 0, sizeof(uint32_t));
-    glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
+    glm::mat4 matrices[2];
+    matrices[0] = glm::scale(glm::mat4(1.0f), glm::vec3(1.f, 1.f, 1.f));
+    matrices[1] = lightSpaceMatrix;
+    //glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
     for (auto& nodePair : drawNodesInfo)
     {
+        GPURenderEncoderBindDescriptorSet(encoder, mShadowMapSet);
         //per material
         auto& mat = nodePair.first;
         GPURenderEncoderBindDescriptorSet(encoder, mat->set);
@@ -640,7 +644,7 @@ void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const gl
             auto& mesh = nodePair.second[i];
             uint32_t indexCount = mesh->indexCount;
             //glm::mat4 model(1.0f);
-            GPURenderEncoderPushConstant(encoder, mRootSignature, &model);
+            GPURenderEncoderPushConstant(encoder, mRootSignature, &matrices);
             GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, mesh->indexOffset, mesh->vertexOffset, 0);
         }
     }

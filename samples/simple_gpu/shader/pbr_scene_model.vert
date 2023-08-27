@@ -11,6 +11,7 @@ layout(set = 0, binding = 4) uniform UniformBufferObj
 layout(push_constant) uniform PushConsts
 {
     mat4 model;
+    layout(offset = 64) mat4 lightSpaceMat;
     /* layout(offset = 16) float metallic;
     layout(offset = 20) float roughness;
     layout(offset = 24) float ao;
@@ -32,6 +33,7 @@ layout(location = 3) out VS_TengentOut
     vec3 viewPos;
     vec3 tangentViewPos;
     vec3 tangentFragPos;
+    vec4 lightSpacePos;
     mat3 TBN;
 } vs_out;
 
@@ -54,4 +56,5 @@ void main()
     vs_out.tangentFragPos  = TBN * outWorldPos;
     vs_out.viewPos  = ubo.viewPos.xyz;
     vs_out.TBN = mat3(T, B, N);
+    vs_out.lightSpacePos = pushConsts.lightSpaceMat * worldPos;
 }

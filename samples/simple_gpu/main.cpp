@@ -122,7 +122,10 @@ LRESULT CALLBACK WindowProcedure(HWND window, UINT msg, WPARAM wp, LPARAM lp)
                 switch (wp)
                 {
                     case KEY_W:
-                        gCamera.keys.up = false;
+                        {
+                            gCamera.keys.up = false;
+                            std::cout << gCamera.position.x << "," << gCamera.position.y << "," << gCamera.position.z << std::endl;
+                        }
                         break;
                     case KEY_S:
                         gCamera.keys.down = false;
@@ -965,7 +968,7 @@ int main(int argc, char** argv)
     gCamera.setPerspective(90.0f, (float)WIDTH / (float)HEIGHT, 0.1f, 1000.0f);
     gCamera.rotationSpeed = 0.25f;
     //gCamera.setRotation({ -3.75f, 180.0f, 0.0f });
-    gCamera.setPosition({ 0.f, 0.f, -10.0f });
+    gCamera.setPosition({ 0,-2,-12.f });
 
     NormalRenderSimple();
    // RenderGraphSimple();
@@ -1122,7 +1125,7 @@ void NormalRenderSimple()
     CreateNormalRendeObjects(skyBox);
     ///normal
 
-    Model* pModel = new Model("../../../../asset/objects/sponza/Sponza_new.json", device, graphicQueue);
+    Model* pModel = new Model("../../../../asset/objects/sponza/Sponza_one.json", device, graphicQueue);
     pModel->UploadResource(skyBox);
     /* CharacterModel* chModel = new CharacterModel();
     //chModel->LoadModel("../../../../asset/objects/character/garam_obj.json");
@@ -1132,7 +1135,7 @@ void NormalRenderSimple()
     ShadowPass* pShadowPass = new ShadowPass(device, graphicQueue);
     pShadowPass->InitRenderObjects();
 
-    pModel->UpdateShadowMapSet(pShadowPass->mDepthTextureView);
+    //pModel->UpdateShadowMapSet(pShadowPass->mTextureView);
 
 
     //light
@@ -1181,7 +1184,7 @@ void NormalRenderSimple()
             GPUCmdBegin(cmd);
             {
                 glm::vec4 viewPos = glm::vec4(gCamera.position.x, gCamera.position.y, gCamera.position.z, 1.0);
-                glm::vec3 directLightPos(-2.0f, 4.0f, -1.0f);
+                glm::vec3 directLightPos(-10,5,0);
                 //render shadow
                 ShadowPass::ShadowDrawSceneInfo sceneInfo = {
                     .vertexBuffer = pModel->mVertexBuffer,
@@ -1190,7 +1193,6 @@ void NormalRenderSimple()
                     .materials = &(pModel->mMaterials),
                     .strides = sizeof(NewVertex)
                 };
-                pShadowPass->Draw(sceneInfo, cmd, gCamera.matrices.view, gCamera.matrices.perspective, -viewPos, directLightPos);
 
                 //render scene
                 GPUTextureBarrier tex_barrier{};
@@ -1202,6 +1204,7 @@ void NormalRenderSimple()
                 draw_barrier.texture_barriers_count = 1;
                 GPUCmdResourceBarrier(cmd, &draw_barrier);
 
+                pShadowPass->Draw(sceneInfo, cmd, gCamera.matrices.view, gCamera.matrices.perspective, -viewPos, directLightPos);
                 GPUColorAttachment screenAttachment{};
                 screenAttachment.view         = backbuffer_view;
                 screenAttachment.load_action  = GPU_LOAD_ACTION_CLEAR;
@@ -1229,9 +1232,11 @@ void NormalRenderSimple()
                     //DrawNormalObject(encoder, lightInfo, -viewPos, gCamera.matrices.view, gCamera.matrices.perspective);
                     //DrawModel(encoder, lightInfo, -viewPos, gCamera.matrices.view, gCamera.matrices.perspective);
                     //chModel->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, -viewPos);
-                    pModel->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, -viewPos);
+                    //pModel->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, -viewPos, pShadowPass->mLightSpaceMatrix);
                     //skyybox
-                    skyBox->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, -viewPos);
+                    //skyBox->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, -viewPos);
+
+                    pShadowPass->DebugShadow(encoder);
                 }
                 GPUCmdEndRenderPass(cmd, encoder);
 
