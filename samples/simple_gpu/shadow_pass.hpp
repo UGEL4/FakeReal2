@@ -264,7 +264,7 @@ public:
 
         dataDesc[0].binding      = 0;
         dataDesc[0].binding_type = GPU_RESOURCE_TYPE_TEXTURE;
-        dataDesc[0].textures     = &mTextureView;
+        dataDesc[0].textures     = &mDepthTextureView;
         dataDesc[0].count        = 1;
         dataDesc[1].binding      = 1;
         dataDesc[1].binding_type = GPU_RESOURCE_TYPE_SAMPLER;
@@ -318,12 +318,12 @@ public:
         }
 
         GPUTextureBarrier tex_barriers[1] = {};
-        tex_barriers[0].texture   = mTexture;
+        /* tex_barriers[0].texture   = mTexture;
         tex_barriers[0].src_state = GPU_RESOURCE_STATE_UNDEFINED;
-        tex_barriers[0].dst_state = GPU_RESOURCE_STATE_RENDER_TARGET;
-        /* tex_barriers[0].texture   = mDepthTexture;
+        tex_barriers[0].dst_state = GPU_RESOURCE_STATE_RENDER_TARGET; */
+        tex_barriers[0].texture   = mDepthTexture;
         tex_barriers[0].src_state = GPU_RESOURCE_STATE_UNDEFINED;
-        tex_barriers[0].dst_state = GPU_RESOURCE_STATE_DEPTH_WRITE; */
+        tex_barriers[0].dst_state = GPU_RESOURCE_STATE_DEPTH_WRITE;
         GPUResourceBarrierDescriptor draw_barrier{};
         draw_barrier.texture_barriers       = tex_barriers;
         draw_barrier.texture_barriers_count = sizeof(tex_barriers) / sizeof(GPUTextureBarrier);
@@ -360,7 +360,7 @@ public:
             GPURenderEncoderBindIndexBuffer(encoder, sceneInfo.indexBuffer, 0, sizeof(uint32_t));
             //glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
             glm::mat4 model = glm::mat4(1.0f);
-            model = lightProjection * lightView * model;
+            model = proj * view * model;
             for (auto& nodePair : drawNodesInfo)
             {
                 for (size_t i = 0; i < nodePair.second.size() && i < 1; i++)
@@ -376,12 +376,12 @@ public:
         GPUCmdEndRenderPass(cmd, encoder);
 
         GPUTextureBarrier tex_barrier1{};
-        /* tex_barrier1.texture   = mDepthTexture;
+        tex_barrier1.texture   = mDepthTexture;
         tex_barrier1.src_state = GPU_RESOURCE_STATE_DEPTH_WRITE;
-        tex_barrier1.dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE; */
-        tex_barrier1.texture   = mTexture;
-        tex_barrier1.src_state = GPU_RESOURCE_STATE_RENDER_TARGET;
         tex_barrier1.dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE;
+        /* tex_barrier1.texture   = mTexture;
+        tex_barrier1.src_state = GPU_RESOURCE_STATE_RENDER_TARGET;
+        tex_barrier1.dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE; */
         GPUResourceBarrierDescriptor barrier{};
         barrier.texture_barriers_count = 1;
         barrier.texture_barriers       = &tex_barrier1;
