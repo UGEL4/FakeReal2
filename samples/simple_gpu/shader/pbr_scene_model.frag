@@ -146,13 +146,13 @@ void main()
     //reflection = textureLod(samplerCube(texPrefilteredMap, envTexSamp), R, roughness * 9.0).rgb;
     vec2 brdf       = texture(sampler2D(texBRDFLut, envTexSamp), vec2(max(dot(N, V), 0.0), roughness)).rg;
 
-    vec3 diffuse    = irradiance * albedo;
-    vec3 specular   = reflection * (F * brdf.x + brdf.y);
+    float shadow = textureProj(fs_in.lightSpacePos, vec2(0.0));
+    vec3 diffuse    = irradiance * albedo; diffuse *= (shadow);
+    vec3 specular   = reflection * (F * brdf.x + brdf.y); specular*=shadow;
     vec3 ambient    = (Kd * diffuse + specular) * ao;
     vec3 color 	 = ambient + Lo;
 
-    float shadow = textureProj(fs_in.lightSpacePos, vec2(0.0));
-    color *= shadow;
+    //color *= shadow;
     color        = color / (color + vec3(1.0));
     color        = pow(color, vec3(1.0 / 2.2));
     outColor     = vec4(color, 1.0);

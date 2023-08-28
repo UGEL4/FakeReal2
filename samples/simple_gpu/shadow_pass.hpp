@@ -298,8 +298,17 @@ public:
     void Draw(const ShadowDrawSceneInfo& sceneInfo, GPUCommandBufferID cmd, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos, const glm::vec3 lightPos)
     {
         float near_plane = 0.0f, far_plane = 7.0f;
-        glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+        glm::vec3 lpos = -18.0f * lightPos;
         glm::mat4 lightView       = glm::lookAt(lightPos, glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+        glm::vec4 centerLS = lightView * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        float l = centerLS.x - 10.f;
+        float b = centerLS.y - 10.f;
+        float n = centerLS.z;
+        float r = centerLS.x + 10.f;
+        float t = centerLS.y + 10.f;
+        float f = centerLS.z + 10.f;
+        glm::mat4 lightProjection = glm::ortho(l, r, b, t, n, f);
+
         mLightSpaceMatrix         = lightProjection * lightView;
 
         /* glm::mat4 depthProjectionMatrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.0f, 1000.0f);

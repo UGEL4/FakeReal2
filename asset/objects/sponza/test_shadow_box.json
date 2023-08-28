@@ -66,10 +66,10 @@
         {
             "index":18,
             "textures":[
-                {"name":"C:/Dev/FakeReal2/asset/objects/sponza/Sponza_Curtain_Red_diffuse.png", "type":"diffuse"},
-                {"name":"C:/Dev/FakeReal2/asset/objects/sponza/Sponza_Curtain_Red_normal.png", "type":"normal"},
-                {"name":"C:/Dev/FakeReal2/asset/objects/sponza/Sponza_Curtain_roughness.png", "type":"roughness"},
-                {"name":"C:/Dev/FakeReal2/asset/objects/sponza/Sponza_Curtain_metallic.png", "type":"metallic"}
+                {"name":"../../../../asset/objects/sponza/Sponza_Curtain_Red_diffuse.png", "type":"diffuse"},
+                {"name":"../../../../asset/objects/sponza/Sponza_Curtain_Red_normal.png", "type":"normal"},
+                {"name":"../../../../asset/objects/sponza/Sponza_Curtain_roughness.png", "type":"roughness"},
+                {"name":"../../../../asset/objects/sponza/Sponza_Curtain_metallic.png", "type":"metallic"}
             ]
         }
     ]

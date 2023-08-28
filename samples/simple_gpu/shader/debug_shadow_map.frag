@@ -25,6 +25,7 @@ void main()
 {
     float depthValue = texture(sampler2D(tex, texSamp), inUv).r;
     // FragColor = vec4(vec3(LinearizeDepth(depthValue) / far_plane), 1.0); // perspective
+    float v = depthValue >= 1.0 ? 0.5 : 1.0;
     outColor = vec4(vec3(depthValue), 1.0); // orthographic
     float depth = texture(sampler2D(tex, texSamp), inUv).r;
 	//outColor = vec4(vec3(1.0-LinearizeDepth(depth)), 1.0);
