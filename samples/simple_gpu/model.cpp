@@ -15,10 +15,7 @@ Model::~Model()
 {
     for (auto& mat : mMaterials)
     {
-        for (auto& tex : mat.second->textures)
-        {
-            if (mat.second->set) GPUFreeDescriptorSet(mat.second->set);
-        }
+        if (mat.second->set) GPUFreeDescriptorSet(mat.second->set);
         free(mat.second);
     }
     mTexturePool.clear();
@@ -393,6 +390,8 @@ void Model::UploadResource(class SkyBox* skyBox)
         .stage    = GPU_SHADER_STAGE_VERT
     };
     GPUShaderLibraryID vsShader = GPUCreateShaderLibrary(mDevice, &shaderDesc);
+    free(shaderCode);
+    shaderCode = nullptr;
     size = 0;
     ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/pbr_scene_model.frag", &shaderCode, &size);
     shaderDesc = {
@@ -402,6 +401,8 @@ void Model::UploadResource(class SkyBox* skyBox)
         .stage    = GPU_SHADER_STAGE_FRAG
     };
     GPUShaderLibraryID psShader = GPUCreateShaderLibrary(mDevice, &shaderDesc);
+    free(shaderCode);
+    shaderCode = nullptr;
 
     CGPUShaderEntryDescriptor entry_desc[2] = {};
     entry_desc[0].pLibrary = vsShader;
@@ -646,6 +647,10 @@ void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const gl
             //glm::mat4 model(1.0f);
             GPURenderEncoderPushConstant(encoder, mRootSignature, &matrices);
             GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, mesh->indexOffset, mesh->vertexOffset, 0);
+
+            //matrices[0] = glm::translate(matrices[0], glm::vec3(3.0, 3.0, 0.0));
+            //GPURenderEncoderPushConstant(encoder, mRootSignature, &matrices);
+            //GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, mesh->indexOffset, mesh->vertexOffset, 0);
         }
     }
 }

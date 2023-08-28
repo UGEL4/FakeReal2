@@ -62,7 +62,10 @@ public:
             .stage    = GPU_SHADER_STAGE_VERT
         };
         GPUShaderLibraryID vsShader = GPUCreateShaderLibrary(mRefDevice, &shaderDesc);
-        size                        = 0;
+        free(shaderCode);
+        
+        shaderCode = nullptr;
+        size       = 0;
         ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/shadow_map.frag", &shaderCode, &size);
         shaderDesc = {
             .pName    = u8"",
@@ -71,7 +74,10 @@ public:
             .stage    = GPU_SHADER_STAGE_FRAG
         };
         GPUShaderLibraryID psShader = GPUCreateShaderLibrary(mRefDevice, &shaderDesc);
-
+        free(shaderCode);
+        
+        shaderCode = nullptr;
+        size       = 0;
         ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/debug_shadow_map.vert", &shaderCode, &size);
         shaderDesc = {
             .pName    = u8"",
@@ -80,7 +86,10 @@ public:
             .stage    = GPU_SHADER_STAGE_VERT
         };
         GPUShaderLibraryID vsDShader = GPUCreateShaderLibrary(mRefDevice, &shaderDesc);
-
+        free(shaderCode);
+        
+        shaderCode = nullptr;
+        size       = 0;
         ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/debug_shadow_map.frag", &shaderCode, &size);
         shaderDesc = {
             .pName    = u8"",
@@ -89,7 +98,9 @@ public:
             .stage    = GPU_SHADER_STAGE_FRAG
         };
         GPUShaderLibraryID psDShader = GPUCreateShaderLibrary(mRefDevice, &shaderDesc);
-
+        free(shaderCode);
+        shaderCode = nullptr;
+        
         CGPUShaderEntryDescriptor entry_desc[4] = {};
         entry_desc[0].pLibrary                  = vsShader;
         entry_desc[0].entry                     = u8"main";
@@ -170,6 +181,8 @@ public:
         pipelineDesc.pVertexLayout = &emptyLayout;
         pipelineDesc.pColorFormats      = const_cast<EGPUFormat*>(&format);
         mDebugPipeline = GPUCreateRenderPipeline(mRefDevice, &pipelineDesc);
+        GPUFreeShaderLibrary(vsDShader);
+        GPUFreeShaderLibrary(psDShader);
 
         static constexpr uint32_t DEPTH_W = 1024, DEPTH_H = 1024;
         format               = GPU_FORMAT_R8G8B8A8_UNORM;
@@ -284,17 +297,17 @@ public:
 
     void Draw(const ShadowDrawSceneInfo& sceneInfo, GPUCommandBufferID cmd, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos, const glm::vec3 lightPos)
     {
-        float near_plane = 0.0f, far_plane = 1000.0f;
+        float near_plane = 0.0f, far_plane = 7.0f;
         glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
         glm::mat4 lightView       = glm::lookAt(lightPos, glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
         mLightSpaceMatrix         = lightProjection * lightView;
 
-        glm::mat4 depthProjectionMatrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.0f, 1000.0f);
+        /* glm::mat4 depthProjectionMatrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.0f, 1000.0f);
 		glm::mat4 depthViewMatrix = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0, 1, 0));
-		glm::mat4 depthModelMatrix = glm::mat4(1.0f);
-        mLightSpaceMatrix = depthProjectionMatrix* depthViewMatrix;
+		glm::mat4 depthModelMatrix = glm::mat4(1.0f); */
+        //mLightSpaceMatrix = depthProjectionMatrix* depthViewMatrix;
 
-        mLightSpaceMatrix[1] = glm::vec4(1.0, 0.0, 1.0, 1.0);
+        //mLightSpaceMatrix[1] = glm::vec4(1.0, 0.0, 1.0, 1.0);
         memcpy(mUBO->cpu_mapped_address, &mLightSpaceMatrix, sizeof(glm::mat4));
 
         // reorganize mesh
@@ -360,7 +373,7 @@ public:
             GPURenderEncoderBindIndexBuffer(encoder, sceneInfo.indexBuffer, 0, sizeof(uint32_t));
             //glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
             glm::mat4 model = glm::mat4(1.0f);
-            model = proj * view * model;
+            //model = proj * view * model;
             for (auto& nodePair : drawNodesInfo)
             {
                 for (size_t i = 0; i < nodePair.second.size() && i < 1; i++)

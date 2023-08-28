@@ -81,7 +81,7 @@ float textureProj(vec4 fragPosLightSpace, vec2 off)
     vec4 shadowCoord = fragPosLightSpace / fragPosLightSpace.w;
 	if ( shadowCoord.z > -1.0 && shadowCoord.z < 1.0 ) 
 	{
-		float dist = texture(sampler2D(shadowMap, texSamp), shadowCoord.st + off).r;
+		float dist = texture(sampler2D(shadowMap, texSamp), shadowCoord.xy + off).r;
 		if ( shadowCoord.w > 0.0 && dist < shadowCoord.z ) 
 		{
 			shadow = 0.1;

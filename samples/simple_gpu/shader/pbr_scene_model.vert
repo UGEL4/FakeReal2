@@ -56,5 +56,5 @@ void main()
     vs_out.tangentFragPos  = TBN * outWorldPos;
     vs_out.viewPos  = ubo.viewPos.xyz;
     vs_out.TBN = mat3(T, B, N);
-    vs_out.lightSpacePos = pushConsts.lightSpaceMat * worldPos;
+    vs_out.lightSpacePos = pushConsts.lightSpaceMat * vec4(worldPos.xyz, 1.0);
 }
