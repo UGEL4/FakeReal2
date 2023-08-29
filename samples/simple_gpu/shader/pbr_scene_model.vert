@@ -44,7 +44,7 @@ void main()
     vec4 worldPos     = pushConsts.model * vec4(inPos, 1.0);
     gl_Position       = ubo.proj * ubo.view * worldPos;
     outWorldPos       = worldPos.xyz;
-    outNormal         = normalMatrix * inNormal;
+    outNormal         = inNormal;
     outUV             = inUV;
 
     vec3 T = normalize(normalMatrix * inTangent);

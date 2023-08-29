@@ -92,7 +92,7 @@ float textureProj(vec4 fragPosLightSpace, vec2 off)
 
 void main()
 {
-    vec3 albedo     = pow(texture(sampler2D(baseColor, texSamp), inUV).rgb, vec3(2.0));
+    /* vec3 albedo     = pow(texture(sampler2D(baseColor, texSamp), inUV).rgb, vec3(2.0));
     //vec4 albedo     = vec4(1.0, 0.0, 0.0, 1.0);
     //vec3 N = texture(sampler2D(normalMap, texSamp), inUV).rgb;
     //N      = normalize(N * 2.0 - 1.0);
@@ -109,7 +109,7 @@ void main()
 
     vec3 F0 = vec3(0.04);
     F0      = mix(F0, albedo, metallic);
-    vec3 Lo = vec3(0.0);
+    vec3 Lo = vec3(0.0); */
     /* for (int i = 0; i < MAX_LIGHT_NUM; i++)
     {
         vec3 L            = normalize(Lights.lightPos[i].xyz - inWorldPos);
@@ -135,7 +135,7 @@ void main()
 
         Lo += (Kd * albedo.rgb / PI + specular) * radiance * NdotL;
     } */
-    float ao = 1.0;
+    /* float ao = 1.0;
     vec3 F  = fresnelSchlickRoughness(clamp(dot(N, V), 0.0, 1.0), F0, roughness);
     vec3 Ks = F;
     vec3 Kd = 1.0 - Ks;
@@ -153,11 +153,11 @@ void main()
 
     vec3 La = albedo;
     vec3 Libl = Kd * diffuse + specular;
-    //dir light
-    {
-        vec3  L   = normalize(vec3(0.5, -0.5, 0.5));
+    //dir light */
+    /* {
+        vec3  L   = normalize(vec3(0.5, -0.5, 0.0));
         float NoL = min(dot(N, L), 1.0);
-        if (NoL > 0.0)
+        //if (NoL > 0.0)
         {
             float shadow;
             {
@@ -168,7 +168,7 @@ void main()
                 vec2 uv = position_ndc.xy * vec2(0.5, 0.5) + vec2(0.5, 0.5);;
 
                 //highp float closest_depth = texture(directional_light_shadow, uv).r + 0.000075;
-                float closest_depth = texture(sampler2D(shadowMap, texSamp), uv).r; + 0.000075;
+                float closest_depth = texture(sampler2D(shadowMap, texSamp), uv).r + 0.000075;
                 float current_depth = position_ndc.z;
 
                 shadow = (closest_depth >= current_depth) ? 1.0 : -1.0;
@@ -203,15 +203,15 @@ void main()
                 Lo += color1 * En;
             }
         }
-    }
+    } */
 
     //vec3 color 	 = ambient + Lo;
-    vec3 color = Lo + La + Libl;
-
+/*     vec3 color = Lo + La + Libl;
+color = albedo * shadow;
     //color *= shadow;
     color        = color / (color + vec3(1.0));
     color        = pow(color, vec3(1.0 / 2.2));
-    outColor     = vec4(color, 1.0);
+    outColor     = vec4(color, 1.0); */
     //outColor     = vec4(Lights.lightColor[1].xyz, 1.0);
 
     //outColor = vec4(inColor.rgb, 1.0);
@@ -219,4 +219,13 @@ void main()
     //outClor = albedo;
     /* vec4 albedo = texture(sampler2D(baseColor, texSamp), inUV);
     outColor    = albedo; */
+    vec3 albedo = texture(sampler2D(baseColor, texSamp), inUV).rgb;
+    vec3 position_ndc = fs_in.lightSpacePos.xyz / fs_in.lightSpacePos.w;
+    vec2 uv = position_ndc.xy * vec2(0.5, 0.5) + vec2(0.5, 0.5);
+    float closeDepth = texture(sampler2D(shadowMap, texSamp), uv).r;
+    float currentDepth = position_ndc.z;
+    float shadow = (closeDepth >= currentDepth) ? 1.0 : -1.0;
+    outColor    = vec4(albedo * (1.0 - shadow), 1.0);
+    //outColor    = vec4(albedo, 1.0);
+    //if (inNormal.z == 1.0) outColor = vec4(0.0, 1.0, 0.0, 1.0);
 }

@@ -646,7 +646,7 @@ void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const gl
             auto& mesh = nodePair.second[i];
             uint32_t indexCount = mesh->indexCount;
             //glm::mat4 model(1.0f);
-            GPURenderEncoderPushConstant(encoder, mRootSignature, &matrices);
+            GPURenderEncoderPushConstant(encoder, mRootSignature, matrices);
             GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, mesh->indexOffset, mesh->vertexOffset, 0);
 
             //matrices[0] = glm::translate(matrices[0], glm::vec3(3.0, 3.0, 0.0));
