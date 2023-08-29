@@ -1185,7 +1185,8 @@ void NormalRenderSimple()
             {
                 //glm::vec4 viewPos = glm::vec4(gCamera.position.x, gCamera.position.y, gCamera.position.z, 1.0);
                 glm::vec4 viewPos = gCamera.viewPos;
-                glm::vec3 directLightPos(2.0, 4.0, 0.0);
+                //glm::vec3 directLightPos(2.0, 4.0, 0.0);
+                glm::vec3 directLightPos(0.5f, -0.5f, 0.0f);
                 //render shadow
                 ShadowPass::ShadowDrawSceneInfo sceneInfo = {
                     .vertexBuffer = pModel->mVertexBuffer,
@@ -1205,7 +1206,7 @@ void NormalRenderSimple()
                 draw_barrier.texture_barriers_count = 1;
                 GPUCmdResourceBarrier(cmd, &draw_barrier);
 
-                pShadowPass->Draw(sceneInfo, cmd, gCamera.matrices.view, gCamera.matrices.perspective, viewPos, directLightPos);
+                pShadowPass->Draw(sceneInfo, cmd, gCamera.matrices.view, gCamera.matrices.perspective, viewPos, directLightPos, pModel->mBoundingBox);
                 GPUColorAttachment screenAttachment{};
                 screenAttachment.view         = backbuffer_view;
                 screenAttachment.load_action  = GPU_LOAD_ACTION_CLEAR;
@@ -1237,7 +1238,7 @@ void NormalRenderSimple()
                     //skyybox
                     skyBox->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos);
 
-                    //pShadowPass->DebugShadow(encoder);
+                    pShadowPass->DebugShadow(encoder);
                 }
                 GPUCmdEndRenderPass(cmd, encoder);
 

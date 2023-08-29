@@ -147,10 +147,66 @@ void main()
     vec2 brdf       = texture(sampler2D(texBRDFLut, envTexSamp), vec2(max(dot(N, V), 0.0), roughness)).rg;
 
     float shadow = textureProj(fs_in.lightSpacePos, vec2(0.0));
-    vec3 diffuse    = irradiance * albedo; diffuse *= (shadow);
-    vec3 specular   = reflection * (F * brdf.x + brdf.y); specular*=shadow;
+    vec3 diffuse    = irradiance * albedo; //diffuse *= (shadow);
+    vec3 specular   = reflection * (F * brdf.x + brdf.y); //specular*=shadow;
     vec3 ambient    = (Kd * diffuse + specular) * ao;
-    vec3 color 	 = ambient + Lo;
+
+    vec3 La = albedo;
+    vec3 Libl = Kd * diffuse + specular;
+    //dir light
+    {
+        vec3  L   = normalize(vec3(0.5, -0.5, 0.5));
+        float NoL = min(dot(N, L), 1.0);
+        if (NoL > 0.0)
+        {
+            float shadow;
+            {
+                vec4 position_clip = fs_in.lightSpacePos;
+                vec3 position_ndc  = position_clip.xyz / position_clip.w;
+
+                //highp vec2 uv = ndcxy_to_uv(position_ndc.xy);
+                vec2 uv = position_ndc.xy * vec2(0.5, 0.5) + vec2(0.5, 0.5);;
+
+                //highp float closest_depth = texture(directional_light_shadow, uv).r + 0.000075;
+                float closest_depth = texture(sampler2D(shadowMap, texSamp), uv).r; + 0.000075;
+                float current_depth = position_ndc.z;
+
+                shadow = (closest_depth >= current_depth) ? 1.0 : -1.0;
+            }
+
+            if (shadow > 0.0)
+            {
+                //highp vec3 En = scene_directional_light.color * NoL;
+                vec3 En = vec3(1.0, 1.0, 1.0) * NoL;
+                vec3 color1 = vec3(0.0);
+                {
+                    vec3  H     = normalize(V + L);
+                    float dotNV = clamp(dot(N, V), 0.0, 1.0);
+                    float dotNL = clamp(dot(N, L), 0.0, 1.0);
+                    float dotLH = clamp(dot(L, H), 0.0, 1.0);
+                    float dotNH = clamp(dot(N, H), 0.0, 1.0);
+
+                    float rroughness = max(0.05, roughness);
+                    // D = Normal distribution (Distribution of the microfacets)
+                    float D = DistributionGGX(N, H, rroughness);
+                    // G = Geometric shadowing term (Microfacets shadowing)
+                    float G = GeometrySmith(N, V, L, rroughness);
+                    // F = Fresnel factor (Reflectance depending on angle of incidence)
+                    vec3 F = fresnelSchlick(dotNV, F0);
+
+                    vec3 spec = D * F * G / (4.0 * dotNL * dotNV + 0.001);
+                    vec3 kD   = (vec3(1.0) - F) * (1.0 - metallic);
+
+                    color1 += (kD * albedo / PI + (1.0 - kD) * spec);
+                }
+                //Lo += BRDF(L, V, N, F0, basecolor, metallic, roughness) * En;
+                Lo += color1 * En;
+            }
+        }
+    }
+
+    //vec3 color 	 = ambient + Lo;
+    vec3 color = Lo + La + Libl;
 
     //color *= shadow;
     color        = color / (color + vec3(1.0));

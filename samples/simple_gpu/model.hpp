@@ -7,6 +7,7 @@
 #include "stb_image.h"
 #include "Gpu/GpuApi.h"
 #include <array>
+#include "boundingbox.hpp"
 
 struct Vertex
 {
@@ -284,6 +285,7 @@ public:
     GPUBufferID mIndexBuffer;
     GPUSamplerID mSampler;
     GPUBufferID mUBO;
+    BoundingBox mBoundingBox;
 };
 
 struct Sphere

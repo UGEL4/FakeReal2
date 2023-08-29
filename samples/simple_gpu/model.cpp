@@ -107,6 +107,7 @@ void Model::LoadModel(const std::string_view file)
                         }
                         reader.EndObject();
                         meshData.vertices.emplace_back(v);
+                        mBoundingBox.Update(glm::vec3(v.x, v.y, v.z));
                     }
                     reader.EndArray();
 
@@ -630,7 +631,7 @@ void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const gl
     GPURenderEncoderBindVertexBuffers(encoder, 1, &mVertexBuffer, &strides, nullptr);
     GPURenderEncoderBindIndexBuffer(encoder, mIndexBuffer, 0, sizeof(uint32_t));
     glm::mat4 matrices[2];
-    matrices[0] = glm::scale(glm::mat4(1.0f), glm::vec3(1.f, 1.f, 1.f));
+    matrices[0] = /* glm::scale(glm::mat4(1.0f), glm::vec3(1.f, 1.f, 1.f)) */glm::mat4(1.0f);
     matrices[1] = lightSpaceMatrix;
     //glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
     for (auto& nodePair : drawNodesInfo)

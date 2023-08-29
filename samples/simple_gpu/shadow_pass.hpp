@@ -295,9 +295,9 @@ public:
         uint32_t strides;
     };
 
-    void Draw(const ShadowDrawSceneInfo& sceneInfo, GPUCommandBufferID cmd, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos, const glm::vec3 lightPos)
+    void Draw(const ShadowDrawSceneInfo& sceneInfo, GPUCommandBufferID cmd, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos, const glm::vec3 lightPos, const BoundingBox& entityBoundingBox)
     {
-        float near_plane = 0.0f, far_plane = 7.0f;
+        /* float near_plane = 0.0f, far_plane = 7.0f;
         glm::vec3 lpos = -18.0f * lightPos;
         glm::mat4 lightView       = glm::lookAt(lightPos, glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
         glm::vec4 centerLS = lightView * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -307,9 +307,11 @@ public:
         float r = centerLS.x + 10.f;
         float t = centerLS.y + 10.f;
         float f = centerLS.z + 10.f;
-        glm::mat4 lightProjection = glm::ortho(l, r, b, t, n, f);
+        glm::mat4 lightProjection = glm::ortho(l, r, b, t, n, f); */
 
-        mLightSpaceMatrix         = lightProjection * lightView;
+        //mLightSpaceMatrix         = lightProjection * lightView;
+        glm::vec3 lightDir = glm::normalize(lightPos);
+        mLightSpaceMatrix = CalculateDirectionalLightCamera(view, proj, entityBoundingBox, glm::mat4(1.0f), lightDir);
 
         /* glm::mat4 depthProjectionMatrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.0f, 1000.0f);
 		glm::mat4 depthViewMatrix = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0, 1, 0));
@@ -415,5 +417,78 @@ public:
         GPURenderEncoderBindPipeline(encoder, mDebugPipeline);
         GPURenderEncoderBindDescriptorSet(encoder, mDebugSet);
         GPURenderEncoderDraw(encoder, 3, 0);
+    }
+
+    glm::mat4 CalculateDirectionalLightCamera(const glm::mat4& view, const glm::mat4& proj, const BoundingBox& entityBoundingBox, const glm::mat4& entityModel, const glm::vec3& lightDir)
+    {
+        glm::mat4 vp = proj * view;
+
+        BoundingBox frustumBoundingBox;
+        {
+            glm::vec3 frustumPointsNDCSpace[8] = {
+                glm::vec3(-1.0f, -1.0f, 1.0f),
+                glm::vec3(1.0f, -1.0f, 1.0f),
+                glm::vec3(1.0f, 1.0f, 1.0f),
+                glm::vec3(-1.0f, 1.0f, 1.0f),
+                glm::vec3(-1.0f, -1.0f, 0.0f),
+                glm::vec3(1.0f, -1.0f, 0.0f),
+                glm::vec3(1.0f, 1.0f, 0.0f),
+                glm::vec3(-1.0f, 1.0f, 0.0f),
+            };
+            glm::mat4 invVP = glm::inverse(vp);
+            size_t constexpr CORNER_COUNT = 8;
+            for (size_t i = 0; i < CORNER_COUNT; ++i)
+            {
+                glm::vec4 frustumPointWith_w = invVP * glm::vec4(frustumPointsNDCSpace[i].x,
+                                                                 frustumPointsNDCSpace[i].y,
+                                                                 frustumPointsNDCSpace[i].z,
+                                                                 1.0);
+                glm::vec3 frustumPoint       = glm::vec3(frustumPointWith_w.x / frustumPointWith_w.w,
+                                                         frustumPointWith_w.y / frustumPointWith_w.w,
+                                                         frustumPointWith_w.z / frustumPointWith_w.w);
+
+                frustumBoundingBox.Update(frustumPoint);
+            }
+        }
+
+        BoundingBox sceneBoundingBox;
+        {
+            //just one entity for now;
+            BoundingBox worldBoundingBox = BoundingBox::BoundingBoxTransform(entityBoundingBox, entityModel);
+            sceneBoundingBox.Merge(worldBoundingBox);
+        }
+
+        glm::mat4 lightView;
+        glm::mat4 lightProj;
+        {
+            glm::vec3 boxCenter = glm::vec3(
+                (frustumBoundingBox.max.x + frustumBoundingBox.min.x) * 0.5f,
+                (frustumBoundingBox.max.y + frustumBoundingBox.min.y) * 0.5f,
+                (frustumBoundingBox.max.z + frustumBoundingBox.min.z) * 0.5f
+            );
+            glm::vec3 boxExtents = glm::vec3(
+                (frustumBoundingBox.max.x - frustumBoundingBox.min.x) * 0.5f,
+                (frustumBoundingBox.max.y - frustumBoundingBox.min.y) * 0.5f,
+                (frustumBoundingBox.max.z - frustumBoundingBox.min.z) * 0.5f
+            );
+
+            glm::vec3 eye = boxCenter + lightDir * std::hypot(boxExtents.x, boxExtents.y, boxExtents.z);
+            lightView = glm::lookAt(eye, boxCenter, glm::vec3(0.0f, 1.0f, 0.0f));
+
+            BoundingBox frustumBoundingBoxLightView = BoundingBox::BoundingBoxTransform(frustumBoundingBox, lightView);
+            BoundingBox sceneBoundingBoxLightView   = BoundingBox::BoundingBoxTransform(sceneBoundingBox, lightView);
+            lightProj = glm::ortho(
+                std::max(frustumBoundingBoxLightView.min.x, sceneBoundingBoxLightView.min.x),
+                std::min(frustumBoundingBoxLightView.max.x, sceneBoundingBoxLightView.max.x),
+                std::max(frustumBoundingBoxLightView.min.y, sceneBoundingBoxLightView.min.y),
+                std::min(frustumBoundingBoxLightView.max.y, sceneBoundingBoxLightView.max.y),
+                -sceneBoundingBoxLightView.max
+                     .z, // the objects which are nearer than the frustum bounding box may caster shadow as well
+                -std::max(frustumBoundingBoxLightView.min.z, sceneBoundingBoxLightView.min.z)
+            );
+        }
+
+        glm::mat4 lightVP = lightProj * lightView;
+        return lightVP;
     }
 };
