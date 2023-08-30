@@ -226,7 +226,7 @@ color = albedo * shadow;
     // ambient
     vec3 ambient = 1.0 * lightColor;
     // diffuse
-    vec3 lightDir = normalize(vec3(-2.0, 4.0, -1.0) - inWorldPos);
+    vec3 lightDir = normalize(vec3(-2.0, 4.0, -1.0) * -5.0 - inWorldPos);
     float diff = max(dot(lightDir, normal), 0.0);
     vec3 diffuse = diff * lightColor;
     // specular
@@ -240,7 +240,7 @@ color = albedo * shadow;
     //vec3 albedo = texture(sampler2D(baseColor, texSamp), inUV).rgb;
     vec3 position_ndc = fs_in.lightSpacePos.xyz / fs_in.lightSpacePos.w;
     vec3 uv = position_ndc*0.5+0.5;
-    float closeDepth = texture(sampler2D(shadowMap, texSamp), uv.xy).r;
+    float closeDepth = texture(sampler2D(shadowMap, texSamp), uv.xy).r + 0.0025;
     float currentDepth = uv.z;
     float shadow = (currentDepth > closeDepth) ? 1.0 : 0.0;
      vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;

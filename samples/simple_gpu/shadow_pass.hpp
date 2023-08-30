@@ -184,7 +184,7 @@ public:
         GPUFreeShaderLibrary(vsDShader);
         GPUFreeShaderLibrary(psDShader);
 
-        static constexpr uint32_t DEPTH_W = 1024, DEPTH_H = 1024;
+        static constexpr uint32_t DEPTH_W = 2048, DEPTH_H = 2048;
         format               = GPU_FORMAT_R8G8B8A8_UNORM;
         GPUTextureDescriptor desc = {
             .flags       = GPU_TCF_OWN_MEMORY_BIT,
@@ -318,10 +318,10 @@ public:
 		glm::mat4 depthModelMatrix = glm::mat4(1.0f); */
         //mLightSpaceMatrix = depthProjectionMatrix* depthViewMatrix;
 
-        float near_plane = 0.0f, far_plane = 7.0f;
+        float near_plane = 0.0f, far_plane = 25.0f;
         glm::vec3 lpos = glm::vec3(-2.0f, 4.0f, -1.0f);
-        glm::mat4 lightView       = glm::lookAt(lpos, glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
-        glm::mat4 lightProjection = glm::ortho(-10.f, 10.f, -10.f, 10.f, near_plane, far_plane);
+        glm::mat4 lightView       = glm::lookAt(lpos * -5.f, glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+        glm::mat4 lightProjection = glm::ortho(-25.f, 25.f, -25.f, 25.f, near_plane, far_plane);
         mLightSpaceMatrix         = lightProjection * lightView;
 
         //mLightSpaceMatrix[1] = glm::vec4(1.0, 0.0, 1.0, 1.0);
