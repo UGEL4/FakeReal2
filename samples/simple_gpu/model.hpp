@@ -1,4 +1,5 @@
 #pragma once
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <string_view>
 #include <vector>
 #include <cmath>
@@ -495,6 +496,7 @@ struct CommonUniformBuffer
 {
     glm::mat4 view;
     glm::mat4 proj;
+    glm::mat4 lightSpaceMat;;
     glm::vec4 viewPos;
 };
 

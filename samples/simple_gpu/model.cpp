@@ -370,9 +370,9 @@ void Model::UploadResource(class SkyBox* skyBox)
     GPUFreeCommandPool(pool);
 
     GPUSamplerDescriptor sampleDesc = {
-        .min_filter   = GPU_FILTER_TYPE_LINEAR,
-        .mag_filter   = GPU_FILTER_TYPE_LINEAR,
-        .mipmap_mode  = GPU_MIPMAP_MODE_LINEAR,
+        .min_filter   = GPU_FILTER_TYPE_NEAREST,
+        .mag_filter   = GPU_FILTER_TYPE_NEAREST,
+        .mipmap_mode  = GPU_MIPMAP_MODE_NEAREST,
         .address_u    = GPU_ADDRESS_MODE_REPEAT,
         .address_v    = GPU_ADDRESS_MODE_REPEAT,
         .address_w    = GPU_ADDRESS_MODE_REPEAT,
@@ -600,6 +600,7 @@ void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const gl
     CommonUniformBuffer ubo = {
         .view    = view,
         .proj    = proj,
+        .lightSpaceMat = lightSpaceMatrix,
         .viewPos = viewPos
     };
     memcpy(mUBO->cpu_mapped_address, &ubo, sizeof(ubo));
@@ -630,9 +631,9 @@ void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const gl
     uint32_t strides = sizeof(NewVertex);
     GPURenderEncoderBindVertexBuffers(encoder, 1, &mVertexBuffer, &strides, nullptr);
     GPURenderEncoderBindIndexBuffer(encoder, mIndexBuffer, 0, sizeof(uint32_t));
-    glm::mat4 matrices[2];
+    glm::mat4 matrices[1];
     matrices[0] = /* glm::scale(glm::mat4(1.0f), glm::vec3(1.f, 1.f, 1.f)) */glm::mat4(1.0f);
-    matrices[1] = lightSpaceMatrix;
+    //matrices[1] = lightSpaceMatrix;
     //glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
     for (auto& nodePair : drawNodesInfo)
     {

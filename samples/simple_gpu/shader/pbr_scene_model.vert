@@ -5,13 +5,14 @@ layout(set = 0, binding = 4) uniform UniformBufferObj
 {
     mat4 view;
     mat4 proj;
+    mat4 lightSpaceMat;
     vec4 viewPos;
 }ubo;
 
 layout(push_constant) uniform PushConsts
 {
     mat4 model;
-    layout(offset = 64) mat4 lightSpaceMat;
+    //layout(offset = 64) mat4 lightSpaceMat;
     /* layout(offset = 16) float metallic;
     layout(offset = 20) float roughness;
     layout(offset = 24) float ao;
@@ -44,7 +45,7 @@ void main()
     vec4 worldPos     = pushConsts.model * vec4(inPos, 1.0);
     gl_Position       = ubo.proj * ubo.view * worldPos;
     outWorldPos       = worldPos.xyz;
-    outNormal         = inNormal;
+    outNormal         = normalMatrix * inNormal;
     outUV             = inUV;
 
     vec3 T = normalize(normalMatrix * inTangent);
@@ -56,5 +57,5 @@ void main()
     vs_out.tangentFragPos  = TBN * outWorldPos;
     vs_out.viewPos  = ubo.viewPos.xyz;
     vs_out.TBN = mat3(T, B, N);
-    vs_out.lightSpacePos = pushConsts.lightSpaceMat * vec4(worldPos.xyz, 1.0);
+    vs_out.lightSpacePos = ubo.lightSpaceMat * pushConsts.model * vec4(inPos, 1.0);
 }

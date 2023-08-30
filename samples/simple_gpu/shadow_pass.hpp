@@ -1,9 +1,9 @@
 #pragma once
-
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "Gpu/GpuApi.h"
 #include "utils.hpp"
-#include  "glm/glm.hpp"
 #include "model.hpp"
+#include  "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
 class ShadowPass
@@ -311,12 +311,18 @@ public:
 
         //mLightSpaceMatrix         = lightProjection * lightView;
         glm::vec3 lightDir = glm::normalize(lightPos);
-        mLightSpaceMatrix = CalculateDirectionalLightCamera(view, proj, entityBoundingBox, glm::mat4(1.0f), lightDir);
+        //mLightSpaceMatrix = CalculateDirectionalLightCamera(view, proj, entityBoundingBox, glm::mat4(1.0f), lightDir);
 
         /* glm::mat4 depthProjectionMatrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.0f, 1000.0f);
 		glm::mat4 depthViewMatrix = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0, 1, 0));
 		glm::mat4 depthModelMatrix = glm::mat4(1.0f); */
         //mLightSpaceMatrix = depthProjectionMatrix* depthViewMatrix;
+
+        float near_plane = 0.0f, far_plane = 7.0f;
+        glm::vec3 lpos = glm::vec3(-2.0f, 4.0f, -1.0f);
+        glm::mat4 lightView       = glm::lookAt(lpos, glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+        glm::mat4 lightProjection = glm::ortho(-10.f, 10.f, -10.f, 10.f, near_plane, far_plane);
+        mLightSpaceMatrix         = lightProjection * lightView;
 
         //mLightSpaceMatrix[1] = glm::vec4(1.0, 0.0, 1.0, 1.0);
         memcpy(mUBO->cpu_mapped_address, &mLightSpaceMatrix, sizeof(glm::mat4));

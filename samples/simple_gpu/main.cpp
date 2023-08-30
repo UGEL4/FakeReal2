@@ -1,3 +1,4 @@
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "Gpu/GpuApi.h"
 #include <memory>
 #include <Windows.h>
@@ -1236,9 +1237,9 @@ void NormalRenderSimple()
                     //chModel->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos);
                     pModel->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos, pShadowPass->mLightSpaceMatrix);
                     //skyybox
-                    skyBox->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos);
+                    //skyBox->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos);
 
-                    pShadowPass->DebugShadow(encoder);
+                    //pShadowPass->DebugShadow(encoder);
                 }
                 GPUCmdEndRenderPass(cmd, encoder);
 
