@@ -370,9 +370,9 @@ void Model::UploadResource(class SkyBox* skyBox)
     GPUFreeCommandPool(pool);
 
     GPUSamplerDescriptor sampleDesc = {
-        .min_filter   = GPU_FILTER_TYPE_NEAREST,
-        .mag_filter   = GPU_FILTER_TYPE_NEAREST,
-        .mipmap_mode  = GPU_MIPMAP_MODE_NEAREST,
+        .min_filter   = GPU_FILTER_TYPE_LINEAR,
+        .mag_filter   = GPU_FILTER_TYPE_LINEAR,
+        .mipmap_mode  = GPU_MIPMAP_MODE_LINEAR,
         .address_u    = GPU_ADDRESS_MODE_REPEAT,
         .address_v    = GPU_ADDRESS_MODE_REPEAT,
         .address_w    = GPU_ADDRESS_MODE_REPEAT,
@@ -516,14 +516,18 @@ void Model::UploadResource(class SkyBox* skyBox)
     LoadMaterial();
 }
 
-void Model::UpdateShadowMapSet(GPUTextureViewID shadowMap)
+void Model::UpdateShadowMapSet(GPUTextureViewID shadowMap, GPUSamplerID sampler)
 {
-    GPUDescriptorData dataDesc[1] = {};
+    GPUDescriptorData dataDesc[2] = {};
     dataDesc[0].binding           = 0;
     dataDesc[0].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
     dataDesc[0].textures          = &shadowMap;
     dataDesc[0].count             = 1;
-    GPUUpdateDescriptorSet(mShadowMapSet, dataDesc, 1);
+    dataDesc[1].binding           = 1;
+    dataDesc[1].binding_type      = GPU_RESOURCE_TYPE_SAMPLER;
+    dataDesc[1].samplers          = &sampler;
+    dataDesc[1].count             = 1;
+    GPUUpdateDescriptorSet(mShadowMapSet, dataDesc, 2);
 }
 
 PBRMaterial* Model::CreateMaterial(uint32_t materialIndex, const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string, bool>>>& textures)

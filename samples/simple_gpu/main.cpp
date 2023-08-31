@@ -125,7 +125,7 @@ LRESULT CALLBACK WindowProcedure(HWND window, UINT msg, WPARAM wp, LPARAM lp)
                     case KEY_W:
                         {
                             gCamera.keys.up = false;
-                            std::cout << gCamera.position.x << "," << gCamera.position.y << "," << gCamera.position.z << std::endl;
+                            //std::cout << gCamera.position.x << "," << gCamera.position.y << "," << gCamera.position.z << std::endl;
                         }
                         break;
                     case KEY_S:
@@ -1136,7 +1136,7 @@ void NormalRenderSimple()
     ShadowPass* pShadowPass = new ShadowPass(device, graphicQueue);
     pShadowPass->InitRenderObjects();
 
-    pModel->UpdateShadowMapSet(pShadowPass->mDepthTextureView);
+    pModel->UpdateShadowMapSet(pShadowPass->mDepthTextureView, pShadowPass->mSampler);
 
 
     //light
@@ -1187,7 +1187,7 @@ void NormalRenderSimple()
                 //glm::vec4 viewPos = glm::vec4(gCamera.position.x, gCamera.position.y, gCamera.position.z, 1.0);
                 glm::vec4 viewPos = gCamera.viewPos;
                 //glm::vec3 directLightPos(2.0, 4.0, 0.0);
-                glm::vec3 directLightPos(0.5f, -0.5f, 0.0f);
+                glm::vec3 directLightPos(-0.5f, 0.5f, -0.5f);
                 //render shadow
                 ShadowPass::ShadowDrawSceneInfo sceneInfo = {
                     .vertexBuffer = pModel->mVertexBuffer,
@@ -1237,7 +1237,7 @@ void NormalRenderSimple()
                     //chModel->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos);
                     pModel->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos, pShadowPass->mLightSpaceMatrix);
                     //skyybox
-                    //skyBox->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos);
+                    skyBox->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos);
 
                     //pShadowPass->DebugShadow(encoder);
                 }

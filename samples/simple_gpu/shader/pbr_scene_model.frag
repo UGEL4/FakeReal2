@@ -15,6 +15,7 @@ layout(set = 1, binding = 3) uniform texture2D metallicMap;
 layout(set = 1, binding = 4) uniform texture2D roughnessMap;
 
 layout(set = 2, binding = 0) uniform texture2D shadowMap;
+layout(set = 2, binding = 1) uniform sampler shadowSamp;
 
 
 layout(location = 0) in vec3 inWorldPos;
@@ -63,14 +64,30 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 {
     // perform perspective divide
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
     // transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
     // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-    float closestDepth = texture(sampler2D(shadowMap, texSamp), projCoords.xy).r; 
-    // get depth of current fragment from light's perspective
-    float currentDepth = projCoords.z;
+    //float closestDepth = texture(sampler2D(shadowMap, shadowSamp), projCoords.xy).r + 0.00075; 
     // check whether current frag pos is in shadow
-    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
+    //float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
+
+    // PCF
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(sampler2D(shadowMap, shadowSamp), 0);
+    for(int x = -1; x <= 1; ++x)
+    {
+        for(int y = -1; y <= 1; ++y)
+        {
+            //float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
+            float pcfDepth = texture(sampler2D(shadowMap, shadowSamp), projCoords.xy + vec2(x, y) * texelSize).r + 0.00075; 
+            shadow += currentDepth > pcfDepth  ? 1.0 : 0.0;        
+        }    
+    }
+    shadow /= 9.0;
+
+    if (projCoords.z > 1.0) shadow = 0.0;
 
     return shadow;
 }
@@ -81,7 +98,7 @@ float textureProj(vec4 fragPosLightSpace, vec2 off)
     vec4 shadowCoord = fragPosLightSpace / fragPosLightSpace.w;
 	if ( shadowCoord.z > -1.0 && shadowCoord.z < 1.0 ) 
 	{
-		float dist = texture(sampler2D(shadowMap, texSamp), shadowCoord.xy + off).r;
+		float dist = texture(sampler2D(shadowMap, shadowSamp), shadowCoord.xy + off).r;
 		if ( shadowCoord.w > 0.0 && dist < shadowCoord.z ) 
 		{
 			shadow = 0.1;
@@ -168,7 +185,7 @@ void main()
                 vec2 uv = position_ndc.xy * vec2(0.5, 0.5) + vec2(0.5, 0.5);;
 
                 //highp float closest_depth = texture(directional_light_shadow, uv).r + 0.000075;
-                float closest_depth = texture(sampler2D(shadowMap, texSamp), uv).r + 0.000075;
+                float closest_depth = texture(sampler2D(shadowMap, shadowSamp), uv).r + 0.000075;
                 float current_depth = position_ndc.z;
 
                 shadow = (closest_depth >= current_depth) ? 1.0 : -1.0;
@@ -224,28 +241,21 @@ color = albedo * shadow;
     vec3 normal = normalize(inNormal);
     vec3 lightColor = vec3(1.0);
     // ambient
-    vec3 ambient = 1.0 * lightColor;
-    // diffuse
-    vec3 lightDir = normalize(vec3(-2.0, 4.0, -1.0) * -5.0 - inWorldPos);
-    float diff = max(dot(lightDir, normal), 0.0);
-    vec3 diffuse = diff * lightColor;
-    // specular
-    vec3 viewDir = normalize(fs_in.viewPos - inWorldPos);
-    vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = 0.0;
-    vec3 halfwayDir = normalize(lightDir + viewDir);  
-    spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);
-    vec3 specular = spec * lightColor;    
+    vec3 ambient = 0.8 * lightColor;
 
-    //vec3 albedo = texture(sampler2D(baseColor, texSamp), inUV).rgb;
-    vec3 position_ndc = fs_in.lightSpacePos.xyz / fs_in.lightSpacePos.w;
-    vec3 uv = position_ndc*0.5+0.5;
-    float closeDepth = texture(sampler2D(shadowMap, texSamp), uv.xy).r + 0.0025;
-    float currentDepth = uv.z;
-    float shadow = (currentDepth > closeDepth) ? 1.0 : 0.0;
-     vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;
-    //outColor    = vec4(albedo * (1.0 - shadow), 1.0);
-    outColor    = vec4(lighting, 1.0);
-    //outColor    = vec4(albedo, 1.0);
-    //if (inNormal.z == 1.0) outColor = vec4(0.0, 1.0, 0.0, 1.0);
+    vec3 lightDir = normalize(vec3(-0.5, 0.5, -0.5) - inWorldPos);
+    float bias    = max(0.00075 * (1.0 - dot(normal, lightDir)), 0.00075);
+    //float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
+
+    /* vec3 position_ndc  = fs_in.lightSpacePos.xyz / fs_in.lightSpacePos.w;
+    vec2 uv            = position_ndc.xy * 0.5 + 0.5;
+    float closeDepth   = texture(sampler2D(shadowMap, shadowSamp), uv.xy).r + 0.00075;
+    float currentDepth = position_ndc.z;
+    float shadow       = (currentDepth > closeDepth) ? 1.0 : 0.0; */
+    float shadow  = ShadowCalculation(fs_in.lightSpacePos);
+    //vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * (color * (1.0 - shadow));
+    vec3 lighting = (ambient + (1.0 - shadow)) * color;
+    /* lighting      = lighting / (lighting + vec3(1.0));
+    lighting      = pow(lighting, vec3(1.0 / 2.2)); */
+    outColor      = vec4(lighting, 1.0);
 }

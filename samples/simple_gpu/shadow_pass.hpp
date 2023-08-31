@@ -184,7 +184,7 @@ public:
         GPUFreeShaderLibrary(vsDShader);
         GPUFreeShaderLibrary(psDShader);
 
-        static constexpr uint32_t DEPTH_W = 2048, DEPTH_H = 2048;
+        static constexpr uint32_t DEPTH_W = 4096, DEPTH_H = 4096;
         format               = GPU_FORMAT_R8G8B8A8_UNORM;
         GPUTextureDescriptor desc = {
             .flags       = GPU_TCF_OWN_MEMORY_BIT,
@@ -311,18 +311,18 @@ public:
 
         //mLightSpaceMatrix         = lightProjection * lightView;
         glm::vec3 lightDir = glm::normalize(lightPos);
-        //mLightSpaceMatrix = CalculateDirectionalLightCamera(view, proj, entityBoundingBox, glm::mat4(1.0f), lightDir);
+        mLightSpaceMatrix  = CalculateDirectionalLightCamera(view, proj, entityBoundingBox, glm::mat4(1.0f), lightDir);
 
         /* glm::mat4 depthProjectionMatrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.0f, 1000.0f);
 		glm::mat4 depthViewMatrix = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0, 1, 0));
 		glm::mat4 depthModelMatrix = glm::mat4(1.0f); */
         //mLightSpaceMatrix = depthProjectionMatrix* depthViewMatrix;
 
-        float near_plane = 0.0f, far_plane = 25.0f;
+        /* float near_plane = 0.0f, far_plane = 25.0f;
         glm::vec3 lpos = glm::vec3(-2.0f, 4.0f, -1.0f);
         glm::mat4 lightView       = glm::lookAt(lpos * -5.f, glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
         glm::mat4 lightProjection = glm::ortho(-25.f, 25.f, -25.f, 25.f, near_plane, far_plane);
-        mLightSpaceMatrix         = lightProjection * lightView;
+        mLightSpaceMatrix         = lightProjection * lightView; */
 
         //mLightSpaceMatrix[1] = glm::vec4(1.0, 0.0, 1.0, 1.0);
         memcpy(mUBO->cpu_mapped_address, &mLightSpaceMatrix, sizeof(glm::mat4));
@@ -479,19 +479,18 @@ public:
             );
 
             glm::vec3 eye = boxCenter + lightDir * std::hypot(boxExtents.x, boxExtents.y, boxExtents.z);
-            lightView = glm::lookAt(eye, boxCenter, glm::vec3(0.0f, 1.0f, 0.0f));
+            lightView     = glm::lookAt(eye, boxCenter, glm::vec3(0.0f, 1.0f, 0.0f));
 
             BoundingBox frustumBoundingBoxLightView = BoundingBox::BoundingBoxTransform(frustumBoundingBox, lightView);
             BoundingBox sceneBoundingBoxLightView   = BoundingBox::BoundingBoxTransform(sceneBoundingBox, lightView);
+
             lightProj = glm::ortho(
-                std::max(frustumBoundingBoxLightView.min.x, sceneBoundingBoxLightView.min.x),
-                std::min(frustumBoundingBoxLightView.max.x, sceneBoundingBoxLightView.max.x),
-                std::max(frustumBoundingBoxLightView.min.y, sceneBoundingBoxLightView.min.y),
-                std::min(frustumBoundingBoxLightView.max.y, sceneBoundingBoxLightView.max.y),
-                -sceneBoundingBoxLightView.max
-                     .z, // the objects which are nearer than the frustum bounding box may caster shadow as well
-                -std::max(frustumBoundingBoxLightView.min.z, sceneBoundingBoxLightView.min.z)
-            );
+            std::max(frustumBoundingBoxLightView.min.x, sceneBoundingBoxLightView.min.x),
+            std::min(frustumBoundingBoxLightView.max.x, sceneBoundingBoxLightView.max.x),
+            std::max(frustumBoundingBoxLightView.min.y, sceneBoundingBoxLightView.min.y),
+            std::min(frustumBoundingBoxLightView.max.y, sceneBoundingBoxLightView.max.y),
+            -sceneBoundingBoxLightView.max.z, // the objects which are nearer than the frustum bounding box may caster shadow as well
+            -std::max(frustumBoundingBoxLightView.min.z, sceneBoundingBoxLightView.min.z));
         }
 
         glm::mat4 lightVP = lightProj * lightView;
