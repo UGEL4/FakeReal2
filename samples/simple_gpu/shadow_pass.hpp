@@ -135,7 +135,7 @@ public:
             .fillMode             = GPU_FILL_MODE_SOLID,
             .frontFace            = GPU_FRONT_FACE_CCW,
             .depthBias            = 0,
-            .slopeScaledDepthBias = 0.f,
+            .slopeScaledDepthBias = 1.75f,
             .enableMultiSample    = false,
             .enableScissor        = false,
             .enableDepthClamp     = false

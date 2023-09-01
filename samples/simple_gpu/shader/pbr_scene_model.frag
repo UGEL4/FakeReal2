@@ -69,12 +69,12 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     // transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
     // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-    //float closestDepth = texture(sampler2D(shadowMap, shadowSamp), projCoords.xy).r + 0.00075; 
+    float closestDepth = texture(sampler2D(shadowMap, shadowSamp), projCoords.xy).r + 0.0000025; 
     // check whether current frag pos is in shadow
-    //float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
+    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
 
     // PCF
-    float shadow = 0.0;
+/*     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(sampler2D(shadowMap, shadowSamp), 0);
     for(int x = -1; x <= 1; ++x)
     {
@@ -87,24 +87,44 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     }
     shadow /= 9.0;
 
-    if (projCoords.z > 1.0) shadow = 0.0;
+    if (projCoords.z > 1.0) shadow = 0.0; */
 
     return shadow;
 }
 
+
 float textureProj(vec4 fragPosLightSpace, vec2 off)
 {
-	float shadow = 1.0;
-    vec4 shadowCoord = fragPosLightSpace / fragPosLightSpace.w;
-	if ( shadowCoord.z > -1.0 && shadowCoord.z < 1.0 ) 
-	{
-		float dist = texture(sampler2D(shadowMap, shadowSamp), shadowCoord.xy + off).r;
-		if ( shadowCoord.w > 0.0 && dist < shadowCoord.z ) 
-		{
-			shadow = 0.1;
-		}
-	}
-	return shadow;
+    float shadow       = 1.0;
+    vec4 shadowCoord   = fragPosLightSpace / fragPosLightSpace.w;
+    float currentDepth = shadowCoord.z;
+    // transform to [0,1] range
+    shadowCoord        = shadowCoord * 0.5 + 0.5;
+    float closestDepth = texture(sampler2D(shadowMap, shadowSamp), shadowCoord.xy + off).r;
+    shadow             = currentDepth > closestDepth ? 1.0 : 0.0;
+    return shadow;
+}
+
+float filterPCF(vec4 sc)
+{
+    ivec2 texDim = textureSize(sampler2D(shadowMap, shadowSamp), 0);
+    float scale = 1.5;
+    float dx    = scale * 1.0 / float(texDim.x);
+    float dy    = scale * 1.0 / float(texDim.y);
+
+    float shadowFactor = 0.0;
+    int count = 0;
+    int range = 1;
+
+    for (int x = -range; x <= range; x++)
+    {
+        for (int y = -range; y <= range; y++)
+        {
+            shadowFactor += textureProj(sc, vec2(dx*x, dy*y));
+            count++;
+        }
+    }
+    return shadowFactor / count;
 }
 
 void main()
@@ -238,10 +258,11 @@ color = albedo * shadow;
     outColor    = albedo; */
 
     vec3 color = texture(sampler2D(baseColor, texSamp), inUV).rgb;
+    color = vec3(1.0, 1.0, 1.0);
     vec3 normal = normalize(inNormal);
     vec3 lightColor = vec3(1.0);
     // ambient
-    vec3 ambient = 0.8 * lightColor;
+    vec3 ambient = 0.3 * lightColor;
 
     vec3 lightDir = normalize(vec3(-0.5, 0.5, -0.5) - inWorldPos);
     float bias    = max(0.00075 * (1.0 - dot(normal, lightDir)), 0.00075);
@@ -252,9 +273,10 @@ color = albedo * shadow;
     float closeDepth   = texture(sampler2D(shadowMap, shadowSamp), uv.xy).r + 0.00075;
     float currentDepth = position_ndc.z;
     float shadow       = (currentDepth > closeDepth) ? 1.0 : 0.0; */
-    float shadow  = ShadowCalculation(fs_in.lightSpacePos);
+    int enablePCF = 0;
+    float shadow  = (enablePCF == 1) ? filterPCF(fs_in.lightSpacePos) : ShadowCalculation(fs_in.lightSpacePos);
     //vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * (color * (1.0 - shadow));
-    vec3 lighting = (ambient + (1.0 - shadow)) * color;
+    vec3 lighting = ambient + (1.0 - shadow) * color;
     /* lighting      = lighting / (lighting + vec3(1.0));
     lighting      = pow(lighting, vec3(1.0 / 2.2)); */
     outColor      = vec4(lighting, 1.0);
