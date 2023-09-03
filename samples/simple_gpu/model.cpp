@@ -473,10 +473,10 @@ void Model::UploadResource(class SkyBox* skyBox)
     mShadowMapSet = GPUCreateDescriptorSet(mDevice, &setDesc);
 
     GPUBufferDescriptor uboDesc = {
-        .size = sizeof(CommonUniformBuffer),
-        .descriptors = GPU_RESOURCE_TYPE_UNIFORM_BUFFER,
-        .memory_usage = GPU_MEM_USAGE_CPU_TO_GPU,
-        .flags = GPU_BCF_PERSISTENT_MAP_BIT,
+        .size             = sizeof(PerframeUniformBuffer),
+        .descriptors      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER,
+        .memory_usage     = GPU_MEM_USAGE_CPU_TO_GPU,
+        .flags            = GPU_BCF_PERSISTENT_MAP_BIT,
         .prefer_on_device = true
     };
     mUBO = GPUCreateBuffer(mDevice, &uboDesc);
@@ -505,14 +505,6 @@ void Model::UploadResource(class SkyBox* skyBox)
     GPUUpdateDescriptorSet(mSet, dataDesc, 5);
 
     //material
-    /* for (size_t i = 0; i < mMesh.subMeshes.size(); i++)
-    {
-        if (mMesh.subMeshes[i].diffuse_tex_url == "") continue;
-        std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string_view, bool>>> textures = {
-            { PBR_MTT_DIFFUSE, { "../../../../asset/objects/sponza/" + mMesh.subMeshes[i].diffuse_tex_url, true } }
-        };
-        CreateMaterial(mMesh.subMeshes[i].materialIndex, textures);
-    } */
     LoadMaterial();
 }
 
@@ -600,12 +592,22 @@ PBRMaterial* Model::CreateMaterial(uint32_t materialIndex, const std::vector<std
 
 void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos, const glm::mat4& lightSpaceMatrix)
 {
+    PointLight pointLight = {
+        .position  = glm::vec3(-1.0f, 0.0f, 0.0f),
+        .color     = glm::vec3(0.0f, 1.0f, 0.0f),
+        .constant  = 1.0f,
+        .linear    = 0.22f,
+        .quadratic = 0.2f
+    };
     //update uniform bffer
-    CommonUniformBuffer ubo = {
-        .view    = view,
-        .proj    = proj,
-        .lightSpaceMat = lightSpaceMatrix,
-        .viewPos = viewPos
+    PerframeUniformBuffer ubo = {
+        .view                       = view,
+        .proj                       = proj,
+        .lightSpaceMat              = lightSpaceMatrix,
+        .viewPos                    = viewPos,
+        .directionalLight.direction = glm::vec3(0.5f, -0.5f, 0.5f),
+        .directionalLight.color     = glm::vec3(1.0, 1.0, 1.0),
+        .pointLight                 = pointLight
     };
     memcpy(mUBO->cpu_mapped_address, &ubo, sizeof(ubo));
 

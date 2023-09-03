@@ -756,3 +756,33 @@ public:
         mSampler = GPUCreateSampler(device, &desc);
     }
 };
+
+struct DirectionalLight
+{
+    glm::vec3 direction;
+    float padding_direction;
+    glm::vec3 color;
+    float padding_color;
+};
+
+struct PointLight
+{
+    glm::vec3 position;
+    float padding_position;
+    glm::vec3 color;
+    float padding_color;
+    float constant;
+    float linear;
+    float quadratic;
+    float padding;
+};
+
+struct PerframeUniformBuffer
+{
+    glm::mat4 view;
+    glm::mat4 proj;
+    glm::mat4 lightSpaceMat;;
+    glm::vec4 viewPos;
+    DirectionalLight directionalLight;
+    PointLight pointLight;
+};

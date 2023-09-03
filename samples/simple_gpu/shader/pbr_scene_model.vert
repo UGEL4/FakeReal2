@@ -1,13 +1,35 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(set = 0, binding = 4) uniform UniformBufferObj
+struct DirectionalLight
+{
+    vec3 direction;
+    float padding_direction;
+    vec3 color;
+    float padding_color;
+};
+
+struct PointLight
+{
+    vec3 position;
+    float padding_position;
+    vec3 color;
+    float padding_color;
+    float constant;
+    float linear;
+    float quadratic;
+    float padding;
+};
+
+layout(set = 0, binding = 4) uniform PerframeUniformBuffer
 {
     mat4 view;
     mat4 proj;
     mat4 lightSpaceMat;
     vec4 viewPos;
-}ubo;
+    DirectionalLight directionalLight;
+    PointLight pointLight;
+} ubo;
 
 layout(push_constant) uniform PushConsts
 {
@@ -31,13 +53,11 @@ layout(location = 2) out vec2 outUV;
 
 layout(location = 3) out VS_TengentOut
 {
-    vec3 viewPos;
     vec3 tangentViewPos;
     vec3 tangentFragPos;
     vec4 lightSpacePos;
     mat3 TBN;
 } vs_out;
-
 
 void main()
 {
@@ -55,7 +75,6 @@ void main()
 
     vs_out.tangentViewPos  = TBN * ubo.viewPos.xyz;
     vs_out.tangentFragPos  = TBN * outWorldPos;
-    vs_out.viewPos  = ubo.viewPos.xyz;
-    vs_out.TBN = mat3(T, B, N);
+    vs_out.TBN             = mat3(T, B, N);
     vs_out.lightSpacePos = ubo.lightSpaceMat * pushConsts.model * vec4(inPos, 1.0);
 }

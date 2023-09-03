@@ -297,34 +297,8 @@ public:
 
     void Draw(const ShadowDrawSceneInfo& sceneInfo, GPUCommandBufferID cmd, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos, const glm::vec3 lightPos, const BoundingBox& entityBoundingBox)
     {
-        /* float near_plane = 0.0f, far_plane = 7.0f;
-        glm::vec3 lpos = -18.0f * lightPos;
-        glm::mat4 lightView       = glm::lookAt(lightPos, glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
-        glm::vec4 centerLS = lightView * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        float l = centerLS.x - 10.f;
-        float b = centerLS.y - 10.f;
-        float n = centerLS.z;
-        float r = centerLS.x + 10.f;
-        float t = centerLS.y + 10.f;
-        float f = centerLS.z + 10.f;
-        glm::mat4 lightProjection = glm::ortho(l, r, b, t, n, f); */
-
-        //mLightSpaceMatrix         = lightProjection * lightView;
         glm::vec3 lightDir = glm::normalize(lightPos);
         mLightSpaceMatrix  = CalculateDirectionalLightCamera(view, proj, entityBoundingBox, glm::mat4(1.0f), lightDir);
-
-        /* glm::mat4 depthProjectionMatrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.0f, 1000.0f);
-		glm::mat4 depthViewMatrix = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0, 1, 0));
-		glm::mat4 depthModelMatrix = glm::mat4(1.0f); */
-        //mLightSpaceMatrix = depthProjectionMatrix* depthViewMatrix;
-
-        /* float near_plane = 0.0f, far_plane = 25.0f;
-        glm::vec3 lpos = glm::vec3(-2.0f, 4.0f, -1.0f);
-        glm::mat4 lightView       = glm::lookAt(lpos * -5.f, glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
-        glm::mat4 lightProjection = glm::ortho(-25.f, 25.f, -25.f, 25.f, near_plane, far_plane);
-        mLightSpaceMatrix         = lightProjection * lightView; */
-
-        //mLightSpaceMatrix[1] = glm::vec4(1.0, 0.0, 1.0, 1.0);
         memcpy(mUBO->cpu_mapped_address, &mLightSpaceMatrix, sizeof(glm::mat4));
 
         // reorganize mesh
