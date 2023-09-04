@@ -596,8 +596,8 @@ void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const gl
         .position  = glm::vec3(-1.0f, 0.0f, 0.0f),
         .color     = glm::vec3(0.0f, 1.0f, 0.0f),
         .constant  = 1.0f,
-        .linear    = 0.22f,
-        .quadratic = 0.2f
+        .linear    = 0.045f,
+        .quadratic = 0.0075f
     };
     //update uniform bffer
     PerframeUniformBuffer ubo = {

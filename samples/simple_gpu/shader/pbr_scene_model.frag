@@ -162,6 +162,21 @@ vec3 CalcPointLight(PointLight light, vec3 baseColor, vec3 normal, vec3 fragPos,
     return (ambient + diffuse + specular);
 }
 
+vec3 CalcDirectionalLight(DirectionalLight light, vec3 baseColor, vec3 normal, vec3 fragPos, vec3 viewDir)
+{
+    vec3 color    = vec3(0.0);
+    vec3 lightDir = normalize(-light.direction);
+    float diff    = max(dot(normal, lightDir), 0.0);
+    vec3 diffuse  = perFrameUbo.directionalLight.color * diff * color;
+
+    if (diff > 0.0)
+    {
+        vec3 En = light.color * diff;
+    }
+
+    return color;
+}
+
 void main()
 {
     vec3 color = texture(sampler2D(baseColor, texSamp), inUV).rgb;
