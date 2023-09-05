@@ -605,7 +605,7 @@ void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const gl
         .proj                       = proj,
         .lightSpaceMat              = lightSpaceMatrix,
         .viewPos                    = viewPos,
-        .directionalLight.direction = glm::vec3(0.5f, -0.5f, 0.5f),
+        .directionalLight.direction = glm::vec3(-0.5f, 0.5f, -0.5f),
         .directionalLight.color     = glm::vec3(1.0, 1.0, 1.0),
         .pointLight                 = pointLight
     };

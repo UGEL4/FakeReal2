@@ -79,10 +79,10 @@
         {
             "index":18,
             "textures":[
-                {"name":"../../../../asset/objects/sponza/Sponza_Curtain_Red_diffuse.png", "type":"diffuse"},
-                {"name":"../../../../asset/objects/sponza/Sponza_Curtain_Red_normal.png", "type":"normal"},
-                {"name":"../../../../asset/objects/sponza/Sponza_Curtain_roughness.png", "type":"roughness"},
-                {"name":"../../../../asset/objects/sponza/Sponza_Curtain_metallic.png", "type":"metallic"}
+                {"name":"../../../../asset/textures/albedo.png", "type":"diffuse"},
+                {"name":"../../../../asset/textures/normal.png", "type":"normal"},
+                {"name":"../../../../asset/textures/roughness.png", "type":"roughness"},
+                {"name":"../../../../asset/textures/metallic.png", "type":"metallic"}
             ]
         }
     ]

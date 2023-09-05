@@ -26,7 +26,7 @@ struct PointLight
 layout(set = 0, binding = 0) uniform textureCube texIrradianMap;
 layout(set = 0, binding = 1) uniform textureCube texPrefilteredMap;
 layout(set = 0, binding = 2) uniform texture2D texBRDFLut;
-layout(set = 0, binding = 3) uniform sampler envTexSamp; //static sampler
+layout(set = 0, binding = 3) uniform sampler envTexSamp;
 layout(set = 0, binding = 4) uniform PerframeUniformBuffer
 {
     mat4 view;
@@ -37,7 +37,7 @@ layout(set = 0, binding = 4) uniform PerframeUniformBuffer
     PointLight pointLight;
 } perFrameUbo;
 
-layout(set = 1, binding = 0) uniform sampler texSamp; //static sampler
+layout(set = 1, binding = 0) uniform sampler texSamp;
 layout(set = 1, binding = 1) uniform texture2D baseColor;
 layout(set = 1, binding = 2) uniform texture2D normalMap;
 layout(set = 1, binding = 3) uniform texture2D metallicMap;
@@ -104,7 +104,6 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     return shadow;
 }
 
-
 float textureProj(vec4 fragPosLightSpace, vec2 off)
 {
     float shadow       = 1.0;
@@ -162,16 +161,16 @@ vec3 CalcPointLight(PointLight light, vec3 baseColor, vec3 normal, vec3 fragPos,
     return (ambient + diffuse + specular);
 }
 
-vec3 CalcDirectionalLight(DirectionalLight light, vec3 baseColor, vec3 normal, vec3 fragPos, vec3 viewDir)
+vec3 CalcDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir, vec3 baseColor, float metallic, float roughness, vec3 F0)
 {
     vec3 color    = vec3(0.0);
-    vec3 lightDir = normalize(-light.direction);
+    vec3 lightDir = normalize(light.direction);
     float diff    = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse  = perFrameUbo.directionalLight.color * diff * color;
 
     if (diff > 0.0)
     {
         vec3 En = light.color * diff;
+        color += BRDF(lightDir, viewDir, normal, F0, baseColor, metallic, roughness) * En;
     }
 
     return color;
@@ -179,10 +178,12 @@ vec3 CalcDirectionalLight(DirectionalLight light, vec3 baseColor, vec3 normal, v
 
 void main()
 {
-    vec3 color = texture(sampler2D(baseColor, texSamp), inUV).rgb;
+    vec3 color      = texture(sampler2D(baseColor, texSamp), inUV).rgb;
+    float metallic  = texture(sampler2D(metallicMap, texSamp), inUV).r;
+    float roughness = texture(sampler2D(roughnessMap, texSamp), inUV).r;
     //color = vec3(1.0, 1.0, 1.0);
     // ambient
-    vec3 ambient  = 0.3 * color;
+    /* vec3 ambient  = 0.3 * color;
 
     vec3 lightDir = normalize(-perFrameUbo.directionalLight.direction);
     vec3 normal   = normalize(inNormal);
@@ -199,7 +200,41 @@ void main()
     int enablePCF = 0;
     float shadow  = (enablePCF == 1) ? filterPCF(fs_in.lightSpacePos) : ShadowCalculation(fs_in.lightSpacePos);
     //vec3 lighting = ambient * ((1.0 - shadow) * color);
-    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular));
+    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)); */
     //lighting      += CalcPointLight(perFrameUbo.pointLight, color, normal, inWorldPos, viewDir);
-    outColor      = vec4(lighting, 1.0);
+
+    vec3 normal  = normalize(inNormal);
+    vec3 viewDir = normalize(perFrameUbo.viewPos.xyz - inWorldPos);
+    vec3 R       = reflect(-viewDir, normal);
+
+    vec3 F0 = mix(vec3(0.04), color, metallic);
+    vec3 Lo = vec3 (0.0);
+
+    // indirect environment
+    vec3 irradiance = texture(samplerCube(texIrradianMap, envTexSamp), normal).rgb;
+    vec3 diffuse    = irradiance * color;
+
+    vec3 F       = fresnelSchlickRoughness(clamp(dot(normal, viewDir), 0.0, 1.0), F0, roughness);
+    vec2 brdfLUT = texture(sampler2D(texBRDFLut, texSamp), vec2(clamp(dot(normal, viewDir), 0.0, 1.0), roughness)).rg;
+
+    float MAX_REFLECTION_LOD = 9.0;
+    float lod        = roughness * MAX_REFLECTION_LOD;
+    vec3  reflection = textureLod(samplerCube(texPrefilteredMap, envTexSamp), R, lod).rgb;
+    vec3  specular   = reflection * (F * brdfLUT.x + brdfLUT.y);
+
+    vec3 kD = 1.0 - F;
+    kD *= 1.0 - metallic;
+    vec3 Libl = (kD * diffuse + specular);
+
+    // direct ambient contribution
+    vec3 ambient_light = vec3(0.03);
+    vec3 La = vec3(0.0);
+    //La      = color * ambient_light;
+    //Lo += CalcDirectionalLight(perFrameUbo.directionalLight, normal, viewDir, color, metallic, roughness, F0);
+    vec3 result_color = Lo + La + Libl;
+    // HDR tonemapping
+    result_color = result_color / (result_color + vec3(1.0));
+    // gamma correct
+    result_color = pow(result_color, vec3(1.0/2.2)); 
+    outColor= vec4(result_color, 1.0);
 }
