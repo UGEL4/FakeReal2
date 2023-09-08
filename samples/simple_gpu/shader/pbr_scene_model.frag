@@ -183,9 +183,9 @@ void main()
     float roughness = texture(sampler2D(roughnessMap, texSamp), inUV).r;
     //color = vec3(1.0, 1.0, 1.0);
     // ambient
-    /* vec3 ambient  = 0.3 * color;
+    /* vec3 ambient  = 0.5 * color;
 
-    vec3 lightDir = normalize(-perFrameUbo.directionalLight.direction);
+    vec3 lightDir = normalize(perFrameUbo.directionalLight.direction);
     vec3 normal   = normalize(inNormal);
     float diff    = max(dot(normal, lightDir), 0.0);
     vec3 diffuse  = perFrameUbo.directionalLight.color * diff * color;
@@ -197,13 +197,15 @@ void main()
     float spec      = pow(max(dot(viewDir, reflectDir), 0.0), 32);
     vec3 specular   = specularStrength * spec * vec3(0.5);
 
-    int enablePCF = 0;
+    int enablePCF = 1;
     float shadow  = (enablePCF == 1) ? filterPCF(fs_in.lightSpacePos) : ShadowCalculation(fs_in.lightSpacePos);
     //vec3 lighting = ambient * ((1.0 - shadow) * color);
-    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)); */
+    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular));
     //lighting      += CalcPointLight(perFrameUbo.pointLight, color, normal, inWorldPos, viewDir);
+    outColor= vec4(lighting, 1.0); */
 
-    vec3 normal  = normalize(inNormal);
+    //vec3 normal  = normalize(inNormal);
+    vec3 normal = getNormalFromMap();
     vec3 viewDir = normalize(perFrameUbo.viewPos.xyz - inWorldPos);
     vec3 R       = reflect(-viewDir, normal);
 
@@ -219,7 +221,7 @@ void main()
 
     float MAX_REFLECTION_LOD = 9.0;
     float lod        = roughness * MAX_REFLECTION_LOD;
-    vec3  reflection = textureLod(samplerCube(texPrefilteredMap, envTexSamp), R, lod).rgb;
+    vec3  reflection = prefilteredReflection(R, roughness);
     vec3  specular   = reflection * (F * brdfLUT.x + brdfLUT.y);
 
     vec3 kD = 1.0 - F;
@@ -229,8 +231,17 @@ void main()
     // direct ambient contribution
     vec3 ambient_light = vec3(0.03);
     vec3 La = vec3(0.0);
-    //La      = color * ambient_light;
-    //Lo += CalcDirectionalLight(perFrameUbo.directionalLight, normal, viewDir, color, metallic, roughness, F0);
+    La      = color * ambient_light;
+    // directional light
+    {
+        //shadow
+        int enablePCF = 0;
+        float shadow  = (enablePCF == 1) ? filterPCF(fs_in.lightSpacePos) : ShadowCalculation(fs_in.lightSpacePos);
+        //if (shadow < 1.0)
+        {
+            Lo += CalcDirectionalLight(perFrameUbo.directionalLight, normal, viewDir, color, metallic, roughness, F0) * (1.0 - shadow);
+        }
+    }
     vec3 result_color = Lo + La + Libl;
     // HDR tonemapping
     result_color = result_color / (result_color + vec3(1.0));

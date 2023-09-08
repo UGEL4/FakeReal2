@@ -638,9 +638,10 @@ void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const gl
     GPURenderEncoderBindVertexBuffers(encoder, 1, &mVertexBuffer, &strides, nullptr);
     GPURenderEncoderBindIndexBuffer(encoder, mIndexBuffer, 0, sizeof(uint32_t));
     glm::mat4 matrices[1];
-    matrices[0] = /* glm::scale(glm::mat4(1.0f), glm::vec3(1.f, 1.f, 1.f)) */glm::mat4(1.0f);
+    //matrices[0] = /* glm::scale(glm::mat4(1.0f), glm::vec3(1.f, 1.f, 1.f)) */glm::mat4(1.0f);
     //matrices[1] = lightSpaceMatrix;
     //glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
+    matrices[0] = mModelMatrix;
     for (auto& nodePair : drawNodesInfo)
     {
         GPURenderEncoderBindDescriptorSet(encoder, mShadowMapSet);

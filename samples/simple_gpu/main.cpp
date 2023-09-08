@@ -969,7 +969,7 @@ int main(int argc, char** argv)
     gCamera.setPerspective(90.0f, (float)WIDTH / (float)HEIGHT, 0.1f, 1000.0f);
     gCamera.rotationSpeed = 0.25f;
     //gCamera.setRotation({ -3.75f, 180.0f, 0.0f });
-    gCamera.setPosition({ 0,0,-30.f });
+    gCamera.setPosition({ 0,0,-5.f });
 
     NormalRenderSimple();
    // RenderGraphSimple();
@@ -1114,7 +1114,7 @@ void NormalRenderSimple()
         //skyBox->Load(textures, device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT, false);
         //skyBox->Load(textures, device, graphicQueue, GPU_FORMAT_R8G8B8A8_SRGB, false);
         skyBox->InitVertexAndIndexResource(device, graphicQueue);
-        skyBox->GenIBLImageFromHDR("../../../../asset/textures/sky/HDR_111_Parking_Lot_2_Ref.hdr", device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT, true);
+        skyBox->GenIBLImageFromHDR("../../../../asset/textures/sky/sIBL-Serpentine_Valley_3k.hdr", device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT, true);
         //skyBox->GenIBLImageFromHDR("../../../../asset/textures/sky/newport_loft.hdr", device, graphicQueue, GPU_FORMAT_R32G32B32A32_SFLOAT, true);
         skyBox->GenIrradianceCubeMap(device, graphicQueue);
         skyBox->GenPrefilteredCubeMap(device, graphicQueue, 1024u);
@@ -1127,6 +1127,8 @@ void NormalRenderSimple()
     ///normal
 
     Model* pModel = new Model("../../../../asset/objects/sponza/test_shadow_box.json", device, graphicQueue);
+    pModel->mModelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
+    pModel->mModelMatrix = glm::mat4(1.0f);
     pModel->UploadResource(skyBox);
     /* CharacterModel* chModel = new CharacterModel();
     //chModel->LoadModel("../../../../asset/objects/character/garam_obj.json");
@@ -1184,8 +1186,8 @@ void NormalRenderSimple()
             GPUResetCommandPool(pool);
             GPUCmdBegin(cmd);
             {
-                //glm::vec4 viewPos = glm::vec4(gCamera.position.x, gCamera.position.y, gCamera.position.z, 1.0);
-                glm::vec4 viewPos = gCamera.viewPos;
+                glm::vec4 viewPos = glm::vec4(-gCamera.position.x, -gCamera.position.y, -gCamera.position.z, 1.0);
+                //glm::vec4 viewPos = gCamera.viewPos;
                 //glm::vec3 directLightPos(2.0, 4.0, 0.0);
                 glm::vec3 directLightPos(-0.5f, 0.5f, -0.5f);
                 //render shadow
@@ -1194,7 +1196,8 @@ void NormalRenderSimple()
                     .indexBuffer = pModel->mIndexBuffer,
                     .mesh = &(pModel->mMesh),
                     .materials = &(pModel->mMaterials),
-                    .strides = sizeof(NewVertex)
+                    .strides = sizeof(NewVertex),
+                    .modelMatrix = pModel->mModelMatrix
                 };
 
                 //render scene

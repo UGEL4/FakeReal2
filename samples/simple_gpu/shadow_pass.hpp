@@ -293,12 +293,13 @@ public:
         Mesh* mesh;
         std::unordered_map<uint32_t, PBRMaterial*>* materials;
         uint32_t strides;
+        glm::mat4 modelMatrix;
     };
 
     void Draw(const ShadowDrawSceneInfo& sceneInfo, GPUCommandBufferID cmd, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos, const glm::vec3 lightPos, const BoundingBox& entityBoundingBox)
     {
         glm::vec3 lightDir = glm::normalize(lightPos);
-        mLightSpaceMatrix  = CalculateDirectionalLightCamera(view, proj, entityBoundingBox, glm::mat4(1.0f), lightDir);
+        mLightSpaceMatrix  = CalculateDirectionalLightCamera(view, proj, entityBoundingBox, sceneInfo.modelMatrix, lightDir);
         memcpy(mUBO->cpu_mapped_address, &mLightSpaceMatrix, sizeof(glm::mat4));
 
         // reorganize mesh
@@ -363,7 +364,7 @@ public:
             GPURenderEncoderBindVertexBuffers(encoder, 1, &sceneInfo.vertexBuffer, &sceneInfo.strides, nullptr);
             GPURenderEncoderBindIndexBuffer(encoder, sceneInfo.indexBuffer, 0, sizeof(uint32_t));
             //glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
-            glm::mat4 model = glm::mat4(1.0f);
+            //glm::mat4 model = glm::mat4(1.0f);
             //model = proj * view * model;
             for (auto& nodePair : drawNodesInfo)
             {
@@ -372,7 +373,7 @@ public:
                     // per mesh
                     auto& mesh          = nodePair.second[i];
                     uint32_t indexCount = mesh->indexCount;
-                    GPURenderEncoderPushConstant(encoder, mRS, &model);
+                    GPURenderEncoderPushConstant(encoder, mRS, const_cast<glm::mat4*>(&sceneInfo.modelMatrix));
                     GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, mesh->indexOffset, mesh->vertexOffset, 0);
                 }
             }

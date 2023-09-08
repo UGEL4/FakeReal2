@@ -287,6 +287,7 @@ public:
     GPUSamplerID mSampler;
     GPUBufferID mUBO;
     BoundingBox mBoundingBox;
+    glm::mat4 mModelMatrix;
 };
 
 struct Sphere
