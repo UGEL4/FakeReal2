@@ -88,7 +88,7 @@ vec3 getNormalFromMap()
     return normalize(TBN * tangentNormal);
 }
 
-float ShadowCalculation(vec4 fragPosLightSpace)
+float ShadowCalculation(vec4 fragPosLightSpace, vec3 N)
 {
     // perform perspective divide
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
@@ -97,7 +97,8 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     // transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
     // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-    float closestDepth = texture(sampler2D(shadowMap, shadowSamp), projCoords.xy).r + 0.0000075; 
+    float bias = max(0.05 * (1.0 - dot(N, normalize(perFrameUbo.directionalLight.direction))), 0.0000075);
+    float closestDepth = texture(sampler2D(shadowMap, shadowSamp), projCoords.xy).r + bias; 
     // check whether current frag pos is in shadow
     float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
 
@@ -197,8 +198,8 @@ void main()
     float spec      = pow(max(dot(viewDir, reflectDir), 0.0), 32);
     vec3 specular   = specularStrength * spec * vec3(0.5);
 
-    int enablePCF = 1;
-    float shadow  = (enablePCF == 1) ? filterPCF(fs_in.lightSpacePos) : ShadowCalculation(fs_in.lightSpacePos);
+    int enablePCF = 0;
+    float shadow  = (enablePCF == 1) ? filterPCF(fs_in.lightSpacePos) : ShadowCalculation(fs_in.lightSpacePos, normal);
     //vec3 lighting = ambient * ((1.0 - shadow) * color);
     vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular));
     //lighting      += CalcPointLight(perFrameUbo.pointLight, color, normal, inWorldPos, viewDir);
@@ -236,7 +237,7 @@ void main()
     {
         //shadow
         int enablePCF = 0;
-        float shadow  = (enablePCF == 1) ? filterPCF(fs_in.lightSpacePos) : ShadowCalculation(fs_in.lightSpacePos);
+        float shadow  = (enablePCF == 1) ? filterPCF(fs_in.lightSpacePos) : ShadowCalculation(fs_in.lightSpacePos, normal);
         //if (shadow < 1.0)
         {
             Lo += CalcDirectionalLight(perFrameUbo.directionalLight, normal, viewDir, color, metallic, roughness, F0) * (1.0 - shadow);
