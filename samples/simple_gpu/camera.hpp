@@ -108,12 +108,12 @@ public:
         return keys.left || keys.right || keys.up || keys.down;
     }
 
-    float getNearClip()
+    float getNearClip() const
     {
         return znear;
     }
 
-    float getFarClip()
+    float getFarClip() const
     {
         return zfar;
     }
