@@ -25,8 +25,11 @@ layout(set = 0, binding = 4) uniform PerframeUniformBuffer
 {
     mat4 view;
     mat4 proj;
-    mat4 lightSpaceMat;
+    mat4 lightSpaceMat[4];
     vec4 viewPos;
+    vec4 cascadeSplits;
+    vec4 d1;
+    vec4 d2;
     DirectionalLight directionalLight;
     PointLight pointLight;
 } ubo;
@@ -34,11 +37,7 @@ layout(set = 0, binding = 4) uniform PerframeUniformBuffer
 layout(push_constant) uniform PushConsts
 {
     mat4 model;
-    //layout(offset = 64) mat4 lightSpaceMat;
-    /* layout(offset = 16) float metallic;
-    layout(offset = 20) float roughness;
-    layout(offset = 24) float ao;
-    layout(offset = 32) float padding; */
+    layout(offset = 64) float offsets[8];
 } pushConsts;
 
 layout(location = 0) in vec3 inPos;
@@ -56,13 +55,17 @@ layout(location = 3) out VS_TengentOut
     vec3 tangentViewPos;
     vec3 tangentFragPos;
     vec4 lightSpacePos;
+    vec4 fragViewPos;
     mat3 TBN;
 } vs_out;
 
 void main()
 {
     mat3 normalMatrix = mat3(transpose(inverse(pushConsts.model)));
-    vec4 worldPos     = pushConsts.model * vec4(inPos, 1.0);
+    vec3 pos = inPos;
+    pos.x += pushConsts.offsets[gl_InstanceIndex];
+    vec4 worldPos     = pushConsts.model * vec4(pos, 1.0);
+    //worldPos.x += pushConsts.offsets[gl_InstanceIndex];
     gl_Position       = ubo.proj * ubo.view * worldPos;
     outWorldPos       = worldPos.xyz;
     outNormal         = normalMatrix * inNormal;
@@ -76,5 +79,6 @@ void main()
     vs_out.tangentViewPos  = TBN * ubo.viewPos.xyz;
     vs_out.tangentFragPos  = TBN * outWorldPos;
     vs_out.TBN             = mat3(T, B, N);
-    vs_out.lightSpacePos = ubo.lightSpaceMat * pushConsts.model * vec4(inPos, 1.0);
+    //vs_out.lightSpacePos = ubo.lightSpaceMat * pushConsts.model * vec4(inPos, 1.0);
+    vs_out.fragViewPos   = ubo.view * worldPos;
 }

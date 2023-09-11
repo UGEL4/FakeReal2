@@ -16,6 +16,7 @@
 #include "camera.hpp"
 #include "character_model.hpp"
 #include "shadow_pass.hpp"
+#include "cascade_shadow_pass.hpp"
 
 static int WIDTH = 1080;
 static int HEIGHT = 1080;
@@ -1138,7 +1139,11 @@ void NormalRenderSimple()
     ShadowPass* pShadowPass = new ShadowPass(device, graphicQueue);
     pShadowPass->InitRenderObjects();
 
-    pModel->UpdateShadowMapSet(pShadowPass->mDepthTextureView, pShadowPass->mSampler);
+    CascadeShadowPass* pCascadeShadow = new CascadeShadowPass(device, graphicQueue);
+    pCascadeShadow->InitRenderObjects();
+
+    //pModel->UpdateShadowMapSet(pShadowPass->mDepthTextureView, pShadowPass->mSampler);
+    pModel->UpdateShadowMapSet(pCascadeShadow->mDepthTextureView, pCascadeShadow->mSampler);
 
 
     //light
@@ -1189,9 +1194,9 @@ void NormalRenderSimple()
                 glm::vec4 viewPos = glm::vec4(-gCamera.position.x, -gCamera.position.y, -gCamera.position.z, 1.0);
                 //glm::vec4 viewPos = gCamera.viewPos;
                 //glm::vec3 directLightPos(2.0, 4.0, 0.0);
-                glm::vec3 directLightPos(-0.5f, 0.5f, -0.5f);
+                glm::vec3 directLightPos(-0.5f, 0.5f, 0.f);
                 //render shadow
-                ShadowPass::ShadowDrawSceneInfo sceneInfo = {
+                CascadeShadowPass::ShadowDrawSceneInfo sceneInfo = {
                     .vertexBuffer = pModel->mVertexBuffer,
                     .indexBuffer = pModel->mIndexBuffer,
                     .mesh = &(pModel->mMesh),
@@ -1210,7 +1215,8 @@ void NormalRenderSimple()
                 draw_barrier.texture_barriers_count = 1;
                 GPUCmdResourceBarrier(cmd, &draw_barrier);
 
-                pShadowPass->Draw(sceneInfo, cmd, gCamera.matrices.view, gCamera.matrices.perspective, viewPos, directLightPos, pModel->mBoundingBox);
+                //pShadowPass->Draw(sceneInfo, cmd, gCamera.matrices.view, gCamera.matrices.perspective, viewPos, directLightPos, pModel->mBoundingBox);
+                pCascadeShadow->Draw(sceneInfo, cmd, gCamera, viewPos, directLightPos, pModel->mBoundingBox);
                 GPUColorAttachment screenAttachment{};
                 screenAttachment.view         = backbuffer_view;
                 screenAttachment.load_action  = GPU_LOAD_ACTION_CLEAR;
@@ -1238,7 +1244,8 @@ void NormalRenderSimple()
                     //DrawNormalObject(encoder, lightInfo, viewPos, gCamera.matrices.view, gCamera.matrices.perspective);
                     //DrawModel(encoder, lightInfo, viewPos, gCamera.matrices.view, gCamera.matrices.perspective);
                     //chModel->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos);
-                    pModel->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos, pShadowPass->mLightSpaceMatrix);
+                    //pModel->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos, pShadowPass->mLightSpaceMatrix);
+                    pModel->Draw(encoder, &gCamera, viewPos, pCascadeShadow);
                     //skyybox
                     skyBox->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos);
 
@@ -1297,6 +1304,7 @@ void NormalRenderSimple()
     GPUFreeSampler(staticSampler);
     
     delete pShadowPass;
+    delete pCascadeShadow;
     ////////////model
     //FreeModelRendderObjects();
     delete pModel;

@@ -4,6 +4,8 @@
 #include "Utils/Json/JsonReader.h"
 #include <unordered_map>
 #include "sky_box.hpp"
+#include "camera.hpp"
+#include "cascade_shadow_pass.hpp"
 
 Model::Model(const std::string_view file, GPUDeviceID device, GPUQueueID gfxQueue)
 : mDevice(device), mGfxQueue(gfxQueue)
@@ -637,11 +639,21 @@ void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const gl
     uint32_t strides = sizeof(NewVertex);
     GPURenderEncoderBindVertexBuffers(encoder, 1, &mVertexBuffer, &strides, nullptr);
     GPURenderEncoderBindIndexBuffer(encoder, mIndexBuffer, 0, sizeof(uint32_t));
-    glm::mat4 matrices[1];
+    //glm::mat4 matrices[1];
     //matrices[0] = /* glm::scale(glm::mat4(1.0f), glm::vec3(1.f, 1.f, 1.f)) */glm::mat4(1.0f);
     //matrices[1] = lightSpaceMatrix;
     //glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
-    matrices[0] = mModelMatrix;
+    //matrices[0] = mModelMatrix;
+    struct
+    {
+        glm::mat4 model;
+        float offsets[8];
+    } push;
+    push.model = mModelMatrix;
+    for (uint32_t i = 0; i < 8; i++)
+    {
+        push.offsets[i] = 25.f * i;
+    }
     for (auto& nodePair : drawNodesInfo)
     {
         GPURenderEncoderBindDescriptorSet(encoder, mShadowMapSet);
@@ -654,12 +666,90 @@ void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const gl
             auto& mesh = nodePair.second[i];
             uint32_t indexCount = mesh->indexCount;
             //glm::mat4 model(1.0f);
-            GPURenderEncoderPushConstant(encoder, mRootSignature, matrices);
-            GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, mesh->indexOffset, mesh->vertexOffset, 0);
+            GPURenderEncoderPushConstant(encoder, mRootSignature, &push);
+            GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 8, mesh->indexOffset, mesh->vertexOffset, 0);
 
             //matrices[0] = glm::translate(matrices[0], glm::vec3(3.0, 3.0, 0.0));
             //GPURenderEncoderPushConstant(encoder, mRootSignature, &matrices);
             //GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, mesh->indexOffset, mesh->vertexOffset, 0);
+        }
+    }
+}
+
+void Model::Draw(GPURenderPassEncoderID encoder, const class Camera* cam, const glm::vec4& viewPos,  const class CascadeShadowPass* shadowPass)
+{
+    PointLight pointLight = {
+        .position  = glm::vec3(-1.0f, 0.0f, 0.0f),
+        .color     = glm::vec3(0.0f, 1.0f, 0.0f),
+        .constant  = 1.0f,
+        .linear    = 0.045f,
+        .quadratic = 0.0075f
+    };
+    //update uniform bffer
+    PerframeUniformBuffer ubo = {
+        .view                       = cam->matrices.view,
+        .proj                       = cam->matrices.perspective,
+        .viewPos                    = viewPos,
+        .directionalLight.direction = glm::vec3(-0.5f, 0.5f, -0.5f),
+        .directionalLight.color     = glm::vec3(1.0, 1.0, 1.0),
+        .pointLight                 = pointLight
+    };
+    for (uint32_t i = 0; i < 4; i++)
+    {
+        ubo.cascadeSplits[i] = shadowPass->cascades[i].splitDepth;
+        ubo.lightSpaceMat[i] = shadowPass->cascades[i].viewProjMatrix;
+    }
+    memcpy(mUBO->cpu_mapped_address, &ubo, sizeof(ubo));
+
+    // reorganize mesh
+    std::unordered_map<PBRMaterial*, std::vector<SubMesh*>> drawNodesInfo;
+    for (size_t i = 0; i < mMesh.subMeshes.size(); i++)
+    {
+        const auto itr = mMaterials.find(mMesh.subMeshes[i].materialIndex);
+        if (itr != mMaterials.end())
+        {
+            auto cur_pair = drawNodesInfo.find(itr->second);
+            if (cur_pair != drawNodesInfo.end())
+            {
+                cur_pair->second.push_back(&mMesh.subMeshes[i]);
+            }
+            else
+            {
+                auto& nodes = drawNodesInfo[itr->second];
+                nodes.push_back(&mMesh.subMeshes[i]);
+            }
+        }
+    }
+
+    //draw call
+    GPURenderEncoderBindPipeline(encoder, mPbrPipeline);
+    GPURenderEncoderBindDescriptorSet(encoder, mSet);
+    uint32_t strides = sizeof(NewVertex);
+    GPURenderEncoderBindVertexBuffers(encoder, 1, &mVertexBuffer, &strides, nullptr);
+    GPURenderEncoderBindIndexBuffer(encoder, mIndexBuffer, 0, sizeof(uint32_t));
+    struct
+    {
+        glm::mat4 model;
+        float offsets[8];
+    } push;
+    push.model = mModelMatrix;
+    for (uint32_t i = 0; i < 8; i++)
+    {
+        push.offsets[i] = 50.f * i;
+    }
+    for (auto& nodePair : drawNodesInfo)
+    {
+        GPURenderEncoderBindDescriptorSet(encoder, mShadowMapSet);
+        //per material
+        auto& mat = nodePair.first;
+        GPURenderEncoderBindDescriptorSet(encoder, mat->set);
+        for (size_t i = 0; i < nodePair.second.size() && i < 1 ; i++)
+        {
+            //per mesh
+            auto& mesh = nodePair.second[i];
+            uint32_t indexCount = mesh->indexCount;
+            GPURenderEncoderPushConstant(encoder, mRootSignature, &push);
+            GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 8, mesh->indexOffset, mesh->vertexOffset, 0);
         }
     }
 }

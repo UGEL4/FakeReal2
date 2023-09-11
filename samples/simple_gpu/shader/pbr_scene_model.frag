@@ -31,8 +31,11 @@ layout(set = 0, binding = 4) uniform PerframeUniformBuffer
 {
     mat4 view;
     mat4 proj;
-    mat4 lightSpaceMat;
+    mat4 lightSpaceMat[4];
     vec4 viewPos;
+    vec4 cascadeSplits;
+    vec4 d1;
+    vec4 d2;
     DirectionalLight directionalLight;
     PointLight pointLight;
 } perFrameUbo;
@@ -43,7 +46,7 @@ layout(set = 1, binding = 2) uniform texture2D normalMap;
 layout(set = 1, binding = 3) uniform texture2D metallicMap;
 layout(set = 1, binding = 4) uniform texture2D roughnessMap;
 
-layout(set = 2, binding = 0) uniform texture2D shadowMap;
+layout(set = 2, binding = 0) uniform texture2DArray shadowMap;
 layout(set = 2, binding = 1) uniform sampler shadowSamp;
 
 
@@ -55,6 +58,7 @@ layout(location = 3) in VS_TengentOut
     vec3 tangentViewPos;
     vec3 tangentFragPos;
     vec4 lightSpacePos;
+    vec4 fragViewPos;
     mat3 TBN;
 } fs_in;
 
@@ -88,7 +92,7 @@ vec3 getNormalFromMap()
     return normalize(TBN * tangentNormal);
 }
 
-float ShadowCalculation(vec4 fragPosLightSpace, vec3 N)
+/* float ShadowCalculation(vec4 fragPosLightSpace, vec3 N)
 {
     // perform perspective divide
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
@@ -103,9 +107,21 @@ float ShadowCalculation(vec4 fragPosLightSpace, vec3 N)
     float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
 
     return shadow;
+} */
+
+float textureArrayProj(vec4 fragPosLightSpace, vec2 off, uint cascadeIndex)
+{
+    float shadow       = 1.0;
+    vec4 shadowCoord   = fragPosLightSpace / fragPosLightSpace.w;
+    float currentDepth = shadowCoord.z;
+    // transform to [0,1] range
+    shadowCoord        = shadowCoord * 0.5 + 0.5;
+    float closestDepth = texture(sampler2DArray(shadowMap, shadowSamp), vec3(shadowCoord.xy + off, cascadeIndex)).r;
+    shadow             = currentDepth > closestDepth ? 1.0 : 0.0;
+    return shadow;
 }
 
-float textureProj(vec4 fragPosLightSpace, vec2 off)
+/* float textureProj(vec4 fragPosLightSpace, vec2 off)
 {
     float shadow       = 1.0;
     vec4 shadowCoord   = fragPosLightSpace / fragPosLightSpace.w;
@@ -137,7 +153,7 @@ float filterPCF(vec4 sc)
         }
     }
     return shadowFactor / count;
-}
+} */
 
 vec3 CalcPointLight(PointLight light, vec3 baseColor, vec3 normal, vec3 fragPos, vec3 viewDir)
 {
@@ -184,7 +200,7 @@ void main()
     float roughness = texture(sampler2D(roughnessMap, texSamp), inUV).r;
     //color = vec3(1.0, 1.0, 1.0);
     // ambient
-    /* vec3 ambient  = 0.5 * color;
+    vec3 ambient  = 0.5 * color;
 
     vec3 lightDir = normalize(perFrameUbo.directionalLight.direction);
     vec3 normal   = normalize(inNormal);
@@ -199,14 +215,38 @@ void main()
     vec3 specular   = specularStrength * spec * vec3(0.5);
 
     int enablePCF = 0;
-    float shadow  = (enablePCF == 1) ? filterPCF(fs_in.lightSpacePos) : ShadowCalculation(fs_in.lightSpacePos, normal);
+    //float shadow  = (enablePCF == 1) ? filterPCF(fs_in.lightSpacePos) : ShadowCalculation(fs_in.lightSpacePos, normal);
+    // Get cascade index for the current fragment's view position
+	uint cascadeIndex = 0;
+	for(uint i = 0; i < 4 - 1; ++i) {
+		if(fs_in.fragViewPos.z < perFrameUbo.cascadeSplits[i]) {	
+			cascadeIndex = i + 1;
+		}
+	}
+    // Depth compare for shadowing
+	vec4 shadowCoord = (perFrameUbo.lightSpaceMat[cascadeIndex]) * vec4(inWorldPos, 1.0);	
+    float shadow  = textureArrayProj(shadowCoord, vec2(0.0), cascadeIndex);
     //vec3 lighting = ambient * ((1.0 - shadow) * color);
     vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular));
     //lighting      += CalcPointLight(perFrameUbo.pointLight, color, normal, inWorldPos, viewDir);
-    outColor= vec4(lighting, 1.0); */
+    outColor= vec4(lighting, 1.0);
+    switch(cascadeIndex) {
+			case 0 : 
+				outColor.rgb *= vec3(1.0f, 0.25f, 0.25f);
+				break;
+			case 1 : 
+				outColor.rgb *= vec3(0.25f, 1.0f, 0.25f);
+				break;
+			case 2 : 
+				outColor.rgb *= vec3(0.25f, 0.25f, 1.0f);
+				break;
+			case 3 : 
+				outColor.rgb *= vec3(1.0f, 1.0f, 0.25f);
+				break;
+		}
 
     //vec3 normal  = normalize(inNormal);
-    vec3 normal = getNormalFromMap();
+    /* vec3 normal = getNormalFromMap();
     vec3 viewDir = normalize(perFrameUbo.viewPos.xyz - inWorldPos);
     vec3 R       = reflect(-viewDir, normal);
 
@@ -248,5 +288,5 @@ void main()
     result_color = result_color / (result_color + vec3(1.0));
     // gamma correct
     result_color = pow(result_color, vec3(1.0/2.2)); 
-    outColor= vec4(result_color, 1.0);
+    outColor= vec4(result_color, 1.0); */
 }

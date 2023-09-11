@@ -23,7 +23,6 @@ public:
     GPUTextureViewID mTextureView;
     GPUDeviceID mRefDevice;
     GPUQueueID mRefGfxQueue;
-    glm::mat4 mLightSpaceMatrix;
 
     GPURenderPipelineID mDebugPipeline;
     GPUDescriptorSetID mDebugSet;
@@ -58,7 +57,7 @@ public:
 
         uint32_t* shaderCode;
         uint32_t size = 0;
-        ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/shadow_map.vert", &shaderCode, &size);
+        ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/cascade_shadow_map.vert", &shaderCode, &size);
         GPUShaderLibraryDescriptor shaderDesc = {
             .pName    = u8"",
             .code     = shaderCode,
@@ -78,6 +77,18 @@ public:
             .stage    = GPU_SHADER_STAGE_FRAG
         };
         GPUShaderLibraryID psShader = GPUCreateShaderLibrary(mRefDevice, &shaderDesc);
+        free(shaderCode);
+
+        shaderCode = nullptr;
+        size       = 0;
+        ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/cascade_shadow_map.geom", &shaderCode, &size);
+        shaderDesc = {
+            .pName    = u8"",
+            .code     = shaderCode,
+            .codeSize = size,
+            .stage    = GPU_SHADER_STAGE_GEOM
+        };
+        GPUShaderLibraryID geomShader = GPUCreateShaderLibrary(mRefDevice, &shaderDesc);
         free(shaderCode);
         
         shaderCode = nullptr;
@@ -105,7 +116,7 @@ public:
         free(shaderCode);
         shaderCode = nullptr;
         
-        CGPUShaderEntryDescriptor entry_desc[4] = {};
+        CGPUShaderEntryDescriptor entry_desc[5] = {};
         entry_desc[0].pLibrary                  = vsShader;
         entry_desc[0].entry                     = u8"main";
         entry_desc[0].stage                     = GPU_SHADER_STAGE_VERT;
@@ -118,10 +129,13 @@ public:
         entry_desc[3].pLibrary                  = psDShader;
         entry_desc[3].entry                     = u8"main";
         entry_desc[3].stage                     = GPU_SHADER_STAGE_FRAG;
+        entry_desc[4].pLibrary                  = geomShader;
+        entry_desc[4].entry                     = u8"main";
+        entry_desc[4].stage                     = GPU_SHADER_STAGE_GEOM;
 
         GPURootSignatureDescriptor rs_desc = {
             .shaders      = entry_desc,
-            .shader_count = 4,
+            .shader_count = 5,
         };
         mRS = GPUCreateRootSignature(mRefDevice, &rs_desc);
 
@@ -154,6 +168,7 @@ public:
             .pRootSignature     = mRS,
             .pVertexShader      = &entry_desc[0],
             .pFragmentShader    = &entry_desc[1],
+            .pGeometryShader    = &entry_desc[4],
             .pVertexLayout      = &vertexLayout,
             .pDepthState        = &depthDesc,
             .pRasterizerState   = &rasterizerState,
@@ -165,6 +180,7 @@ public:
         mPipeline = GPUCreateRenderPipeline(mRefDevice, &pipelineDesc);
         GPUFreeShaderLibrary(vsShader);
         GPUFreeShaderLibrary(psShader);
+        GPUFreeShaderLibrary(geomShader);
 
         GPUVertexLayout emptyLayout {};
         rasterizerState = {
@@ -182,6 +198,7 @@ public:
         pipelineDesc.pRasterizerState = &rasterizerState;
         pipelineDesc.pVertexShader   = &entry_desc[2];
         pipelineDesc.pFragmentShader = &entry_desc[3];
+        pipelineDesc.pGeometryShader = nullptr;
         pipelineDesc.pVertexLayout = &emptyLayout;
         pipelineDesc.pColorFormats      = const_cast<EGPUFormat*>(&format);
         mDebugPipeline = GPUCreateRenderPipeline(mRefDevice, &pipelineDesc);
@@ -195,7 +212,7 @@ public:
             .width       = DEPTH_W,
             .height      = DEPTH_H,
             .depth       = 1,
-            .array_size  = 1,
+            .array_size  = SHADOW_MAP_CASCADE_COUNT,
             .format      = format,
             .owner_queue = mRefGfxQueue,
             .start_state = GPU_RESOURCE_STATE_RENDER_TARGET,
@@ -205,12 +222,13 @@ public:
         GPUTextureViewDescriptor tex_view_desc = {
             .pTexture        = mTexture,
             .format          = format,
+            .dims            = GPU_TEX_DIMENSION_2D_ARRAY,
             .usages          = EGPUTexutreViewUsage::GPU_TVU_RTV_DSV | GPU_TVU_SRV,
             .aspectMask      = EGPUTextureViewAspect::GPU_TVA_COLOR,
             .baseMipLevel    = 0,
             .mipLevelCount   = 1,
             .baseArrayLayer  = 0,
-            .arrayLayerCount = 1
+            .arrayLayerCount = SHADOW_MAP_CASCADE_COUNT
         };
         mTextureView = GPUCreateTextureView(mRefDevice, &tex_view_desc);
 
@@ -220,7 +238,7 @@ public:
             depth_tex_desc.width       = DEPTH_W;
             depth_tex_desc.height      = DEPTH_H;
             depth_tex_desc.depth       = 1;
-            depth_tex_desc.array_size  = 1;
+            depth_tex_desc.array_size  = SHADOW_MAP_CASCADE_COUNT;
             depth_tex_desc.format      = GPU_FORMAT_D32_SFLOAT;
             depth_tex_desc.owner_queue = mRefGfxQueue;
             depth_tex_desc.start_state = GPU_RESOURCE_STATE_DEPTH_WRITE;
@@ -231,12 +249,13 @@ public:
         {
             depth_tex_view_desc.pTexture        = mDepthTexture;
             depth_tex_view_desc.format          = GPU_FORMAT_D32_SFLOAT;
+            depth_tex_view_desc.dims            = GPU_TEX_DIMENSION_2D_ARRAY;
             depth_tex_view_desc.usages          = EGPUTexutreViewUsage::GPU_TVU_RTV_DSV | GPU_TVU_SRV;
             depth_tex_view_desc.aspectMask      = EGPUTextureViewAspect::GPU_TVA_DEPTH;
             depth_tex_view_desc.baseMipLevel    = 0;
             depth_tex_view_desc.mipLevelCount   = 1;
             depth_tex_view_desc.baseArrayLayer  = 0;
-            depth_tex_view_desc.arrayLayerCount = 1;
+            depth_tex_view_desc.arrayLayerCount = SHADOW_MAP_CASCADE_COUNT;
         }
         mDepthTextureView = GPUCreateTextureView(mRefDevice, &depth_tex_view_desc);
 
@@ -253,7 +272,7 @@ public:
         mDebugSet = GPUCreateDescriptorSet(mRefDevice, &setDesc);
 
         GPUBufferDescriptor uboDesc = {
-            .size             = sizeof(glm::mat4),
+            .size             = sizeof(glm::mat4) * SHADOW_MAP_CASCADE_COUNT,
             .descriptors      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER,
             .memory_usage     = GPU_MEM_USAGE_CPU_TO_GPU,
             .flags            = GPU_BCF_PERSISTENT_MAP_BIT,
@@ -300,11 +319,16 @@ public:
         glm::mat4 modelMatrix;
     };
 
-    void Draw(const ShadowDrawSceneInfo& sceneInfo, GPUCommandBufferID cmd, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos, const glm::vec3 lightPos, const BoundingBox& entityBoundingBox)
+    void Draw(const ShadowDrawSceneInfo& sceneInfo, GPUCommandBufferID cmd, const Camera& cam, const glm::vec4& viewPos, const glm::vec3 lightPos, const BoundingBox& entityBoundingBox)
     {
-        glm::vec3 lightDir = glm::normalize(lightPos);
-        mLightSpaceMatrix  = CalculateDirectionalLightCamera(view, proj, entityBoundingBox, sceneInfo.modelMatrix, lightDir);
-        memcpy(mUBO->cpu_mapped_address, &mLightSpaceMatrix, sizeof(glm::mat4));
+        //glm::vec3 lightDir = glm::normalize(lightPos);
+        CalculateDirectionalLightCamera(cam, entityBoundingBox, sceneInfo.modelMatrix, lightPos);
+        glm::mat4 LightSpaceMatrix[SHADOW_MAP_CASCADE_COUNT];
+        for(uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++)
+        {
+            LightSpaceMatrix[i] = cascades[i].viewProjMatrix;
+        }
+        memcpy(mUBO->cpu_mapped_address, LightSpaceMatrix, sizeof(glm::mat4) * SHADOW_MAP_CASCADE_COUNT);
 
         // reorganize mesh
         std::unordered_map<PBRMaterial*, std::vector<SubMesh*>> drawNodesInfo;
@@ -367,9 +391,16 @@ public:
             GPURenderEncoderBindDescriptorSet(encoder, mSet);
             GPURenderEncoderBindVertexBuffers(encoder, 1, &sceneInfo.vertexBuffer, &sceneInfo.strides, nullptr);
             GPURenderEncoderBindIndexBuffer(encoder, sceneInfo.indexBuffer, 0, sizeof(uint32_t));
-            //glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
-            //glm::mat4 model = glm::mat4(1.0f);
-            //model = proj * view * model;
+            struct
+            {
+                glm::mat4 model;
+                float offsets[8];
+            } push;
+            push.model = sceneInfo.modelMatrix;
+            for (uint32_t i = 0; i < 8; i++)
+            {
+                push.offsets[i] = 50.f * i;
+            }
             for (auto& nodePair : drawNodesInfo)
             {
                 for (size_t i = 0; i < nodePair.second.size() && i < 1; i++)
@@ -377,8 +408,8 @@ public:
                     // per mesh
                     auto& mesh          = nodePair.second[i];
                     uint32_t indexCount = mesh->indexCount;
-                    GPURenderEncoderPushConstant(encoder, mRS, const_cast<glm::mat4*>(&sceneInfo.modelMatrix));
-                    GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, mesh->indexOffset, mesh->vertexOffset, 0);
+                    GPURenderEncoderPushConstant(encoder, mRS, &push);
+                    GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 8, mesh->indexOffset, mesh->vertexOffset, 0);
                 }
             }
         }
@@ -411,7 +442,7 @@ public:
     };
 
     std::array<Cascade, SHADOW_MAP_CASCADE_COUNT> cascades;
-    glm::mat4 CalculateDirectionalLightCamera(const Camera& cam, const glm::mat4& view, const glm::mat4& proj, const BoundingBox& entityBoundingBox, const glm::mat4& entityModel, const glm::vec3& lightDir)
+    void CalculateDirectionalLightCamera(const Camera& cam, const BoundingBox& entityBoundingBox, const glm::mat4& entityModel, const glm::vec3& lightDir)
     {
         // Calculate split depths based on view camera frustum
         // Based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
@@ -419,23 +450,24 @@ public:
         float lambda = 0.95f;
         float n = cam.getNearClip();
         float f = cam.getFarClip();
+        float clipRange = f - n;
 
         for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++)
         {
             float p       = (i + 1) / (float)SHADOW_MAP_CASCADE_COUNT;
             float log     = n * glm::pow(f / n, p);
-            float uniform = n + (f - n) * p;
+            float uniform = n + clipRange * p;
             float d       = lambda * log + (1.f - lambda) * uniform; // l * log + un - l * un : lambda * (log - uniform) + uniform;
 
             cascadeSplits[i] = d;
         }
 
-        BoundingBox sceneBoundingBox;
+        /* BoundingBox sceneBoundingBox;
         {
             //just one entity for now;
             BoundingBox worldBoundingBox = BoundingBox::BoundingBoxTransform(entityBoundingBox, entityModel);
             sceneBoundingBox.Merge(worldBoundingBox);
-        }
+        } */
 
         glm::mat4 vp    = cam.matrices.perspective * cam.matrices.view;
         glm::mat4 invVP = glm::inverse(vp);
@@ -445,23 +477,23 @@ public:
         for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++)
         {
             float splitDist = cascadeSplits[i];
-            BoundingBox frustumBoundingBox;
+            //BoundingBox frustumBoundingBox;
             glm::vec3 frustumPointsNDCSpace[8] = {
-                glm::vec3(-1.0f, -1.0f, 1.0f),
-                glm::vec3(1.0f, -1.0f, 1.0f),
-                glm::vec3(1.0f, 1.0f, 1.0f),
-                glm::vec3(-1.0f, 1.0f, 1.0f),
                 glm::vec3(-1.0f, -1.0f, 0.0f),
                 glm::vec3(1.0f, -1.0f, 0.0f),
                 glm::vec3(1.0f, 1.0f, 0.0f),
                 glm::vec3(-1.0f, 1.0f, 0.0f),
+                glm::vec3(-1.0f, -1.0f, 1.0f),
+                glm::vec3(1.0f, -1.0f, 1.0f),
+                glm::vec3(1.0f, 1.0f, 1.0f),
+                glm::vec3(-1.0f, 1.0f, 1.0f),
             };
             for (size_t i = 0; i < CORNER_COUNT; ++i)
             {
                 glm::vec4 frustumPointWith_w = invVP * glm::vec4(frustumPointsNDCSpace[i], 1.0);
                 frustumPointsNDCSpace[i]     = frustumPointWith_w / frustumPointWith_w.w;
 
-                frustumBoundingBox.Update(frustumPointsNDCSpace[i]);
+                //frustumBoundingBox.Update(frustumPointsNDCSpace[i]);
             }
             for (uint32_t i = 0; i < 4; i++)
             {
@@ -477,101 +509,89 @@ public:
                 frustumCenter += frustumPointsNDCSpace[i];
             }
             frustumCenter /= (float)CORNER_COUNT;
+
+            float radius = 0.0f;
+            for (uint32_t i = 0; i < 8; i++)
+            {
+                float distance = glm::length(frustumPointsNDCSpace[i] - frustumCenter);
+                radius         = glm::max(radius, distance);
+            }
+            radius = std::ceil(radius * 16.0f) / 16.0f;
+
+            glm::vec3 maxExtents = glm::vec3(radius);
+            glm::vec3 minExtents = -maxExtents;
+
+            glm::mat4 lightViewMatrix  = glm::lookAt(frustumCenter + glm::normalize(lightDir) * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
+            glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, maxExtents.z - minExtents.z);
+
+            // Store split distance and matrix in cascade
+            cascades[i].splitDepth     = (cam.getNearClip() + splitDist * clipRange) * -1.0f;
+            cascades[i].viewProjMatrix = lightOrthoMatrix * lightViewMatrix;
+
+            lastSplitDist = cascadeSplits[i];
         }
-
-        glm::mat4 lightView;
-        glm::mat4 lightProj;
-        {
-            glm::vec3 boxCenter = glm::vec3(
-                (frustumBoundingBox.max.x + frustumBoundingBox.min.x) * 0.5f,
-                (frustumBoundingBox.max.y + frustumBoundingBox.min.y) * 0.5f,
-                (frustumBoundingBox.max.z + frustumBoundingBox.min.z) * 0.5f
-            );
-            glm::vec3 boxExtents = glm::vec3(
-                (frustumBoundingBox.max.x - frustumBoundingBox.min.x) * 0.5f,
-                (frustumBoundingBox.max.y - frustumBoundingBox.min.y) * 0.5f,
-                (frustumBoundingBox.max.z - frustumBoundingBox.min.z) * 0.5f
-            );
-
-            glm::vec3 eye = boxCenter + lightDir * std::hypot(boxExtents.x, boxExtents.y, boxExtents.z);
-            lightView     = glm::lookAt(eye, boxCenter, glm::vec3(0.0f, 1.0f, 0.0f));
-
-            BoundingBox frustumBoundingBoxLightView = BoundingBox::BoundingBoxTransform(frustumBoundingBox, lightView);
-            BoundingBox sceneBoundingBoxLightView   = BoundingBox::BoundingBoxTransform(sceneBoundingBox, lightView);
-
-            lightProj = glm::ortho(
-            std::max(frustumBoundingBoxLightView.min.x, sceneBoundingBoxLightView.min.x),
-            std::min(frustumBoundingBoxLightView.max.x, sceneBoundingBoxLightView.max.x),
-            std::max(frustumBoundingBoxLightView.min.y, sceneBoundingBoxLightView.min.y),
-            std::min(frustumBoundingBoxLightView.max.y, sceneBoundingBoxLightView.max.y),
-            -sceneBoundingBoxLightView.max.z, // the objects which are nearer than the frustum bounding box may caster shadow as well
-            -std::max(frustumBoundingBoxLightView.min.z, sceneBoundingBoxLightView.min.z));
-        }
-
-        glm::mat4 lightVP = lightProj * lightView;
-        return lightVP;
     }
     
     void Dummy()
     {
 
     }
-    Matrix Light::CalculateCropMatrix(ObjectList casters, ObjectList receivers, Frustum frustum)
-    {
-        // Bounding boxes
-        BoundingBox receiverBB, casterBB, splitBB;
-        Matrix lightViewProjMatrix = viewMatrix * projMatrix;
-        // Merge all bounding boxes of casters into a bigger "casterBB".
-        for (int i = 0; i < casters.size(); i++)
-        {
-            BoundingBox bb = CreateAABB(casters[i]->AABB, lightViewProjMatrix);
-            casterBB.Union(bb);
-        }
-        // Merge all bounding boxes of receivers into a bigger "receiverBB".
-        for (int i = 0; i < receivers.size(); i++)
-        {
-            bb = CreateAABB(receivers[i]->AABB, lightViewProjMatrix);
-            receiverBB.Union(bb);
-        }
-        // Find the bounding box of the current split
-        // in the light's clip space.
-        splitBB = CreateAABB(splitFrustum.AABB, lightViewProjMatrix);
-        // Scene-dependent bounding volume
-        BoundingBox cropBB;
-        cropBB.min.x = Max(Max(casterBB.min.x, receiverBB.min.x), splitBB.min.x);
-        cropBB.max.x = Min(Min(casterBB.max.x, receiverBB.max.x), splitBB.max.x);
-        cropBB.min.y = Max(Max(casterBB.min.y, receiverBB.min.y), splitBB.min.y);
-        cropBB.max.y = Min(Min(casterBB.max.y, receiverBB.max.y), splitBB.max.y);
-        cropBB.min.z = Min(casterBB.min.z, splitBB.min.z);
-        cropBB.max.z = Min(receiverBB.max.z, splitBB.max.z);
-        // Create the crop matrix.
-        float scaleX, scaleY, scaleZ;
-        float offsetX, offsetY, offsetZ;
-        scaleX  = 2.0f / (cropBB.max.x - cropBB.min.x);
-        scaleY  = 2.0f / (cropBB.max.y - cropBB.min.y);
-        offsetX = -0.5f * (cropBB.max.x + cropBB.min.x) * scaleX;
-        offsetY = -0.5f * (cropBB.max.y + cropBB.min.y) * scaleY;
-        scaleZ  = 1.0f / (cropBB.max.z - cropBB.min.z);
-        offsetZ = -cropBB.min.z * scaleZ;
-        return Matrix(scaleX, 0.0f, 0.0f, 0.0f, 0.0f, scaleY, 0.0f, 0.0f, 0.0f, 0.0f, scaleZ, 0.0f, offsetX, offsetY, offsetZ, 1.0f);
-    }
+    // Matrix Light::CalculateCropMatrix(ObjectList casters, ObjectList receivers, Frustum frustum)
+    // {
+    //     // Bounding boxes
+    //     BoundingBox receiverBB, casterBB, splitBB;
+    //     Matrix lightViewProjMatrix = viewMatrix * projMatrix;
+    //     // Merge all bounding boxes of casters into a bigger "casterBB".
+    //     for (int i = 0; i < casters.size(); i++)
+    //     {
+    //         BoundingBox bb = CreateAABB(casters[i]->AABB, lightViewProjMatrix);
+    //         casterBB.Union(bb);
+    //     }
+    //     // Merge all bounding boxes of receivers into a bigger "receiverBB".
+    //     for (int i = 0; i < receivers.size(); i++)
+    //     {
+    //         bb = CreateAABB(receivers[i]->AABB, lightViewProjMatrix);
+    //         receiverBB.Union(bb);
+    //     }
+    //     // Find the bounding box of the current split
+    //     // in the light's clip space.
+    //     splitBB = CreateAABB(splitFrustum.AABB, lightViewProjMatrix);
+    //     // Scene-dependent bounding volume
+    //     BoundingBox cropBB;
+    //     cropBB.min.x = Max(Max(casterBB.min.x, receiverBB.min.x), splitBB.min.x);
+    //     cropBB.max.x = Min(Min(casterBB.max.x, receiverBB.max.x), splitBB.max.x);
+    //     cropBB.min.y = Max(Max(casterBB.min.y, receiverBB.min.y), splitBB.min.y);
+    //     cropBB.max.y = Min(Min(casterBB.max.y, receiverBB.max.y), splitBB.max.y);
+    //     cropBB.min.z = Min(casterBB.min.z, splitBB.min.z);
+    //     cropBB.max.z = Min(receiverBB.max.z, splitBB.max.z);
+    //     // Create the crop matrix.
+    //     float scaleX, scaleY, scaleZ;
+    //     float offsetX, offsetY, offsetZ;
+    //     scaleX  = 2.0f / (cropBB.max.x - cropBB.min.x);
+    //     scaleY  = 2.0f / (cropBB.max.y - cropBB.min.y);
+    //     offsetX = -0.5f * (cropBB.max.x + cropBB.min.x) * scaleX;
+    //     offsetY = -0.5f * (cropBB.max.y + cropBB.min.y) * scaleY;
+    //     scaleZ  = 1.0f / (cropBB.max.z - cropBB.min.z);
+    //     offsetZ = -cropBB.min.z * scaleZ;
+    //     return Matrix(scaleX, 0.0f, 0.0f, 0.0f, 0.0f, scaleY, 0.0f, 0.0f, 0.0f, 0.0f, scaleZ, 0.0f, offsetX, offsetY, offsetZ, 1.0f);
+    // }
 
-    Matrix Light::CalculateCropMatrix(Frustum splitFrustum)
-    {
-        Matrix lightViewProjMatrix = viewMatrix * projMatrix;
-        // Find boundaries in light's clip space
-        BoundingBox cropBB = CreateAABB(splitFrustum.AABB, lightViewProjMatrix);
-        // Use default near-plane value
-        cropBB.min.z = 0.0f;
-        // Create the crop matrix
-        float scaleX, scaleY, scaleZ;
-        float offsetX, offsetY, offsetZ;
-        scaleX  = 2.0f / (cropBB.max.x - cropBB.min.x);
-        scaleY  = 2.0f / (cropBB.max.y - cropBB.min.y);
-        offsetX = -0.5f * (cropBB.max.x + cropBB.min.x) * scaleX;
-        offsetY = -0.5f * (cropBB.max.y + cropBB.min.y) * scaleY;
-        scaleZ  = 1.0f / (cropBB.max.z - cropBB.min.z);
-        offsetZ = -cropBB.min.z * scaleZ;
-        return Matrix(scaleX, 0.0f, 0.0f, 0.0f, 0.0f, scaleY, 0.0f, 0.0f, 0.0f, 0.0f, scaleZ, 0.0f, offsetX, offsetY, offsetZ, 1.0f);
-    }
+    // Matrix Light::CalculateCropMatrix(Frustum splitFrustum)
+    // {
+    //     Matrix lightViewProjMatrix = viewMatrix * projMatrix;
+    //     // Find boundaries in light's clip space
+    //     BoundingBox cropBB = CreateAABB(splitFrustum.AABB, lightViewProjMatrix);
+    //     // Use default near-plane value
+    //     cropBB.min.z = 0.0f;
+    //     // Create the crop matrix
+    //     float scaleX, scaleY, scaleZ;
+    //     float offsetX, offsetY, offsetZ;
+    //     scaleX  = 2.0f / (cropBB.max.x - cropBB.min.x);
+    //     scaleY  = 2.0f / (cropBB.max.y - cropBB.min.y);
+    //     offsetX = -0.5f * (cropBB.max.x + cropBB.min.x) * scaleX;
+    //     offsetY = -0.5f * (cropBB.max.y + cropBB.min.y) * scaleY;
+    //     scaleZ  = 1.0f / (cropBB.max.z - cropBB.min.z);
+    //     offsetZ = -cropBB.min.z * scaleZ;
+    //     return Matrix(scaleX, 0.0f, 0.0f, 0.0f, 0.0f, scaleY, 0.0f, 0.0f, 0.0f, 0.0f, scaleZ, 0.0f, offsetX, offsetY, offsetZ, 1.0f);
+    // }
 };

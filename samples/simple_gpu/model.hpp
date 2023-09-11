@@ -271,6 +271,7 @@ public:
     PBRMaterial* CreateMaterial(uint32_t materialIndex, const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string, bool>>>& textures);
     void Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos, const glm::mat4& lightSpaceMatrix);
     void UpdateShadowMapSet(GPUTextureViewID shadowMap, GPUSamplerID sampler);
+    void Draw(GPURenderPassEncoderID encoder, const class Camera* cam, const glm::vec4& viewPos, const class CascadeShadowPass* shadowPass);
 
     Mesh mMesh;
     std::string mMeshFile;
@@ -782,8 +783,11 @@ struct PerframeUniformBuffer
 {
     glm::mat4 view;
     glm::mat4 proj;
-    glm::mat4 lightSpaceMat;;
+    glm::mat4 lightSpaceMat[4];
     glm::vec4 viewPos;
+    glm::vec4 cascadeSplits;
+    glm::vec4 d1;
+    glm::vec4 d2;
     DirectionalLight directionalLight;
     PointLight pointLight;
 };

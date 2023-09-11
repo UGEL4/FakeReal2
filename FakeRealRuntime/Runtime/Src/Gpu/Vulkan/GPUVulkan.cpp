@@ -1882,7 +1882,7 @@ GPURenderPassEncoderID GPUCmdBeginRenderPass_Vulkan(GPUCommandBufferID cmd, cons
         fb_desc.attachmentCount    += 1;
         idx++;
     }
-    if (desc->render_target_count)
+    if (desc->render_target_count > 1)
         assert(fb_desc.layers == 1 && "MRT pass supports only one layer!");
     FindOrCreateFrameBuffer(D, &fb_desc, &framebuffer);
 
