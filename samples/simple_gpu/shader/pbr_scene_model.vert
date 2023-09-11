@@ -54,7 +54,7 @@ layout(location = 3) out VS_TengentOut
 {
     vec3 tangentViewPos;
     vec3 tangentFragPos;
-    vec4 lightSpacePos;
+    //vec4 lightSpacePos;
     vec4 fragViewPos;
     mat3 TBN;
 } vs_out;
@@ -80,5 +80,5 @@ void main()
     vs_out.tangentFragPos  = TBN * outWorldPos;
     vs_out.TBN             = mat3(T, B, N);
     //vs_out.lightSpacePos = ubo.lightSpaceMat * pushConsts.model * vec4(inPos, 1.0);
-    vs_out.fragViewPos   = ubo.view * worldPos;
+    vs_out.fragViewPos   = ubo.view * vec4(pos, 1.0);
 }

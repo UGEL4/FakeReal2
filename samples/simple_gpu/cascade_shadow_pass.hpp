@@ -409,7 +409,7 @@ public:
                     auto& mesh          = nodePair.second[i];
                     uint32_t indexCount = mesh->indexCount;
                     GPURenderEncoderPushConstant(encoder, mRS, &push);
-                    GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 8, mesh->indexOffset, mesh->vertexOffset, 0);
+                    GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, mesh->indexOffset, mesh->vertexOffset, 0);
                 }
             }
         }
@@ -459,7 +459,7 @@ public:
             float uniform = n + clipRange * p;
             float d       = lambda * log + (1.f - lambda) * uniform; // l * log + un - l * un : lambda * (log - uniform) + uniform;
 
-            cascadeSplits[i] = d;
+            cascadeSplits[i] = (d - n) / clipRange;
         }
 
         /* BoundingBox sceneBoundingBox;
@@ -521,7 +521,8 @@ public:
             glm::vec3 maxExtents = glm::vec3(radius);
             glm::vec3 minExtents = -maxExtents;
 
-            glm::mat4 lightViewMatrix  = glm::lookAt(frustumCenter + glm::normalize(lightDir) * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
+            glm::vec3 lightDir1 = normalize(-lightDir);
+            glm::mat4 lightViewMatrix  = glm::lookAt(frustumCenter - lightDir1 * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
             glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, maxExtents.z - minExtents.z);
 
             // Store split distance and matrix in cascade

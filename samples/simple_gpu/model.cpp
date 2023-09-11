@@ -749,7 +749,7 @@ void Model::Draw(GPURenderPassEncoderID encoder, const class Camera* cam, const 
             auto& mesh = nodePair.second[i];
             uint32_t indexCount = mesh->indexCount;
             GPURenderEncoderPushConstant(encoder, mRootSignature, &push);
-            GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 8, mesh->indexOffset, mesh->vertexOffset, 0);
+            GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, mesh->indexOffset, mesh->vertexOffset, 0);
         }
     }
 }

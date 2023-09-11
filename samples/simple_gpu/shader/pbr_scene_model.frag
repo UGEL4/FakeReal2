@@ -57,7 +57,7 @@ layout(location = 3) in VS_TengentOut
 {
     vec3 tangentViewPos;
     vec3 tangentFragPos;
-    vec4 lightSpacePos;
+    //vec4 lightSpacePos;
     vec4 fragViewPos;
     mat3 TBN;
 } fs_in;
@@ -227,7 +227,7 @@ void main()
 	vec4 shadowCoord = (perFrameUbo.lightSpaceMat[cascadeIndex]) * vec4(inWorldPos, 1.0);	
     float shadow  = textureArrayProj(shadowCoord, vec2(0.0), cascadeIndex);
     //vec3 lighting = ambient * ((1.0 - shadow) * color);
-    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular));
+    vec3 lighting = (ambient +  (diffuse + specular));
     //lighting      += CalcPointLight(perFrameUbo.pointLight, color, normal, inWorldPos, viewDir);
     outColor= vec4(lighting, 1.0);
     switch(cascadeIndex) {
