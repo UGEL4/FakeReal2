@@ -13,8 +13,6 @@ layout(location = 2) in vec2 inUV;
 layout(location = 3) in vec3 inTangent;
 layout(location = 4) in vec3 inBiTangent;
 
-//layout(location = 0) out vec4 outColor;
-
 void main()
 {
     vec4 worldPos = pushConsts.model * vec4(inPos, 1.0);

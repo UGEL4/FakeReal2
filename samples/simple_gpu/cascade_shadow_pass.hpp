@@ -351,9 +351,6 @@ public:
         }
 
         GPUTextureBarrier tex_barriers[1] = {};
-        /* tex_barriers[0].texture   = mTexture;
-        tex_barriers[0].src_state = GPU_RESOURCE_STATE_UNDEFINED;
-        tex_barriers[0].dst_state = GPU_RESOURCE_STATE_RENDER_TARGET; */
         tex_barriers[0].texture   = mDepthTexture;
         tex_barriers[0].src_state = GPU_RESOURCE_STATE_UNDEFINED;
         tex_barriers[0].dst_state = GPU_RESOURCE_STATE_DEPTH_WRITE;
@@ -419,9 +416,6 @@ public:
         tex_barrier1.texture   = mDepthTexture;
         tex_barrier1.src_state = GPU_RESOURCE_STATE_DEPTH_WRITE;
         tex_barrier1.dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE;
-        /* tex_barrier1.texture   = mTexture;
-        tex_barrier1.src_state = GPU_RESOURCE_STATE_RENDER_TARGET;
-        tex_barrier1.dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE; */
         GPUResourceBarrierDescriptor barrier{};
         barrier.texture_barriers_count = 1;
         barrier.texture_barriers       = &tex_barrier1;
@@ -521,8 +515,8 @@ public:
             glm::vec3 maxExtents = glm::vec3(radius);
             glm::vec3 minExtents = -maxExtents;
 
-            glm::vec3 lightDir1 = normalize(-lightDir);
-            glm::mat4 lightViewMatrix  = glm::lookAt(frustumCenter - lightDir1 * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
+            //glm::vec3 lightDir1 = normalize(-lightDir);
+            glm::mat4 lightViewMatrix  = glm::lookAt(frustumCenter + glm::normalize(lightDir) * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
             glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, maxExtents.z - minExtents.z);
 
             // Store split distance and matrix in cascade
@@ -532,11 +526,7 @@ public:
             lastSplitDist = cascadeSplits[i];
         }
     }
-    
-    void Dummy()
-    {
 
-    }
     // Matrix Light::CalculateCropMatrix(ObjectList casters, ObjectList receivers, Frustum frustum)
     // {
     //     // Bounding boxes

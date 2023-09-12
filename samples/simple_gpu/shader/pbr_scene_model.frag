@@ -109,6 +109,23 @@ vec3 getNormalFromMap()
     return shadow;
 } */
 
+float CascadedShadowCalculation(vec4 fragPosLightSpace, uint cascadeIndex, vec3 N)
+{
+    // perform perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
+    // transform to [0,1] range
+    projCoords = projCoords * 0.5 + 0.5;
+    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+    float bias = max(0.05 * (1.0 - dot(N, normalize(perFrameUbo.directionalLight.direction))), 0.0000075);
+    float closestDepth = texture(sampler2DArray(shadowMap, shadowSamp), vec3(projCoords.xy, cascadeIndex)).r + bias; 
+    // check whether current frag pos is in shadow
+    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
+
+    return shadow;
+}
+
 float textureArrayProj(vec4 fragPosLightSpace, vec2 off, uint cascadeIndex)
 {
     float shadow       = 1.0;
@@ -116,7 +133,7 @@ float textureArrayProj(vec4 fragPosLightSpace, vec2 off, uint cascadeIndex)
     float currentDepth = shadowCoord.z;
     // transform to [0,1] range
     shadowCoord        = shadowCoord * 0.5 + 0.5;
-    float closestDepth = texture(sampler2DArray(shadowMap, shadowSamp), vec3(shadowCoord.xy + off, cascadeIndex)).r;
+    float closestDepth = texture(sampler2DArray(shadowMap, shadowSamp), vec3(shadowCoord.xy + off, cascadeIndex)).r + 0.0000075;
     shadow             = currentDepth > closestDepth ? 1.0 : 0.0;
     return shadow;
 }
@@ -217,20 +234,32 @@ void main()
     int enablePCF = 0;
     //float shadow  = (enablePCF == 1) ? filterPCF(fs_in.lightSpacePos) : ShadowCalculation(fs_in.lightSpacePos, normal);
     // Get cascade index for the current fragment's view position
-	uint cascadeIndex = 0;
-	for(uint i = 0; i < 4 - 1; ++i) {
+	uint cascadeIndex = 3;
+	/* for(uint i = 0; i < 4 - 1; ++i) {
 		if(fs_in.fragViewPos.z < perFrameUbo.cascadeSplits[i]) {	
 			cascadeIndex = i + 1;
 		}
-	}
+	} */
+    if (fs_in.fragViewPos.z < perFrameUbo.cascadeSplits.x)
+    {
+        cascadeIndex = 0;
+    }
+    else if (fs_in.fragViewPos.z < perFrameUbo.cascadeSplits.y)
+    {
+        cascadeIndex = 1;
+    }
+    else if (fs_in.fragViewPos.z < perFrameUbo.cascadeSplits.z)
+    {
+        cascadeIndex = 2;
+    }
     // Depth compare for shadowing
 	vec4 shadowCoord = (perFrameUbo.lightSpaceMat[cascadeIndex]) * vec4(inWorldPos, 1.0);	
-    float shadow  = textureArrayProj(shadowCoord, vec2(0.0), cascadeIndex);
+    float shadow  = CascadedShadowCalculation(shadowCoord, cascadeIndex, normal);
     //vec3 lighting = ambient * ((1.0 - shadow) * color);
-    vec3 lighting = (ambient +  (diffuse + specular));
+    vec3 lighting = (ambient +  (1.0 - shadow) * (diffuse + specular));
     //lighting      += CalcPointLight(perFrameUbo.pointLight, color, normal, inWorldPos, viewDir);
     outColor= vec4(lighting, 1.0);
-    switch(cascadeIndex) {
+    /* switch(cascadeIndex) {
 			case 0 : 
 				outColor.rgb *= vec3(1.0f, 0.25f, 0.25f);
 				break;
@@ -243,7 +272,7 @@ void main()
 			case 3 : 
 				outColor.rgb *= vec3(1.0f, 1.0f, 0.25f);
 				break;
-		}
+		} */
 
     //vec3 normal  = normalize(inNormal);
     /* vec3 normal = getNormalFromMap();
