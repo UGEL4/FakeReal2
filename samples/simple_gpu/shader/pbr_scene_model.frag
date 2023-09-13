@@ -234,24 +234,13 @@ void main()
     int enablePCF = 0;
     //float shadow  = (enablePCF == 1) ? filterPCF(fs_in.lightSpacePos) : ShadowCalculation(fs_in.lightSpacePos, normal);
     // Get cascade index for the current fragment's view position
-	uint cascadeIndex = 3;
-	/* for(uint i = 0; i < 4 - 1; ++i) {
+	uint cascadeIndex = 0;
+	for(uint i = 0; i < 4 - 1; ++i) {
 		if(fs_in.fragViewPos.z < perFrameUbo.cascadeSplits[i]) {	
 			cascadeIndex = i + 1;
 		}
-	} */
-    if (fs_in.fragViewPos.z < perFrameUbo.cascadeSplits.x)
-    {
-        cascadeIndex = 0;
-    }
-    else if (fs_in.fragViewPos.z < perFrameUbo.cascadeSplits.y)
-    {
-        cascadeIndex = 1;
-    }
-    else if (fs_in.fragViewPos.z < perFrameUbo.cascadeSplits.z)
-    {
-        cascadeIndex = 2;
-    }
+	}
+
     // Depth compare for shadowing
 	vec4 shadowCoord = (perFrameUbo.lightSpaceMat[cascadeIndex]) * vec4(inWorldPos, 1.0);	
     float shadow  = CascadedShadowCalculation(shadowCoord, cascadeIndex, normal);
@@ -261,18 +250,23 @@ void main()
     outColor= vec4(lighting, 1.0);
     /* switch(cascadeIndex) {
 			case 0 : 
-				outColor.rgb *= vec3(1.0f, 0.25f, 0.25f);
+				outColor.rgb *= vec3(1.0f, 0.0f, 0.0f);
 				break;
 			case 1 : 
-				outColor.rgb *= vec3(0.25f, 1.0f, 0.25f);
+				outColor.rgb *= vec3(0.0f, 1.0f, 0.0f);
 				break;
 			case 2 : 
-				outColor.rgb *= vec3(0.25f, 0.25f, 1.0f);
+				outColor.rgb *= vec3(0.0f, 0.0f, 1.0f);
 				break;
 			case 3 : 
-				outColor.rgb *= vec3(1.0f, 1.0f, 0.25f);
+				outColor.rgb *= vec3(1.0f, 0.0f, 1.0f);
 				break;
 		} */
+        // HDR tonemapping
+    vec3 result_color = outColor.rgb / (outColor.rgb + vec3(1.0));
+    // gamma correct
+    result_color = pow(result_color, vec3(1.0/2.2)); 
+    outColor= vec4(result_color, 1.0); 
 
     //vec3 normal  = normalize(inNormal);
     /* vec3 normal = getNormalFromMap();

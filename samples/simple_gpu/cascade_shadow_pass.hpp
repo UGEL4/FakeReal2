@@ -441,7 +441,7 @@ public:
         // Calculate split depths based on view camera frustum
         // Based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
         float cascadeSplits[SHADOW_MAP_CASCADE_COUNT];
-        float lambda = 0.95f;
+        float lambda = 0.55f;
         float n = cam.getNearClip();
         float f = cam.getFarClip();
         float clipRange = f - n;
