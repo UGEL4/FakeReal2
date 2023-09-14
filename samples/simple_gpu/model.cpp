@@ -690,7 +690,7 @@ void Model::Draw(GPURenderPassEncoderID encoder, const class Camera* cam, const 
         .view                       = cam->matrices.view,
         .proj                       = cam->matrices.perspective,
         .viewPos                    = viewPos,
-        .directionalLight.direction = glm::vec3(-0.5f, 0.5f, 0.f),
+        .directionalLight.direction = glm::vec3(-0.5f, 0.5f, -0.5f),
         .directionalLight.color     = glm::vec3(1.0, 1.0, 1.0),
         .pointLight                 = pointLight
     };

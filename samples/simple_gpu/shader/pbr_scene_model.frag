@@ -263,10 +263,10 @@ void main()
 				break;
 		} */
         // HDR tonemapping
-    vec3 result_color = outColor.rgb / (outColor.rgb + vec3(1.0));
+    /* vec3 result_color = outColor.rgb / (outColor.rgb + vec3(1.0));
     // gamma correct
     result_color = pow(result_color, vec3(1.0/2.2)); 
-    outColor= vec4(result_color, 1.0); 
+    outColor= vec4(result_color, 1.0);  */
 
     //vec3 normal  = normalize(inNormal);
     /* vec3 normal = getNormalFromMap();

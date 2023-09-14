@@ -1195,7 +1195,7 @@ void NormalRenderSimple()
                 glm::vec4 viewPos = glm::vec4(-gCamera.position.x, -gCamera.position.y, -gCamera.position.z, 1.0);
                 //glm::vec4 viewPos = gCamera.viewPos;
                 //glm::vec3 directLightPos(2.0, 4.0, 0.0);
-                glm::vec3 directLightPos(-0.5f, 0.5f, 0.f);
+                glm::vec3 directLightPos(-0.5f, 0.5f, -0.5f);
                 //render shadow
                 CascadeShadowPass::ShadowDrawSceneInfo sceneInfo = {
                     .vertexBuffer = pModel->mVertexBuffer,
