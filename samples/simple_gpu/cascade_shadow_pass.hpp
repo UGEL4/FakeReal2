@@ -482,32 +482,32 @@ public:
                 glm::vec3(1.0f, 1.0f, 1.0f),
                 glm::vec3(-1.0f, 1.0f, 1.0f),
             };
-            for (size_t i = 0; i < CORNER_COUNT; ++i)
+            for (size_t j = 0; j < CORNER_COUNT; ++j)
             {
-                glm::vec4 frustumPointWith_w = invVP * glm::vec4(frustumPointsNDCSpace[i], 1.0);
-                frustumPointsNDCSpace[i]     = frustumPointWith_w / frustumPointWith_w.w;
+                glm::vec4 frustumPointWith_w = invVP * glm::vec4(frustumPointsNDCSpace[j], 1.0);
+                frustumPointsNDCSpace[j]     = frustumPointWith_w / frustumPointWith_w.w;
 
                 //frustumBoundingBox.Update(frustumPointsNDCSpace[i]);
             }
-            for (uint32_t i = 0; i < 4; i++)
+            for (uint32_t j = 0; j < 4; j++)
             {
-                glm::vec3 dist               = frustumPointsNDCSpace[i + 4] - frustumPointsNDCSpace[i];
-                frustumPointsNDCSpace[i + 4] = frustumPointsNDCSpace[i] + (dist * splitDist);
-                frustumPointsNDCSpace[i]     = frustumPointsNDCSpace[i] + (dist * lastSplitDist);
+                glm::vec3 dist               = frustumPointsNDCSpace[j + 4] - frustumPointsNDCSpace[j];
+                frustumPointsNDCSpace[j + 4] = frustumPointsNDCSpace[j] + (dist * splitDist);
+                frustumPointsNDCSpace[j]     = frustumPointsNDCSpace[j] + (dist * lastSplitDist);
             }
 
             // Get frustum center
             glm::vec3 frustumCenter = glm::vec3(0.0f);
-            for (uint32_t i = 0; i < CORNER_COUNT; i++)
+            for (uint32_t j = 0; j < CORNER_COUNT; j++)
             {
-                frustumCenter += frustumPointsNDCSpace[i];
+                frustumCenter += frustumPointsNDCSpace[j];
             }
             frustumCenter /= (float)CORNER_COUNT;
 
             float radius = 0.0f;
-            for (uint32_t i = 0; i < 8; i++)
+            for (uint32_t j = 0; j < 8; j++)
             {
-                float distance = glm::length(frustumPointsNDCSpace[i] - frustumCenter);
+                float distance = glm::length(frustumPointsNDCSpace[j] - frustumCenter);
                 radius         = glm::max(radius, distance);
             }
             radius = std::ceil(radius * 16.0f) / 16.0f;
