@@ -27,17 +27,17 @@ layout(set = 0, binding = 0) uniform textureCube texIrradianMap;
 layout(set = 0, binding = 1) uniform textureCube texPrefilteredMap;
 layout(set = 0, binding = 2) uniform texture2D texBRDFLut;
 layout(set = 0, binding = 3) uniform sampler envTexSamp;
-layout(set = 0, binding = 4) uniform PerframeUniformBuffer
+layout(std140, set = 0, binding = 4) uniform PerframeUniformBuffer
 {
     mat4 view;
     mat4 proj;
-    mat4 lightSpaceMat[4];
+    mat4 lightSpaceMat[6];
     vec4 viewPos;
-    vec4 cascadeSplits;
-    vec4 d1;
-    vec4 d2;
-    DirectionalLight directionalLight;
-    PointLight pointLight;
+    float cascadeSplits[8];
+    layout(offset = 560) vec3 direction;
+    float padding_direction;
+    vec3 color;
+    float padding_color;
 } perFrameUbo;
 
 layout(set = 1, binding = 0) uniform sampler texSamp;
@@ -118,7 +118,7 @@ float CascadedShadowCalculation(vec4 fragPosLightSpace, uint cascadeIndex, vec3 
     // transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
     // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-    float bias = max(0.05 * (1.0 - dot(N, normalize(perFrameUbo.directionalLight.direction))), 0.0000075);
+    float bias = max(0.05 * (1.0 - dot(N, normalize(perFrameUbo.direction))), 0.0000075);
     float closestDepth = texture(sampler2DArray(shadowMap, shadowSamp), vec3(projCoords.xy, cascadeIndex)).r + bias; 
     // check whether current frag pos is in shadow
     float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
@@ -172,7 +172,7 @@ float filterPCF(vec4 sc)
     return shadowFactor / count;
 } */
 
-vec3 CalcPointLight(PointLight light, vec3 baseColor, vec3 normal, vec3 fragPos, vec3 viewDir)
+/* vec3 CalcPointLight(PointLight light, vec3 baseColor, vec3 normal, vec3 fragPos, vec3 viewDir)
 {
     vec3 lightDir = normalize(light.position - fragPos);
     // 漫反射着色
@@ -193,9 +193,9 @@ vec3 CalcPointLight(PointLight light, vec3 baseColor, vec3 normal, vec3 fragPos,
     diffuse  *= attenuation;
     specular *= attenuation;
     return (ambient + diffuse + specular);
-}
+} */
 
-vec3 CalcDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir, vec3 baseColor, float metallic, float roughness, vec3 F0)
+/* vec3 CalcDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir, vec3 baseColor, float metallic, float roughness, vec3 F0)
 {
     vec3 color    = vec3(0.0);
     vec3 lightDir = normalize(light.direction);
@@ -209,7 +209,7 @@ vec3 CalcDirectionalLight(DirectionalLight light, vec3 normal, vec3 viewDir, vec
 
     return color;
 }
-
+ */
 void main()
 {
     vec3 color      = texture(sampler2D(baseColor, texSamp), inUV).rgb;
@@ -219,10 +219,12 @@ void main()
     // ambient
     vec3 ambient  = 0.5 * color;
 
-    vec3 lightDir = normalize(perFrameUbo.directionalLight.direction);
+perFrameUbo.direction;
+perFrameUbo.color;
+    vec3 lightDir = normalize(vec3(-0.5, 0.5, 0.0));
     vec3 normal   = normalize(inNormal);
     float diff    = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse  = perFrameUbo.directionalLight.color * diff * color;
+    vec3 diffuse  = perFrameUbo.color * diff * color;
 
     // specular
     float specularStrength = 0.5;
@@ -235,20 +237,20 @@ void main()
     //float shadow  = (enablePCF == 1) ? filterPCF(fs_in.lightSpacePos) : ShadowCalculation(fs_in.lightSpacePos, normal);
     // Get cascade index for the current fragment's view position
 	uint cascadeIndex = 0;
-	for(uint i = 0; i < 4 - 1; ++i) {
+	/* for(uint i = 0; i < 6 - 1; ++i) {
 		if(fs_in.fragViewPos.z < perFrameUbo.cascadeSplits[i]) {	
 			cascadeIndex = i + 1;
 		}
-	}
+	} */
 
     // Depth compare for shadowing
-	vec4 shadowCoord = (perFrameUbo.lightSpaceMat[cascadeIndex]) * vec4(inWorldPos, 1.0);	
-    float shadow  = CascadedShadowCalculation(shadowCoord, cascadeIndex, normal);
+	//vec4 shadowCoord = (perFrameUbo.lightSpaceMat[cascadeIndex]) * vec4(inWorldPos, 1.0);	
+    //float shadow  = CascadedShadowCalculation(shadowCoord, cascadeIndex, normal);
     //vec3 lighting = ambient * ((1.0 - shadow) * color);
-    vec3 lighting = (ambient +  (1.0 - shadow) * (diffuse + specular));
+    vec3 lighting = (ambient +  (1.0 - 0.0) * (diffuse + specular));
     //lighting      += CalcPointLight(perFrameUbo.pointLight, color, normal, inWorldPos, viewDir);
     outColor= vec4(lighting, 1.0);
-    switch(cascadeIndex) {
+    /* switch(cascadeIndex) {
 			case 0 : 
 				outColor.rgb *= vec3(1.0f, 0.0f, 0.0f);
 				break;
@@ -261,7 +263,7 @@ void main()
 			case 3 : 
 				outColor.rgb *= vec3(1.0f, 0.0f, 1.0f);
 				break;
-		}
+		} */
         // HDR tonemapping
     /* vec3 result_color = outColor.rgb / (outColor.rgb + vec3(1.0));
     // gamma correct

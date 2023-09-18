@@ -21,17 +21,17 @@ struct PointLight
     float padding;
 };
 
-layout(set = 0, binding = 4) uniform PerframeUniformBuffer
+layout(std140, set = 0, binding = 4) uniform PerframeUniformBuffer
 {
     mat4 view;
     mat4 proj;
-    mat4 lightSpaceMat[4];
+    mat4 lightSpaceMat[6];
     vec4 viewPos;
-    vec4 cascadeSplits;
-    vec4 d1;
-    vec4 d2;
-    DirectionalLight directionalLight;
-    PointLight pointLight;
+    float cascadeSplits[8];
+    layout(offset = 560) vec3 direction;
+    float padding_direction;
+    vec3 color;
+    float padding_color;
 } ubo;
 
 layout(push_constant) uniform PushConsts

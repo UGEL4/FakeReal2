@@ -966,8 +966,8 @@ int main(int argc, char** argv)
     FakeReal::LogSystem::Initialize();
 
     gCamera.type          = Camera::CameraType::firstperson;
-    gCamera.movementSpeed = 10.0f;
-    gCamera.setPerspective(90.0f, (float)WIDTH / (float)HEIGHT, 0.1f, 1000.0f);
+    gCamera.movementSpeed = 100.0f;
+    gCamera.setPerspective(90.0f, (float)WIDTH / (float)HEIGHT, 0.1f, 10000.0f);
     gCamera.rotationSpeed = 0.25f;
     //gCamera.setRotation({ -3.75f, 180.0f, 0.0f });
     gCamera.setPosition({ 5.0f,0.f,-5.f });
@@ -1129,7 +1129,7 @@ void NormalRenderSimple()
 
     Model* pModel = new Model("../../../../asset/objects/sponza/test_shadow_box.json", device, graphicQueue);
     //Model* pModel = new Model("../../../../asset/objects/sponza/Sponza_new.json", device, graphicQueue);
-    pModel->mModelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
+    //pModel->mModelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
     pModel->mModelMatrix = glm::mat4(1.0f);
     pModel->UploadResource(skyBox);
     /* CharacterModel* chModel = new CharacterModel();
@@ -1195,7 +1195,7 @@ void NormalRenderSimple()
                 glm::vec4 viewPos = glm::vec4(-gCamera.position.x, -gCamera.position.y, -gCamera.position.z, 1.0);
                 //glm::vec4 viewPos = gCamera.viewPos;
                 //glm::vec3 directLightPos(2.0, 4.0, 0.0);
-                glm::vec3 directLightPos(-0.5f, 0.5f, -0.5f);
+                glm::vec3 directLightPos(-0.5f, 0.5f, 0.f);
                 //render shadow
                 CascadeShadowPass::ShadowDrawSceneInfo sceneInfo = {
                     .vertexBuffer = pModel->mVertexBuffer,
@@ -1248,7 +1248,7 @@ void NormalRenderSimple()
                     //pModel->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos, pShadowPass->mLightSpaceMatrix);
                     pModel->Draw(encoder, &gCamera, viewPos, pCascadeShadow);
                     //skyybox
-                    skyBox->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos);
+                    //skyBox->Draw(encoder, gCamera.matrices.view, gCamera.matrices.perspective, viewPos);
 
                     //pShadowPass->DebugShadow(encoder);
                 }

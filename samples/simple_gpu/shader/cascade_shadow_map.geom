@@ -3,12 +3,12 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-layout (triangles, invocations = 4) in;
+layout (triangles, invocations = 6) in;
 layout (triangle_strip, max_vertices = 3) out;
 
 layout(set = 0, binding = 0) uniform UniformBufferObj
 {
-    mat4 lightSpaceMatrix[4];
+    mat4 lightSpaceMatrix[6];
 }ubo;
 
 void main(void)

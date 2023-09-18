@@ -8,8 +8,6 @@
 #include <array>
 #include "Camera.hpp"
 
-#define SHADOW_MAP_CASCADE_COUNT 4u
-
 class CascadeShadowPass
 {
 public:
@@ -28,6 +26,10 @@ public:
     GPUDescriptorSetID mDebugSet;
 
     GPUSamplerID mSampler;
+
+    static constexpr uint32_t sCascadeCount =6;
+    uint32_t mShadowMapSize{ 4096 };
+
 public:
     CascadeShadowPass(GPUDeviceID device, GPUQueueID gfxQueue)
     : mRefDevice(device), mRefGfxQueue(gfxQueue)
@@ -117,21 +119,23 @@ public:
         shaderCode = nullptr;
         
         CGPUShaderEntryDescriptor entry_desc[5] = {};
-        entry_desc[0].pLibrary                  = vsShader;
-        entry_desc[0].entry                     = u8"main";
-        entry_desc[0].stage                     = GPU_SHADER_STAGE_VERT;
-        entry_desc[1].pLibrary                  = psShader;
-        entry_desc[1].entry                     = u8"main";
-        entry_desc[1].stage                     = GPU_SHADER_STAGE_FRAG;
-        entry_desc[2].pLibrary                  = vsDShader;
-        entry_desc[2].entry                     = u8"main";
-        entry_desc[2].stage                     = GPU_SHADER_STAGE_VERT;
-        entry_desc[3].pLibrary                  = psDShader;
-        entry_desc[3].entry                     = u8"main";
-        entry_desc[3].stage                     = GPU_SHADER_STAGE_FRAG;
-        entry_desc[4].pLibrary                  = geomShader;
-        entry_desc[4].entry                     = u8"main";
-        entry_desc[4].stage                     = GPU_SHADER_STAGE_GEOM;
+        {
+            entry_desc[0].pLibrary = vsShader;
+            entry_desc[0].entry    = u8"main";
+            entry_desc[0].stage    = GPU_SHADER_STAGE_VERT;
+            entry_desc[1].pLibrary = psShader;
+            entry_desc[1].entry    = u8"main";
+            entry_desc[1].stage    = GPU_SHADER_STAGE_FRAG;
+            entry_desc[2].pLibrary = vsDShader;
+            entry_desc[2].entry    = u8"main";
+            entry_desc[2].stage    = GPU_SHADER_STAGE_VERT;
+            entry_desc[3].pLibrary = psDShader;
+            entry_desc[3].entry    = u8"main";
+            entry_desc[3].stage    = GPU_SHADER_STAGE_FRAG;
+            entry_desc[4].pLibrary = geomShader;
+            entry_desc[4].entry    = u8"main";
+            entry_desc[4].stage    = GPU_SHADER_STAGE_GEOM;
+        }
 
         GPURootSignatureDescriptor rs_desc = {
             .shaders      = entry_desc,
@@ -141,12 +145,14 @@ public:
 
         // vertex layout
         GPUVertexLayout vertexLayout{};
-        vertexLayout.attributeCount = 5;
-        vertexLayout.attributes[0]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, 0, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
-        vertexLayout.attributes[1]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 3, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
-        vertexLayout.attributes[2]  = { 1, GPU_FORMAT_R32G32_SFLOAT, 0, sizeof(float) * 6, sizeof(float) * 2, GPU_INPUT_RATE_VERTEX };
-        vertexLayout.attributes[3]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 8, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
-        vertexLayout.attributes[4]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 11, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
+        {
+            vertexLayout.attributeCount = 5;
+            vertexLayout.attributes[0]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, 0, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
+            vertexLayout.attributes[1]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 3, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
+            vertexLayout.attributes[2]  = { 1, GPU_FORMAT_R32G32_SFLOAT, 0, sizeof(float) * 6, sizeof(float) * 2, GPU_INPUT_RATE_VERTEX };
+            vertexLayout.attributes[3]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 8, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
+            vertexLayout.attributes[4]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 11, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
+        }
         // renderpipeline
         GPURasterizerStateDescriptor rasterizerState = {
             .cullMode             = GPU_CULL_MODE_NONE,
@@ -163,7 +169,7 @@ public:
             .depthWrite = true,
             .depthFunc  = GPU_CMP_LEQUAL
         };
-        EGPUFormat format               = GPU_FORMAT_R8G8B8A8_UNORM;
+        EGPUFormat format = GPU_FORMAT_R8G8B8A8_UNORM;
         GPURenderPipelineDescriptor pipelineDesc = {
             .pRootSignature     = mRS,
             .pVertexShader      = &entry_desc[0],
@@ -194,25 +200,27 @@ public:
             .enableDepthClamp     = false
         };
 
-        format = GPU_FORMAT_B8G8R8A8_UNORM;
-        pipelineDesc.pRasterizerState = &rasterizerState;
-        pipelineDesc.pVertexShader   = &entry_desc[2];
-        pipelineDesc.pFragmentShader = &entry_desc[3];
-        pipelineDesc.pGeometryShader = nullptr;
-        pipelineDesc.pVertexLayout = &emptyLayout;
-        pipelineDesc.pColorFormats      = const_cast<EGPUFormat*>(&format);
+        // debug pp
+        {
+            format                        = GPU_FORMAT_B8G8R8A8_UNORM;
+            pipelineDesc.pRasterizerState = &rasterizerState;
+            pipelineDesc.pVertexShader    = &entry_desc[2];
+            pipelineDesc.pFragmentShader  = &entry_desc[3];
+            pipelineDesc.pGeometryShader  = nullptr;
+            pipelineDesc.pVertexLayout    = &emptyLayout;
+            pipelineDesc.pColorFormats    = const_cast<EGPUFormat*>(&format);
+        }
         mDebugPipeline = GPUCreateRenderPipeline(mRefDevice, &pipelineDesc);
         GPUFreeShaderLibrary(vsDShader);
         GPUFreeShaderLibrary(psDShader);
 
-        static constexpr uint32_t DEPTH_W = 4096, DEPTH_H = 4096;
-        format               = GPU_FORMAT_R8G8B8A8_UNORM;
+        format = GPU_FORMAT_R8G8B8A8_UNORM;
         GPUTextureDescriptor desc = {
             .flags       = GPU_TCF_OWN_MEMORY_BIT,
-            .width       = DEPTH_W,
-            .height      = DEPTH_H,
+            .width       = mShadowMapSize,
+            .height      = mShadowMapSize,
             .depth       = 1,
-            .array_size  = SHADOW_MAP_CASCADE_COUNT,
+            .array_size  = sCascadeCount,
             .format      = format,
             .owner_queue = mRefGfxQueue,
             .start_state = GPU_RESOURCE_STATE_RENDER_TARGET,
@@ -228,17 +236,17 @@ public:
             .baseMipLevel    = 0,
             .mipLevelCount   = 1,
             .baseArrayLayer  = 0,
-            .arrayLayerCount = SHADOW_MAP_CASCADE_COUNT
+            .arrayLayerCount = sCascadeCount
         };
         mTextureView = GPUCreateTextureView(mRefDevice, &tex_view_desc);
 
         GPUTextureDescriptor depth_tex_desc{};
         {
             depth_tex_desc.flags       = GPU_TCF_OWN_MEMORY_BIT;
-            depth_tex_desc.width       = DEPTH_W;
-            depth_tex_desc.height      = DEPTH_H;
+            depth_tex_desc.width       = mShadowMapSize;
+            depth_tex_desc.height      = mShadowMapSize;
             depth_tex_desc.depth       = 1;
-            depth_tex_desc.array_size  = SHADOW_MAP_CASCADE_COUNT;
+            depth_tex_desc.array_size  = sCascadeCount;
             depth_tex_desc.format      = GPU_FORMAT_D32_SFLOAT;
             depth_tex_desc.owner_queue = mRefGfxQueue;
             depth_tex_desc.start_state = GPU_RESOURCE_STATE_DEPTH_WRITE;
@@ -255,7 +263,7 @@ public:
             depth_tex_view_desc.baseMipLevel    = 0;
             depth_tex_view_desc.mipLevelCount   = 1;
             depth_tex_view_desc.baseArrayLayer  = 0;
-            depth_tex_view_desc.arrayLayerCount = SHADOW_MAP_CASCADE_COUNT;
+            depth_tex_view_desc.arrayLayerCount = sCascadeCount;
         }
         mDepthTextureView = GPUCreateTextureView(mRefDevice, &depth_tex_view_desc);
 
@@ -272,7 +280,7 @@ public:
         mDebugSet = GPUCreateDescriptorSet(mRefDevice, &setDesc);
 
         GPUBufferDescriptor uboDesc = {
-            .size             = sizeof(glm::mat4) * SHADOW_MAP_CASCADE_COUNT,
+            .size             = sizeof(glm::mat4) * sCascadeCount,
             .descriptors      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER,
             .memory_usage     = GPU_MEM_USAGE_CPU_TO_GPU,
             .flags            = GPU_BCF_PERSISTENT_MAP_BIT,
@@ -323,12 +331,12 @@ public:
     {
         //glm::vec3 lightDir = glm::normalize(lightPos);
         CalculateDirectionalLightCamera(cam, entityBoundingBox, sceneInfo.modelMatrix, lightPos);
-        glm::mat4 LightSpaceMatrix[SHADOW_MAP_CASCADE_COUNT];
-        for(uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++)
+        glm::mat4 LightSpaceMatrix[sCascadeCount];
+        for(uint32_t i = 0; i < sCascadeCount; i++)
         {
             LightSpaceMatrix[i] = cascades[i].viewProjMatrix;
         }
-        memcpy(mUBO->cpu_mapped_address, LightSpaceMatrix, sizeof(glm::mat4) * SHADOW_MAP_CASCADE_COUNT);
+        memcpy(mUBO->cpu_mapped_address, LightSpaceMatrix, sizeof(glm::mat4) * sCascadeCount);
 
         // reorganize mesh
         std::unordered_map<PBRMaterial*, std::vector<SubMesh*>> drawNodesInfo;
@@ -351,38 +359,44 @@ public:
         }
 
         GPUTextureBarrier tex_barriers[1] = {};
-        tex_barriers[0].texture   = mDepthTexture;
-        tex_barriers[0].src_state = GPU_RESOURCE_STATE_UNDEFINED;
-        tex_barriers[0].dst_state = GPU_RESOURCE_STATE_DEPTH_WRITE;
+        {
+            tex_barriers[0].texture   = mDepthTexture;
+            tex_barriers[0].src_state = GPU_RESOURCE_STATE_UNDEFINED;
+            tex_barriers[0].dst_state = GPU_RESOURCE_STATE_DEPTH_WRITE;
+        }
         GPUResourceBarrierDescriptor draw_barrier{};
-        draw_barrier.texture_barriers       = tex_barriers;
-        draw_barrier.texture_barriers_count = sizeof(tex_barriers) / sizeof(GPUTextureBarrier);
+        {
+            draw_barrier.texture_barriers       = tex_barriers;
+            draw_barrier.texture_barriers_count = sizeof(tex_barriers) / sizeof(GPUTextureBarrier);
+        }
         GPUCmdResourceBarrier(cmd, &draw_barrier);
 
         GPUColorAttachment screenAttachment{};
-        screenAttachment.view         = mTextureView;
-        screenAttachment.load_action  = GPU_LOAD_ACTION_CLEAR;
-        screenAttachment.store_action = GPU_STORE_ACTION_STORE;
-        screenAttachment.clear_color  = { { 0.f, 0.f, 0.f, 0.f } };
-        GPUDepthStencilAttachment ds_attachment{};
-        ds_attachment.view               = mDepthTextureView;
-        ds_attachment.depth_load_action  = GPU_LOAD_ACTION_CLEAR;
-        ds_attachment.depth_store_action = GPU_STORE_ACTION_STORE;
-        ds_attachment.clear_depth        = 1.0f;
-        ds_attachment.write_depth        = true;
-        GPURenderPassDescriptor render_pass_desc{};
-        render_pass_desc.sample_count        = GPU_SAMPLE_COUNT_1;
-        render_pass_desc.color_attachments   = &screenAttachment;
-        render_pass_desc.render_target_count = 1;
-        render_pass_desc.depth_stencil       = &ds_attachment;
-        GPURenderPassEncoderID encoder       = GPUCmdBeginRenderPass(cmd, &render_pass_desc);
         {
-            GPURenderEncoderSetViewport(encoder, 0.f, 0.f,
-                                        (float)mDepthTexture->width,
-                                        (float)mDepthTexture->height,
-                                        0.f, 1.f);
-            GPURenderEncoderSetScissor(encoder, 0, 0, mDepthTexture->width,
-                                       mDepthTexture->height);
+            screenAttachment.view         = mTextureView;
+            screenAttachment.load_action  = GPU_LOAD_ACTION_CLEAR;
+            screenAttachment.store_action = GPU_STORE_ACTION_STORE;
+            screenAttachment.clear_color  = { { 0.f, 0.f, 0.f, 0.f } };
+        }
+        GPUDepthStencilAttachment ds_attachment{};
+        {
+            ds_attachment.view               = mDepthTextureView;
+            ds_attachment.depth_load_action  = GPU_LOAD_ACTION_CLEAR;
+            ds_attachment.depth_store_action = GPU_STORE_ACTION_STORE;
+            ds_attachment.clear_depth        = 1.0f;
+            ds_attachment.write_depth        = true;
+        }
+        GPURenderPassDescriptor render_pass_desc{};
+        {
+            render_pass_desc.sample_count        = GPU_SAMPLE_COUNT_1;
+            render_pass_desc.color_attachments   = &screenAttachment;
+            render_pass_desc.render_target_count = 1;
+            render_pass_desc.depth_stencil       = &ds_attachment;
+        }
+        GPURenderPassEncoderID encoder = GPUCmdBeginRenderPass(cmd, &render_pass_desc);
+        {
+            GPURenderEncoderSetViewport(encoder, 0.f, 0.f, (float)mDepthTexture->width, (float)mDepthTexture->height, 0.f, 1.f);
+            GPURenderEncoderSetScissor(encoder, 0, 0, mDepthTexture->width, mDepthTexture->height);
             // draw call
             GPURenderEncoderBindPipeline(encoder, mPipeline);
             GPURenderEncoderBindDescriptorSet(encoder, mSet);
@@ -413,12 +427,16 @@ public:
         GPUCmdEndRenderPass(cmd, encoder);
 
         GPUTextureBarrier tex_barrier1{};
-        tex_barrier1.texture   = mDepthTexture;
-        tex_barrier1.src_state = GPU_RESOURCE_STATE_DEPTH_WRITE;
-        tex_barrier1.dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE;
+        {
+            tex_barrier1.texture   = mDepthTexture;
+            tex_barrier1.src_state = GPU_RESOURCE_STATE_DEPTH_WRITE;
+            tex_barrier1.dst_state = GPU_RESOURCE_STATE_SHADER_RESOURCE;
+        }
         GPUResourceBarrierDescriptor barrier{};
-        barrier.texture_barriers_count = 1;
-        barrier.texture_barriers       = &tex_barrier1;
+        {
+            barrier.texture_barriers_count = 1;
+            barrier.texture_barriers       = &tex_barrier1;
+        }
         GPUCmdResourceBarrier(cmd, &barrier);
     }
 
@@ -435,20 +453,20 @@ public:
         glm::mat4 viewProjMatrix;
     };
 
-    std::array<Cascade, SHADOW_MAP_CASCADE_COUNT> cascades;
+    std::array<Cascade, sCascadeCount> cascades;
     void CalculateDirectionalLightCamera(const Camera& cam, const BoundingBox& entityBoundingBox, const glm::mat4& entityModel, const glm::vec3& lightDir)
     {
         // Calculate split depths based on view camera frustum
         // Based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
-        float cascadeSplits[SHADOW_MAP_CASCADE_COUNT];
-        float lambda = 0.95f;
+        float cascadeSplits[sCascadeCount];
+        float lambda = 0.98f;
         float n = cam.getNearClip();
         float f = cam.getFarClip();
         float clipRange = f - n;
 
-        for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++)
+        for (uint32_t i = 0; i < sCascadeCount; i++)
         {
-            float p       = (i + 1) / (float)SHADOW_MAP_CASCADE_COUNT;
+            float p       = (i + 1) / (float)sCascadeCount;
             float log     = n * glm::pow(f / n, p);
             float uniform = n + clipRange * p;
             float d       = lambda * log + (1.f - lambda) * uniform; // l * log + un - l * un : lambda * (log - uniform) + uniform;
@@ -468,7 +486,7 @@ public:
         // Calculate orthographic projection matrix for each cascade
         size_t constexpr CORNER_COUNT = 8;
         float lastSplitDist = 0.0;
-        for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++)
+        for (uint32_t i = 0; i < sCascadeCount; i++)
         {
             float splitDist = cascadeSplits[i];
             //BoundingBox frustumBoundingBox;
@@ -515,9 +533,25 @@ public:
             glm::vec3 maxExtents = glm::vec3(radius);
             glm::vec3 minExtents = -maxExtents;
 
-            //glm::vec3 lightDir1 = normalize(-lightDir);
-            glm::mat4 lightViewMatrix  = glm::lookAt(frustumCenter + glm::normalize(lightDir) * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
+            //Position the viewmatrix looking down the center of the frustum with an arbitrary light direction
+            glm::vec3 lightDir1 = normalize(-lightDir);
+            glm::mat4 lightViewMatrix  = glm::lookAt(frustumCenter - glm::normalize(lightDir1) * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
             glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, maxExtents.z - minExtents.z);
+
+            glm::mat4 shadowMatrix = lightOrthoMatrix * lightViewMatrix;
+            glm::vec4 shadowOrigin = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            shadowOrigin           = shadowMatrix * shadowOrigin;
+            shadowOrigin           = shadowOrigin * float(mShadowMapSize) / 2.0f;
+
+            glm::vec4 roundedOrigin = glm::round(shadowOrigin);
+            glm::vec4 roundOffset   = roundedOrigin - shadowOrigin;
+            roundOffset             = roundOffset * 2.0f / float(mShadowMapSize);
+            roundOffset.z           = 0.0f;
+            roundOffset.w           = 0.0f;
+
+            glm::mat4 shadowProj = lightOrthoMatrix;
+            shadowProj[3] += roundOffset;
+            lightOrthoMatrix = shadowProj;
 
             // Store split distance and matrix in cascade
             cascades[i].splitDepth     = (cam.getNearClip() + splitDist * clipRange) * -1.0f;
