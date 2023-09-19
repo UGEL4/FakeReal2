@@ -8,8 +8,7 @@
 #include "cascade_shadow_pass.hpp"
 
 Model::Model(const std::string_view file, GPUDeviceID device, GPUQueueID gfxQueue)
-    : mDevice(device)
-    , mGfxQueue(gfxQueue)
+: mDevice(device), mGfxQueue(gfxQueue)
 {
     LoadModel(file);
 }
@@ -35,7 +34,7 @@ Model::~Model()
 void Model::LoadModel(const std::string_view file)
 {
     mMeshFile = file;
-    // std::filesystem::path assetFilePath = GetFullPath(assetUrl);
+    //std::filesystem::path assetFilePath = GetFullPath(assetUrl);
     std::ifstream is(file.data());
     if (!is.is_open())
     {
@@ -49,17 +48,17 @@ void Model::LoadModel(const std::string_view file)
 
     FakeReal::JsonReader reader(json_str.c_str());
 
-    // Mesh mesh;
+    //Mesh mesh;
     std::unordered_map<uint32_t, std::vector<MeshData>> meshGroup; //<materianIndex, meshList>
-    std::unordered_map<uint32_t, std::string> diffuse_textures;    //<materianIndex, >
-
+    std::unordered_map<uint32_t, std::string> diffuse_textures; //<materianIndex, >
+    
     reader.StartObject();
     {
         reader.Key("mMeshes");
         size_t meshCount = 0;
         reader.StartArray(&meshCount);
         {
-            // mMeshes.reserve(meshCount);
+            //mMeshes.reserve(meshCount);
 
             for (size_t m = 0; m < meshCount; m++)
             {
@@ -126,7 +125,7 @@ void Model::LoadModel(const std::string_view file)
                     }
                     reader.EndArray();
 
-                    // texture begin
+                    //texture begin
                     /* reader.Key("mTexture");
                     reader.StartObject();
                     if (reader.HasKey("diffuse"))
@@ -143,13 +142,13 @@ void Model::LoadModel(const std::string_view file)
                         diffuse_textures.insert(std::make_pair(materialIndex, texName));
                     }
                     reader.EndObject(); */
-                    // texture end
+                    //texture end
                 }
                 reader.EndObject();
 
                 auto& meshDataList = meshGroup[materialIndex];
                 meshDataList.emplace_back(meshData);
-                // mMeshes.emplace_back(mesh);
+                //mMeshes.emplace_back(mesh);
             }
         }
         reader.EndArray();
@@ -165,7 +164,7 @@ void Model::LoadModel(const std::string_view file)
     for (auto iter : meshGroup)
     {
         uint32_t mat_idx = iter.first;
-        auto& list       = iter.second;
+        auto& list = iter.second;
         tmpVertices.clear();
         tmpIndices.clear();
         for (auto& meshData : list)
@@ -173,7 +172,7 @@ void Model::LoadModel(const std::string_view file)
             for (uint32_t i = 0; i < meshData.vertices.size(); i++)
             {
                 NewVertex& v = meshData.vertices[i];
-                uint32_t f   = 0;
+                uint32_t f = 0;
                 for (f = 0; f < tmpVertices.size(); f++)
                 {
                     if (v == tmpVertices[f]) break;
@@ -195,18 +194,18 @@ void Model::LoadModel(const std::string_view file)
         subMesh.indexCount    = (uint32_t)tmpIndices.size();
         subMesh.materialIndex = mat_idx;
         vertexOffset += subMesh.vertexCount;
-        indexOffset += subMesh.indexCount;
-
-        // texture
-        /*  auto tex_iter = diffuse_textures.find(mat_idx);
-         if (tex_iter != diffuse_textures.end() && tex_iter->second != "")
-         {
-             subMesh.diffuse_tex_url = tex_iter->second;
-         }
-         else
-         {
-             subMesh.diffuse_tex_url = "";
-         } */
+        indexOffset  += subMesh.indexCount;
+        
+        //texture
+       /*  auto tex_iter = diffuse_textures.find(mat_idx);
+        if (tex_iter != diffuse_textures.end() && tex_iter->second != "")
+        {
+            subMesh.diffuse_tex_url = tex_iter->second;
+        }
+        else
+        {
+            subMesh.diffuse_tex_url = "";
+        } */
 
         mMesh.subMeshes.emplace_back(subMesh);
     }
@@ -254,7 +253,7 @@ void Model::LoadMaterial()
                 reader.Key("type");
                 reader.Value(type);
                 reader.EndObject();
-                // if (type == "diffuse")
+                //if (type == "diffuse")
                 {
                     PBRMaterialTextureType t = PBR_MTT_DIFFUSE;
                     if (type == "diffuse")
@@ -273,7 +272,7 @@ void Model::LoadMaterial()
                     {
                         t = PBR_MTT_ROUGHNESS;
                     }
-                    textures.emplace_back(std::pair<PBRMaterialTextureType, std::pair<std::string, bool>>{ t, { name, true } });
+                    textures.emplace_back(std::pair<PBRMaterialTextureType, std::pair<std::string, bool>>{t, {name, true}});
                 }
             }
             reader.EndArray();
@@ -288,7 +287,7 @@ void Model::LoadMaterial()
     }
     reader.EndObject();
 
-    for (const auto& pair : materials)
+    for (const auto& pair: materials)
     {
         if (pair.second.size()) CreateMaterial(pair.first, pair.second);
     }
@@ -349,14 +348,14 @@ void Model::UploadResource(class SkyBox* skyBox)
             .size       = i_desc.size
         };
         GPUCmdTransferBufferToBuffer(cmd, &trans_desc);
-
-        GPUBufferBarrier barriers[2]           = {};
-        barriers[0].buffer                     = mVertexBuffer;
-        barriers[0].src_state                  = GPU_RESOURCE_STATE_COPY_DEST;
-        barriers[0].dst_state                  = GPU_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-        barriers[1].buffer                     = mIndexBuffer;
-        barriers[1].src_state                  = GPU_RESOURCE_STATE_COPY_DEST;
-        barriers[1].dst_state                  = GPU_RESOURCE_STATE_INDEX_BUFFER;
+        
+        GPUBufferBarrier barriers[2] = {};
+        barriers[0].buffer    = mVertexBuffer;
+        barriers[0].src_state = GPU_RESOURCE_STATE_COPY_DEST;
+        barriers[0].dst_state = GPU_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+        barriers[1].buffer    = mIndexBuffer;
+        barriers[1].src_state = GPU_RESOURCE_STATE_COPY_DEST;
+        barriers[1].dst_state = GPU_RESOURCE_STATE_INDEX_BUFFER;
         GPUResourceBarrierDescriptor rs_barrer = {
             .buffer_barriers       = barriers,
             .buffer_barriers_count = 2
@@ -381,7 +380,7 @@ void Model::UploadResource(class SkyBox* skyBox)
         .address_w    = GPU_ADDRESS_MODE_REPEAT,
         .compare_func = GPU_CMP_NEVER,
     };
-    mSampler                   = GPUCreateSampler(mDevice, &sampleDesc);
+    mSampler = GPUCreateSampler(mDevice, &sampleDesc);
     const char8_t* samplerName = u8"texSamp";
 
     uint32_t* shaderCode;
@@ -396,7 +395,7 @@ void Model::UploadResource(class SkyBox* skyBox)
     GPUShaderLibraryID vsShader = GPUCreateShaderLibrary(mDevice, &shaderDesc);
     free(shaderCode);
     shaderCode = nullptr;
-    size       = 0;
+    size = 0;
     ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/pbr_scene_model.frag", &shaderCode, &size);
     shaderDesc = {
         .pName    = u8"",
@@ -409,21 +408,21 @@ void Model::UploadResource(class SkyBox* skyBox)
     shaderCode = nullptr;
 
     CGPUShaderEntryDescriptor entry_desc[2] = {};
-    entry_desc[0].pLibrary                  = vsShader;
-    entry_desc[0].entry                     = u8"main";
-    entry_desc[0].stage                     = GPU_SHADER_STAGE_VERT;
-    entry_desc[1].pLibrary                  = psShader;
-    entry_desc[1].entry                     = u8"main";
-    entry_desc[1].stage                     = GPU_SHADER_STAGE_FRAG;
+    entry_desc[0].pLibrary = vsShader;
+    entry_desc[0].entry    = u8"main";
+    entry_desc[0].stage    = GPU_SHADER_STAGE_VERT;
+    entry_desc[1].pLibrary = psShader;
+    entry_desc[1].entry    = u8"main";
+    entry_desc[1].stage    = GPU_SHADER_STAGE_FRAG;
 
     GPURootSignatureDescriptor rs_desc = {
-        .shaders      = entry_desc,
-        .shader_count = 2,
+        .shaders              = entry_desc,
+        .shader_count         = 2,
     };
     mRootSignature = GPUCreateRootSignature(mDevice, &rs_desc);
 
     // vertex layout
-    GPUVertexLayout vertexLayout{};
+    GPUVertexLayout vertexLayout {};
     vertexLayout.attributeCount = 5;
     vertexLayout.attributes[0]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, 0, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
     vertexLayout.attributes[1]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 3, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
@@ -446,7 +445,7 @@ void Model::UploadResource(class SkyBox* skyBox)
         .depthWrite = true,
         .depthFunc  = GPU_CMP_LEQUAL
     };
-    EGPUFormat swapchainFormat               = GPU_FORMAT_B8G8R8A8_UNORM;
+    EGPUFormat swapchainFormat = GPU_FORMAT_B8G8R8A8_UNORM;
     GPURenderPipelineDescriptor pipelineDesc = {
         .pRootSignature     = mRootSignature,
         .pVertexShader      = &entry_desc[0],
@@ -507,7 +506,7 @@ void Model::UploadResource(class SkyBox* skyBox)
     dataDesc[4].count             = 1;
     GPUUpdateDescriptorSet(mSet, dataDesc, 5);
 
-    // material
+    //material
     LoadMaterial();
 }
 
@@ -527,7 +526,7 @@ void Model::UpdateShadowMapSet(GPUTextureViewID shadowMap, GPUSamplerID sampler)
 
 PBRMaterial* Model::CreateMaterial(uint32_t materialIndex, const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string, bool>>>& textures)
 {
-    // find and return
+    //find and return
     auto mat_iter = mMaterials.find(materialIndex);
     if (mat_iter != mMaterials.end()) return mat_iter->second;
 
@@ -543,12 +542,12 @@ PBRMaterial* Model::CreateMaterial(uint32_t materialIndex, const std::vector<std
         auto tex_iter = mTexturePool.find(file);
         if (tex_iter != mTexturePool.end())
         {
-            auto& pack       = m->textures.emplace_back();
-            pack.texture     = tex_iter->second.mTexture;
+            auto& pack = m->textures.emplace_back();
+            pack.texture = tex_iter->second.mTexture;
             pack.textureView = tex_iter->second.mTextureView;
             pack.textureType = type;
             pack.slotIndex   = type;
-            pack.name        = file;
+            pack.name = file;
             continue;
         }
 
@@ -556,14 +555,14 @@ PBRMaterial* Model::CreateMaterial(uint32_t materialIndex, const std::vector<std
         TextureData temp;
         auto&& result = mTexturePool.emplace(file, std::move(temp));
         result.first->second.LoadTexture(file, format, mDevice, mGfxQueue, flip);
-        // textureData.LoadTexture(file, format, mDevice, mGfxQueue, flip);
+        //textureData.LoadTexture(file, format, mDevice, mGfxQueue, flip);
 
-        auto& pack       = m->textures.emplace_back();
+        auto& pack = m->textures.emplace_back();
         pack.texture     = result.first->second.mTexture;
         pack.textureView = result.first->second.mTextureView;
         pack.textureType = type;
         pack.slotIndex   = type;
-        pack.name        = file;
+        pack.name = file;
     }
 
     GPUDescriptorSetDescriptor setDesc = {
@@ -574,11 +573,11 @@ PBRMaterial* Model::CreateMaterial(uint32_t materialIndex, const std::vector<std
     m->sampler = mSampler;
 
     std::vector<GPUDescriptorData> desc_data(1 + m->textures.size()); // 1 sampler + all textures
-    desc_data[0].name         = u8"texSamp";
-    desc_data[0].binding      = 0;
-    desc_data[0].binding_type = GPU_RESOURCE_TYPE_SAMPLER;
-    desc_data[0].count        = 1;
-    desc_data[0].samplers     = &m->sampler;
+    desc_data[0].name              = u8"texSamp";
+    desc_data[0].binding           = 0;
+    desc_data[0].binding_type      = GPU_RESOURCE_TYPE_SAMPLER;
+    desc_data[0].count             = 1;
+    desc_data[0].samplers          = &m->sampler;
     for (size_t i = 0; i < m->textures.size(); i++)
     {
         desc_data[i + 1].name         = nullptr;
@@ -602,15 +601,15 @@ void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const gl
         .linear    = 0.045f,
         .quadratic = 0.0075f
     };
-    // update uniform bffer
+    //update uniform bffer
     PerframeUniformBuffer ubo = {
-        .view          = view,
-        .proj          = proj,
-        .lightSpaceMat = lightSpaceMatrix,
-        .viewPos       = viewPos,
-        //.directionalLight.direction = glm::vec3(-0.5f, 0.5f, -0.5f),
-        //.directionalLight.color     = glm::vec3(1.0, 1.0, 1.0),
-        //.pointLight                 = pointLight
+        .view                       = view,
+        .proj                       = proj,
+        .lightSpaceMat              = lightSpaceMatrix,
+        .viewPos                    = viewPos,
+        .directionalLight.direction = glm::vec3(-0.5f, 0.5f, -0.5f),
+        .directionalLight.color     = glm::vec3(1.0, 1.0, 1.0),
+        .pointLight                 = pointLight
     };
     memcpy(mUBO->cpu_mapped_address, &ubo, sizeof(ubo));
 
@@ -634,17 +633,17 @@ void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const gl
         }
     }
 
-    // draw call
+    //draw call
     GPURenderEncoderBindPipeline(encoder, mPbrPipeline);
     GPURenderEncoderBindDescriptorSet(encoder, mSet);
     uint32_t strides = sizeof(NewVertex);
     GPURenderEncoderBindVertexBuffers(encoder, 1, &mVertexBuffer, &strides, nullptr);
     GPURenderEncoderBindIndexBuffer(encoder, mIndexBuffer, 0, sizeof(uint32_t));
-    // glm::mat4 matrices[1];
-    // matrices[0] = /* glm::scale(glm::mat4(1.0f), glm::vec3(1.f, 1.f, 1.f)) */glm::mat4(1.0f);
-    // matrices[1] = lightSpaceMatrix;
-    // glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
-    // matrices[0] = mModelMatrix;
+    //glm::mat4 matrices[1];
+    //matrices[0] = /* glm::scale(glm::mat4(1.0f), glm::vec3(1.f, 1.f, 1.f)) */glm::mat4(1.0f);
+    //matrices[1] = lightSpaceMatrix;
+    //glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
+    //matrices[0] = mModelMatrix;
     struct
     {
         glm::mat4 model;
@@ -658,26 +657,26 @@ void Model::Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const gl
     for (auto& nodePair : drawNodesInfo)
     {
         GPURenderEncoderBindDescriptorSet(encoder, mShadowMapSet);
-        // per material
+        //per material
         auto& mat = nodePair.first;
         GPURenderEncoderBindDescriptorSet(encoder, mat->set);
-        for (size_t i = 0; i < nodePair.second.size() && i < 1; i++)
+        for (size_t i = 0; i < nodePair.second.size() && i < 1 ; i++)
         {
-            // per mesh
-            auto& mesh          = nodePair.second[i];
+            //per mesh
+            auto& mesh = nodePair.second[i];
             uint32_t indexCount = mesh->indexCount;
-            // glm::mat4 model(1.0f);
+            //glm::mat4 model(1.0f);
             GPURenderEncoderPushConstant(encoder, mRootSignature, &push);
             GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 8, mesh->indexOffset, mesh->vertexOffset, 0);
 
-            // matrices[0] = glm::translate(matrices[0], glm::vec3(3.0, 3.0, 0.0));
-            // GPURenderEncoderPushConstant(encoder, mRootSignature, &matrices);
-            // GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, mesh->indexOffset, mesh->vertexOffset, 0);
+            //matrices[0] = glm::translate(matrices[0], glm::vec3(3.0, 3.0, 0.0));
+            //GPURenderEncoderPushConstant(encoder, mRootSignature, &matrices);
+            //GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, mesh->indexOffset, mesh->vertexOffset, 0);
         }
     }
 }
 
-void Model::Draw(GPURenderPassEncoderID encoder, const class Camera* cam, const glm::vec4& viewPos, const class CascadeShadowPass* shadowPass)
+void Model::Draw(GPURenderPassEncoderID encoder, const class Camera* cam, const glm::vec4& viewPos,  const class CascadeShadowPass* shadowPass)
 {
     PointLight pointLight = {
         .position  = glm::vec3(-1.0f, 0.0f, 0.0f),
@@ -686,25 +685,21 @@ void Model::Draw(GPURenderPassEncoderID encoder, const class Camera* cam, const 
         .linear    = 0.045f,
         .quadratic = 0.0075f
     };
-    // update uniform bffer
+    //update uniform bffer
     PerframeUniformBuffer ubo = {
-        .view    = cam->matrices.view,
-        .proj    = cam->matrices.perspective,
-        .viewPos = viewPos,
-        //.directionalLight.direction = glm::vec3(-0.5f, 0.5f, 0.f),
-        //.directionalLight.color     = glm::vec3(1.0, 1.0, 1.0),
-        //.pointLight                 = pointLight
+        .view                       = cam->matrices.view,
+        .proj                       = cam->matrices.perspective,
+        .viewPos                    = viewPos,
+        .directionalLight.direction = glm::vec3(-0.5f, 0.5f, 0.f),
+        .directionalLight.color     = glm::vec3(1.0, 1.0, 1.0),
+        .pointLight                 = pointLight
     };
     for (uint32_t i = 0; i < CascadeShadowPass::sCascadeCount; i++)
     {
-        ubo.cascadeSplits[i] = shadowPass->cascades[i].splitDepth;
+        ubo.cascadeSplits[i * 4] = shadowPass->cascades[i].splitDepth;
         ubo.lightSpaceMat[i] = shadowPass->cascades[i].viewProjMatrix;
     }
-    ubo.cascadeSplits[6] = 0.0f;
-    ubo.cascadeSplits[7] = 0.0f;
-    ubo.direction        = glm::vec3(-0.5f, 0.5f, 0.f);
-    ubo.color            = glm::vec3(1.0, 1.0, 1.0);
-    memcpy(mUBO->cpu_mapped_address, &ubo, sizeof(PerframeUniformBuffer));
+    memcpy(mUBO->cpu_mapped_address, &ubo, sizeof(ubo));
 
     // reorganize mesh
     std::unordered_map<PBRMaterial*, std::vector<SubMesh*>> drawNodesInfo;
@@ -726,7 +721,7 @@ void Model::Draw(GPURenderPassEncoderID encoder, const class Camera* cam, const 
         }
     }
 
-    // draw call
+    //draw call
     GPURenderEncoderBindPipeline(encoder, mPbrPipeline);
     GPURenderEncoderBindDescriptorSet(encoder, mSet);
     uint32_t strides = sizeof(NewVertex);
@@ -745,13 +740,13 @@ void Model::Draw(GPURenderPassEncoderID encoder, const class Camera* cam, const 
     for (auto& nodePair : drawNodesInfo)
     {
         GPURenderEncoderBindDescriptorSet(encoder, mShadowMapSet);
-        // per material
+        //per material
         auto& mat = nodePair.first;
         GPURenderEncoderBindDescriptorSet(encoder, mat->set);
-        for (size_t i = 0; i < nodePair.second.size() && i < 1; i++)
+        for (size_t i = 0; i < nodePair.second.size() && i < 1 ; i++)
         {
-            // per mesh
-            auto& mesh          = nodePair.second[i];
+            //per mesh
+            auto& mesh = nodePair.second[i];
             uint32_t indexCount = mesh->indexCount;
             GPURenderEncoderPushConstant(encoder, mRootSignature, &push);
             GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, mesh->indexOffset, mesh->vertexOffset, 0);
