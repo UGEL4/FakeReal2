@@ -783,9 +783,9 @@ struct PerframeUniformBuffer
 {
     glm::mat4 view;
     glm::mat4 proj;
-    glm::mat4 lightSpaceMat[6];
+    glm::mat4 lightSpaceMat[4];
     glm::vec4 viewPos;
     DirectionalLight directionalLight;
     PointLight pointLight;
-    float cascadeSplits[24]; //stupid std140， 16 byte align, need 16 * 6 bytes, that means 24 * sizeof(float)
+    float cascadeSplits[16]; //stupid std140， 16 byte align, need 16 * 4 bytes, that means 16 * sizeof(float)
 };

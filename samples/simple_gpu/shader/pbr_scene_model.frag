@@ -31,11 +31,11 @@ layout(std140, set = 0, binding = 4) uniform PerframeUniformBuffer
 {
     mat4 view;
     mat4 proj;
-    mat4 lightSpaceMat[6];
+    mat4 lightSpaceMat[4];
     vec4 viewPos;
     DirectionalLight directionalLight;
     PointLight pointLight;
-    float cascadeSplits[6];
+    float cascadeSplits[4];
 } perFrameUbo;
 
 layout(set = 1, binding = 0) uniform sampler texSamp;
@@ -233,7 +233,7 @@ void main()
     //float shadow  = (enablePCF == 1) ? filterPCF(fs_in.lightSpacePos) : ShadowCalculation(fs_in.lightSpacePos, normal);
     // Get cascade index for the current fragment's view position
 	uint cascadeIndex = 0;
-	for(uint i = 0; i < 6 - 1; ++i) {
+	for(uint i = 0; i < 4 - 1; ++i) {
 		if(fs_in.fragViewPos.z < perFrameUbo.cascadeSplits[i]) {	
 			cascadeIndex = i + 1;
 		}

@@ -25,11 +25,11 @@ layout(std140, set = 0, binding = 4) uniform PerframeUniformBuffer
 {
     mat4 view;
     mat4 proj;
-    mat4 lightSpaceMat[6];
+    mat4 lightSpaceMat[4];
     vec4 viewPos;
     DirectionalLight directionalLight;
     PointLight pointLight;
-    float cascadeSplits[6];
+    float cascadeSplits[4];
 } ubo;
 
 layout(push_constant) uniform PushConsts
