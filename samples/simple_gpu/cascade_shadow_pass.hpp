@@ -330,7 +330,7 @@ public:
     void Draw(const ShadowDrawSceneInfo& sceneInfo, GPUCommandBufferID cmd, const Camera& cam, const glm::vec4& viewPos, const glm::vec3 lightPos, const BoundingBox& entityBoundingBox)
     {
         //glm::vec3 lightDir = glm::normalize(lightPos);
-        CalculateDirectionalLightCamera(cam, entityBoundingBox, sceneInfo.modelMatrix, lightPos);
+        CalculateDirectionalLightCamera1(cam, entityBoundingBox, sceneInfo.modelMatrix, lightPos);
         glm::mat4 LightSpaceMatrix[sCascadeCount];
         for(uint32_t i = 0; i < sCascadeCount; i++)
         {
@@ -537,6 +537,134 @@ public:
             glm::vec3 lightDir1 = normalize(-lightDir);
             glm::mat4 lightViewMatrix  = glm::lookAt(frustumCenter - glm::normalize(lightDir1) * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
             glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, maxExtents.z - minExtents.z);
+
+            glm::mat4 shadowMatrix = lightOrthoMatrix * lightViewMatrix;
+            glm::vec4 shadowOrigin = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            shadowOrigin           = shadowMatrix * shadowOrigin;
+            shadowOrigin           = shadowOrigin * float(mShadowMapSize) / 2.0f;
+
+            glm::vec4 roundedOrigin = glm::round(shadowOrigin);
+            glm::vec4 roundOffset   = roundedOrigin - shadowOrigin;
+            roundOffset             = roundOffset * 2.0f / float(mShadowMapSize);
+            roundOffset.z           = 0.0f;
+            roundOffset.w           = 0.0f;
+
+            glm::mat4 shadowProj = lightOrthoMatrix;
+            shadowProj[3] += roundOffset;
+            lightOrthoMatrix = shadowProj;
+
+            // Store split distance and matrix in cascade
+            cascades[i].splitDepth     = (cam.getNearClip() + splitDist * clipRange) * -1.0f;
+            cascades[i].viewProjMatrix = lightOrthoMatrix * lightViewMatrix;
+
+            lastSplitDist = cascadeSplits[i];
+        }
+    }
+
+    void CalculateDirectionalLightCamera1(const Camera& cam, const BoundingBox& entityBoundingBox, const glm::mat4& entityModel, const glm::vec3& lightDir)
+    {
+        // Calculate split depths based on view camera frustum
+        // Based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
+        float cascadeSplits[sCascadeCount];
+        float lambda = 1.f;
+        float n = cam.getNearClip();
+        float f = cam.getFarClip();
+        float clipRange = f - n;
+
+        for (uint32_t i = 0; i < sCascadeCount; i++)
+        {
+            float p       = (i + 1) / (float)sCascadeCount;
+            float log     = n * glm::pow(f / n, p);
+            float uniform = n + clipRange * p;
+            float d       = lambda * log + (1.f - lambda) * uniform; // l * log + un - l * un : lambda * (log - uniform) + uniform;
+
+            cascadeSplits[i] = (d - n) / clipRange;
+        }
+
+        BoundingBox sceneBoundingBox;
+        {
+            //just one entity for now;
+            BoundingBox worldBoundingBox = BoundingBox::BoundingBoxTransform(entityBoundingBox, entityModel);
+            sceneBoundingBox.Merge(worldBoundingBox);
+        }
+
+        glm::mat4 vp    = cam.matrices.perspective * cam.matrices.view;
+        glm::mat4 invVP = glm::inverse(vp);
+        // Calculate orthographic projection matrix for each cascade
+        size_t constexpr CORNER_COUNT = 8;
+        float lastSplitDist = 0.0;
+        for (uint32_t i = 0; i < sCascadeCount; i++)
+        {
+            float splitDist = cascadeSplits[i];
+            glm::vec3 frustumPointsNDCSpace[8] = {
+                glm::vec3(-1.0f, -1.0f, 0.0f),
+                glm::vec3(1.0f, -1.0f, 0.0f),
+                glm::vec3(1.0f, 1.0f, 0.0f),
+                glm::vec3(-1.0f, 1.0f, 0.0f),
+                glm::vec3(-1.0f, -1.0f, 1.0f),
+                glm::vec3(1.0f, -1.0f, 1.0f),
+                glm::vec3(1.0f, 1.0f, 1.0f),
+                glm::vec3(-1.0f, 1.0f, 1.0f),
+            };
+            for (size_t j = 0; j < CORNER_COUNT; ++j)
+            {
+                glm::vec4 frustumPointWith_w = invVP * glm::vec4(frustumPointsNDCSpace[j], 1.0);
+                frustumPointsNDCSpace[j]     = frustumPointWith_w / frustumPointWith_w.w;
+            }
+            BoundingBox frustumBoundingBox;
+            for (uint32_t j = 0; j < 4; j++)
+            {
+                glm::vec3 dist               = frustumPointsNDCSpace[j + 4] - frustumPointsNDCSpace[j];
+                frustumPointsNDCSpace[j + 4] = frustumPointsNDCSpace[j] + (dist * splitDist);
+                frustumPointsNDCSpace[j]     = frustumPointsNDCSpace[j] + (dist * lastSplitDist);
+                frustumBoundingBox.Update(frustumPointsNDCSpace[j]);
+                frustumBoundingBox.Update(frustumPointsNDCSpace[j + 4]);
+            }
+
+            // Get frustum center
+            glm::vec3 boxCenter = glm::vec3(
+                (frustumBoundingBox.max.x + frustumBoundingBox.min.x) * 0.5f,
+                (frustumBoundingBox.max.y + frustumBoundingBox.min.y) * 0.5f,
+                (frustumBoundingBox.max.z + frustumBoundingBox.min.z) * 0.5f
+            );
+            glm::vec3 boxExtents = glm::vec3(
+                (frustumBoundingBox.max.x - frustumBoundingBox.min.x) * 0.5f,
+                (frustumBoundingBox.max.y - frustumBoundingBox.min.y) * 0.5f,
+                (frustumBoundingBox.max.z - frustumBoundingBox.min.z) * 0.5f
+            );
+
+            glm::vec3 eye = boxCenter + lightDir * std::hypot(boxExtents.x, boxExtents.y, boxExtents.z);
+            glm::vec3 frustumCenter = glm::vec3(0.0f);
+            for (uint32_t j = 0; j < CORNER_COUNT; j++)
+            {
+                frustumCenter += frustumPointsNDCSpace[j];
+            }
+            frustumCenter /= (float)CORNER_COUNT;
+
+            float radius = 0.0f;
+            for (uint32_t j = 0; j < 8; j++)
+            {
+                float distance = glm::length(frustumPointsNDCSpace[j] - frustumCenter);
+                radius         = glm::max(radius, distance);
+            }
+            radius = std::ceil(radius * 16.0f) / 16.0f;
+
+            glm::vec3 maxExtents = glm::vec3(radius);
+            glm::vec3 minExtents = -maxExtents;
+
+            //Position the viewmatrix looking down the center of the frustum with an arbitrary light direction
+            glm::vec3 lightDir1 = normalize(-lightDir);
+            glm::vec3 eye1 = frustumCenter - glm::normalize(lightDir1) * -minExtents.z;
+            glm::mat4 lightViewMatrix  = glm::lookAt(eye1, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
+
+            BoundingBox frustumBoundingBoxLightView = BoundingBox::BoundingBoxTransform(frustumBoundingBox, lightViewMatrix);
+            BoundingBox sceneBoundingBoxLightView   = BoundingBox::BoundingBoxTransform(sceneBoundingBox, lightViewMatrix);
+
+            glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, maxExtents.z - minExtents.z);
+
+            glm::mat4 lightOrthoMatrix1 = glm::ortho(frustumBoundingBoxLightView.min.x, frustumBoundingBoxLightView.max.x,
+                                                     frustumBoundingBoxLightView.min.y, frustumBoundingBoxLightView.max.y,
+                                                     0.0f, frustumBoundingBoxLightView.max.z - frustumBoundingBoxLightView.min.z);
 
             glm::mat4 shadowMatrix = lightOrthoMatrix * lightViewMatrix;
             glm::vec4 shadowOrigin = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
