@@ -1127,8 +1127,8 @@ void NormalRenderSimple()
     CreateNormalRendeObjects(skyBox);
     ///normal
 
-    Model* pModel = new Model("../../../../asset/objects/sponza/test_shadow_box.json", device, graphicQueue);
-    //Model* pModel = new Model("../../../../asset/objects/sponza/Sponza_new.json", device, graphicQueue);
+    //Model* pModel = new Model("../../../../asset/objects/sponza/test_shadow_box.json", device, graphicQueue);
+    Model* pModel = new Model("../../../../asset/objects/sponza/Sponza_new.json", device, graphicQueue);
     //pModel->mModelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
     pModel->mModelMatrix = glm::mat4(1.0f);
     pModel->UploadResource(skyBox);

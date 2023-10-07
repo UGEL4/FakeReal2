@@ -4,7 +4,7 @@
 struct BoundingBox
 {
     glm::vec3 min {FLT_MAX};
-    glm::vec3 max {FLT_MIN};
+    glm::vec3 max {-FLT_MAX};
 
     void Update(glm::vec3 newPoint)
     {
@@ -81,5 +81,31 @@ struct BoundingBox
         b_out.max = max;
         b_out.min = min;
         return b_out;
+    }
+
+    inline void GetCorners(glm::vec3* Corners) const
+    {
+        glm::vec3 const g_BoxOffset[8] = { glm::vec3(-1.0f, -1.0f, 1.0f),
+                                           glm::vec3(1.0f, -1.0f, 1.0f),
+                                           glm::vec3(1.0f, 1.0f, 1.0f),
+                                           glm::vec3(-1.0f, 1.0f, 1.0f),
+                                           glm::vec3(-1.0f, -1.0f, -1.0f),
+                                           glm::vec3(1.0f, -1.0f, -1.0f),
+                                           glm::vec3(1.0f, 1.0f, -1.0f),
+                                           glm::vec3(-1.0f, 1.0f, -1.0f) };
+
+        glm::vec3 vCenter = glm::vec3(
+        (max.x + min.x) * 0.5f,
+        (max.y + min.y) * 0.5f,
+        (max.z + min.z) * 0.5f);
+        glm::vec3 vExtents = glm::vec3(
+        (max.x - min.x) * 0.5f,
+        (max.y - min.y) * 0.5f,
+        (max.z - min.z) * 0.5f);
+
+        for (size_t i = 0; i < 8; ++i)
+        {
+            Corners[i] = vExtents * g_BoxOffset[i] + vCenter;
+        }
     }
 };
