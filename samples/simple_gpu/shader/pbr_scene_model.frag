@@ -246,18 +246,18 @@ void main()
     vec3 lighting = (ambient +  (1.0 - shadow) * (diffuse + specular));
     //lighting      += CalcPointLight(perFrameUbo.pointLight, color, normal, inWorldPos, viewDir);
     outColor= vec4(lighting, 1.0);
-    /* switch(cascadeIndex) {
+/*     switch(cascadeIndex) {
 			case 0 : 
-				outColor.rgb *= vec3(0.1f, 0.0f, 0.0f);
+				outColor.rgb *= vec3(1.0f, 0.0f, 0.0f);
 				break;
 			case 1 : 
-				outColor.rgb *= vec3(0.2f, 0.0f, 0.0f);
+				outColor.rgb *= vec3(0.0f, 1.0f, 0.0f);
 				break;
 			case 2 : 
-				outColor.rgb *= vec3(0.3f, 0.0f, 0.0f);
+				outColor.rgb *= vec3(0.0f, 0.0f, 1.0f);
 				break;
 			case 3 : 
-				outColor.rgb *= vec3(0.4f, 0.0f, 0.0f);
+				outColor.rgb *= vec3(1.0f, 1.0f, 1.0f);
 				break;
                 case 4 : 
 				outColor.rgb *= vec3(0.5f, 0.0f, 0.0f);

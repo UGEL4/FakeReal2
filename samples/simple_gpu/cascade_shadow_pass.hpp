@@ -330,7 +330,7 @@ public:
     void Draw(const ShadowDrawSceneInfo& sceneInfo, GPUCommandBufferID cmd, const Camera& cam, const glm::vec4& viewPos, const glm::vec3 lightPos, const BoundingBox& entityBoundingBox)
     {
         //glm::vec3 lightDir = glm::normalize(lightPos);
-        CalculateDirectionalLightCamera1(cam, entityBoundingBox, sceneInfo.modelMatrix, lightPos);
+        CalculateDirectionalLightCamera(cam, entityBoundingBox, sceneInfo.modelMatrix, lightPos);
         glm::mat4 LightSpaceMatrix[sCascadeCount];
         for(uint32_t i = 0; i < sCascadeCount; i++)
         {
@@ -459,7 +459,7 @@ public:
         // Calculate split depths based on view camera frustum
         // Based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
         float cascadeSplits[sCascadeCount];
-        float lambda = 1.f;
+        float lambda = 0.941f;
         float n = cam.getNearClip();
         float f = cam.getFarClip();
         float clipRange = f - n;
@@ -474,12 +474,20 @@ public:
             cascadeSplits[i] = (d - n) / clipRange;
         }
 
-        /* BoundingBox sceneBoundingBox;
+        BoundingBox sceneBoundingBox;
         {
             //just one entity for now;
             BoundingBox worldBoundingBox = BoundingBox::BoundingBoxTransform(entityBoundingBox, entityModel);
             sceneBoundingBox.Merge(worldBoundingBox);
-        } */
+        }
+        glm::vec3 sceneCenter = glm::vec3(
+        (sceneBoundingBox.max.x + sceneBoundingBox.min.x) * 0.5f,
+        (sceneBoundingBox.max.y + sceneBoundingBox.min.y) * 0.5f,
+        (sceneBoundingBox.max.z + sceneBoundingBox.min.z) * 0.5f);
+        glm::vec3 sceneExtents = glm::vec3(
+        (sceneBoundingBox.max.x - sceneBoundingBox.min.x) * 0.5f,
+        (sceneBoundingBox.max.y - sceneBoundingBox.min.y) * 0.5f,
+        (sceneBoundingBox.max.z - sceneBoundingBox.min.z) * 0.5f);
 
         glm::mat4 vp    = cam.matrices.perspective * cam.matrices.view;
         glm::mat4 invVP = glm::inverse(vp);
@@ -530,12 +538,16 @@ public:
             }
             radius = std::ceil(radius * 16.0f) / 16.0f;
 
-            glm::vec3 maxExtents = glm::vec3(radius);
+            float backDistance   = glm::distance(sceneCenter, frustumCenter) + radius;
+            backDistance = std::ceil(backDistance * 16.0f) / 16.0f;
+            //float backDistance   = glm::length(sceneExtents);
+            glm::vec3 maxExtents = glm::vec3(radius, radius, backDistance);
             glm::vec3 minExtents = -maxExtents;
 
             //Position the viewmatrix looking down the center of the frustum with an arbitrary light direction
-            glm::vec3 lightDir1 = normalize(-lightDir);
-            glm::mat4 lightViewMatrix  = glm::lookAt(frustumCenter - glm::normalize(lightDir1) * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
+            glm::vec3 lightDir1        = normalize(lightDir);
+            glm::vec3 eye              = frustumCenter + glm::normalize(lightDir1) * maxExtents.z;
+            glm::mat4 lightViewMatrix  = glm::lookAt(eye, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
             glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, maxExtents.z - minExtents.z);
 
             glm::mat4 shadowMatrix = lightOrthoMatrix * lightViewMatrix;
@@ -620,8 +632,6 @@ public:
                 glm::vec3 dist               = frustumPointsNDCSpace[j + 4] - frustumPointsNDCSpace[j];
                 frustumPointsNDCSpace[j + 4] = frustumPointsNDCSpace[j] + (dist * splitDist);
                 frustumPointsNDCSpace[j]     = frustumPointsNDCSpace[j] + (dist * lastSplitDist);
-                frustumBoundingBox.Update(frustumPointsNDCSpace[j]);
-                frustumBoundingBox.Update(frustumPointsNDCSpace[j+4]);
             }
 
             // Get frustum center
@@ -631,11 +641,6 @@ public:
                 frustumCenter += frustumPointsNDCSpace[j];
             }
             frustumCenter /= (float)CORNER_COUNT;
-            glm::vec3 boxCenter = glm::vec3(
-                (frustumBoundingBox.max.x + frustumBoundingBox.min.x) * 0.5f,
-                (frustumBoundingBox.max.y + frustumBoundingBox.min.y) * 0.5f,
-                (frustumBoundingBox.max.z + frustumBoundingBox.min.z) * 0.5f
-            );
 
             float radius = 0.0f;
             for (uint32_t j = 0; j < 8; j++)
@@ -648,28 +653,21 @@ public:
             glm::vec3 maxExtents = glm::vec3(radius);
             glm::vec3 minExtents = -maxExtents;
 
-            glm::vec3 boxExtents = glm::vec3(
-                (frustumBoundingBox.max.x - frustumBoundingBox.min.x) * 0.5f,
-                (frustumBoundingBox.max.y - frustumBoundingBox.min.y) * 0.5f,
-                (frustumBoundingBox.max.z - frustumBoundingBox.min.z) * 0.5f
+            glm::vec3 sceneCenter = glm::vec3(
+                (sceneBoundingBox.max.x + sceneBoundingBox.min.x) * 0.5f,
+                (sceneBoundingBox.max.y + sceneBoundingBox.min.y) * 0.5f,
+                (sceneBoundingBox.max.z + sceneBoundingBox.min.z) * 0.5f
             );
-
+            float backDistance = glm::distance(sceneCenter, frustumCenter) + radius;;
             //Position the viewmatrix looking down the center of the frustum with an arbitrary light direction
-            glm::vec3 eye = boxCenter + lightDir * std::hypot(boxExtents.x, boxExtents.y, boxExtents.z);
+            glm::vec3 eye = frustumCenter + glm::normalize(lightDir) * backDistance;
+            //glm::vec3 eye = frustumCenter - glm::normalize(normalize(-lightDir)) * -minExtents.z;
             //glm::vec3 lightDir1 = normalize(-lightDir);
             //glm::mat4 lightViewMatrix  = glm::lookAt(frustumCenter - glm::normalize(lightDir1) * -minExtents.z, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
-            glm::mat4 lightViewMatrix  = glm::lookAt(eye, boxCenter, glm::vec3(0.0f, 1.0f, 0.0f));
-            BoundingBox frustumBoundingBoxLightView = BoundingBox::BoundingBoxTransform(frustumBoundingBox, lightViewMatrix);
-            BoundingBox sceneBoundingBoxLightView   = BoundingBox::BoundingBoxTransform(sceneBoundingBox, lightViewMatrix);
-            glm::vec3 sceneAABBPointsLightSpace[8];
-            sceneBoundingBoxLightView.GetCorners(sceneAABBPointsLightSpace);
-
-            float nearPlane = /* -sceneBoundingBoxLightView.max.z */0.f;
-            float farPlane = /* -std::max(frustumBoundingBoxLightView.min.z, sceneBoundingBoxLightView.min.z) */0.f;
-            ComputeNearAndFar(nearPlane, farPlane, frustumBoundingBoxLightView.min, frustumBoundingBoxLightView.max, sceneAABBPointsLightSpace);
-
+            glm::mat4 lightViewMatrix  = glm::lookAt(eye, frustumCenter, glm::vec3(0.0f, 1.0f, 0.0f));
+            glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, backDistance * 2.f);
             //glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, maxExtents.z - minExtents.z);
-            glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, nearPlane, farPlane);
+            //glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, frustumBoundingBoxLightView.min.z, std::min(frustumBoundingBoxLightView.max.z, sceneBoundingBoxLightView.max.z));
 
             /* glm::mat4 shadowMatrix = lightOrthoMatrix * lightViewMatrix;
             glm::vec4 shadowOrigin = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -693,188 +691,6 @@ public:
             lastSplitDist = cascadeSplits[i];
         }
     }
-
-struct Triangle
-{
-    glm::vec3 point[3];
-    bool isCulled;
-};
-    // 通过光照空间下视锥体的AABB 与 变换到光照空间的场景AABB 的相交测试，我们可以得到一个更紧密的近平面和远平面
-/* ComputeNearAndFar(nearPlane, farPlane, lightCameraOrthographicMinVec, lightCameraOrthographicMaxVec, 
-                  sceneAABBPointsLightSpace); */
-
-void ComputeNearAndFar(
-    float& outNearPlane, 
-    float& outFarPlane, 
-    glm::vec3 lightCameraOrthographicMinVec, 
-    glm::vec3 lightCameraOrthographicMaxVec, 
-    glm::vec3 pointsInCameraView[])
-{
-    // 核心思想
-    // 1. 对AABB的所有12个三角形进行迭代
-    // 2. 每个三角形分别对正交投影的4个侧面进行裁剪。裁剪过程中可能会出现这些情况：
-    //    - 0个点在该侧面的内部，该三角形可以剔除
-    //    - 1个点在该侧面的内部，计算该点与另外两个点在侧面上的交点得到新三角形
-    //    - 2个点在该侧面的内部，计算这两个点与另一个点在侧面上的交点，分裂得到2个新三角形
-    //    - 3个点都在该侧面的内部
-    //    遍历中的三角形与新生产的三角形都要进行剩余侧面的裁剪
-    // 3. 在这些三角形中找到最小/最大的Z值作为近平面/远平面
-
-    outNearPlane = FLT_MAX;
-    outFarPlane = -FLT_MAX;
-    Triangle triangleList[16]{};
-    int numTriangles;
-
-    //      4----5
-    //     /|   /| 
-    //    0-+--1 | 
-    //    | 7--|-6
-    //    |/   |/  
-    //    3----2
-    static const int all_indices[][3] = {
-        {4,7,6}, {6,5,4},
-        {5,6,2}, {2,1,5},
-        {1,2,3}, {3,0,1},
-        {0,3,7}, {7,4,0},
-        {7,3,2}, {2,6,7},
-        {0,4,5}, {5,1,0}
-    };
-    bool triPointPassCollision[3]{};
-    const float minX = lightCameraOrthographicMinVec.x;
-    const float maxX = lightCameraOrthographicMaxVec.x;
-    const float minY = lightCameraOrthographicMinVec.y;
-    const float maxY = lightCameraOrthographicMaxVec.y;
-
-    for (auto& indices : all_indices)
-    {
-        triangleList[0].point[0] = pointsInCameraView[indices[0]];
-        triangleList[0].point[1] = pointsInCameraView[indices[1]];
-        triangleList[0].point[2] = pointsInCameraView[indices[2]];
-        numTriangles = 1;
-        triangleList[0].isCulled = false;
-
-        // 每个三角形都需要对4个视锥体侧面进行裁剪
-        for (int planeIdx = 0; planeIdx < 4; ++planeIdx)
-        {
-            float edge;
-            int component;
-            switch (planeIdx)
-            {
-            case 0: edge = minX; component = 0; break;
-            case 1: edge = maxX; component = 0; break;
-            case 2: edge = minY; component = 1; break;
-            case 3: edge = maxY; component = 1; break;
-            default: break;
-            }
-
-            for (int triIdx = 0; triIdx < numTriangles; ++triIdx)
-            {
-                // 跳过裁剪的三角形
-                if (triangleList[triIdx].isCulled)
-                    continue;
-
-                int insideVertexCount = 0;
-                
-                for (int triVtxIdx = 0; triVtxIdx < 3; ++triVtxIdx)
-                {
-                    switch (planeIdx)
-                    {
-                    case 0: triPointPassCollision[triVtxIdx] = triangleList[triIdx].point[triVtxIdx].x > minX; break;
-                    case 1: triPointPassCollision[triVtxIdx] = triangleList[triIdx].point[triVtxIdx].x < maxX; break;
-                    case 2: triPointPassCollision[triVtxIdx] = triangleList[triIdx].point[triVtxIdx].y > minY; break;
-                    case 3: triPointPassCollision[triVtxIdx] = triangleList[triIdx].point[triVtxIdx].y < maxY; break;
-                    default: break;
-                    }
-                    insideVertexCount += triPointPassCollision[triVtxIdx];
-                }
-
-                // 将通过视锥体测试的点挪到数组前面
-                if (triPointPassCollision[1] && !triPointPassCollision[0])
-                {
-                    std::swap(triangleList[triIdx].point[0], triangleList[triIdx].point[1]);
-                    triPointPassCollision[0] = true;
-                    triPointPassCollision[1] = false;
-                }
-                if (triPointPassCollision[2] && !triPointPassCollision[1])
-                {
-                    std::swap(triangleList[triIdx].point[1], triangleList[triIdx].point[2]);
-                    triPointPassCollision[1] = true;
-                    triPointPassCollision[2] = false;
-                }
-                if (triPointPassCollision[1] && !triPointPassCollision[0])
-                {
-                    std::swap(triangleList[triIdx].point[0], triangleList[triIdx].point[1]);
-                    triPointPassCollision[0] = true;
-                    triPointPassCollision[1] = false;
-                }
-
-                // 裁剪测试
-                triangleList[triIdx].isCulled = (insideVertexCount == 0);
-                if (insideVertexCount == 1)
-                {
-                    // 找出三角形与当前平面相交的另外两个点
-                    glm::vec3 v0v1Vec = triangleList[triIdx].point[1] - triangleList[triIdx].point[0];
-                    glm::vec3 v0v2Vec = triangleList[triIdx].point[2] - triangleList[triIdx].point[0];
-                    
-                    float hitPointRatio = edge - triangleList[triIdx].point[0][component];
-                    float distAlong_v0v1 = hitPointRatio / v0v1Vec[component];
-                    float distAlong_v0v2 = hitPointRatio / v0v2Vec[component];
-                    v0v1Vec = distAlong_v0v1 * v0v1Vec + triangleList[triIdx].point[0];
-                    v0v2Vec = distAlong_v0v2 * v0v2Vec + triangleList[triIdx].point[0];
-
-                    triangleList[triIdx].point[1] = v0v2Vec;
-                    triangleList[triIdx].point[2] = v0v1Vec;
-                }
-                else if (insideVertexCount == 2)
-                {
-                    // 裁剪后需要分开成两个三角形
-
-                    // 把当前三角形后面的三角形(如果存在的话)复制出来，这样
-                    // 我们就可以用算出来的新三角形覆盖它
-                    triangleList[numTriangles] = triangleList[triIdx + 1];
-                    triangleList[triIdx + 1].isCulled = false;
-
-                    // 找出三角形与当前平面相交的另外两个点
-                    glm::vec3 v2v0Vec = triangleList[triIdx].point[0] - triangleList[triIdx].point[2];
-                    glm::vec3 v2v1Vec = triangleList[triIdx].point[1] - triangleList[triIdx].point[2];
-
-                    float hitPointRatio = edge - triangleList[triIdx].point[2][component];
-                    float distAlong_v2v0 = hitPointRatio / v2v0Vec[component];
-                    float distAlong_v2v1 = hitPointRatio / v2v1Vec[component];
-                    v2v0Vec = distAlong_v2v0 * v2v0Vec + triangleList[triIdx].point[2];
-                    v2v1Vec = distAlong_v2v1 * v2v1Vec + triangleList[triIdx].point[2];
-
-                    // 添加三角形
-                    triangleList[triIdx + 1].point[0] = triangleList[triIdx].point[0];
-                    triangleList[triIdx + 1].point[1] = triangleList[triIdx].point[1];
-                    triangleList[triIdx + 1].point[2] = v2v0Vec;
-
-                    triangleList[triIdx].point[0] = triangleList[triIdx + 1].point[1];
-                    triangleList[triIdx].point[1] = triangleList[triIdx + 1].point[2];
-                    triangleList[triIdx].point[2] = v2v1Vec;
-
-                    // 添加三角形数目，跳过我们刚插入的三角形
-                    ++numTriangles;
-                    ++triIdx;
-                }
-            }
-        }
-
-        for (int triIdx = 0; triIdx < numTriangles; ++triIdx)
-        {
-            if (!triangleList[triIdx].isCulled)
-            {
-                for (int vtxIdx = 0; vtxIdx < 3; ++vtxIdx)
-                {
-                    float z = triangleList[triIdx].point[vtxIdx].z;
-
-                    outNearPlane = (std::min)(outNearPlane, z);
-                    outFarPlane = (std::max)(outFarPlane, z);
-                }
-            }
-        }
-    }
-}
 
     // Matrix Light::CalculateCropMatrix(ObjectList casters, ObjectList receivers, Frustum frustum)
     // {
