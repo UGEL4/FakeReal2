@@ -246,7 +246,7 @@ void main()
     vec3 lighting = (ambient +  (1.0 - shadow) * (diffuse + specular));
     //lighting      += CalcPointLight(perFrameUbo.pointLight, color, normal, inWorldPos, viewDir);
     outColor= vec4(lighting, 1.0);
-    switch(cascadeIndex) {
+/*     switch(cascadeIndex) {
 			case 0 : 
 				outColor.rgb *= vec3(1.0f, 0.0f, 0.0f);
 				break;
@@ -265,7 +265,7 @@ void main()
                 case 5 : 
 				outColor.rgb *= vec3(0.6f, 0.0f, 0.0f);
 				break;
-		}
+		} */
         // HDR tonemapping
     /* vec3 result_color = outColor.rgb / (outColor.rgb + vec3(1.0));
     // gamma correct
