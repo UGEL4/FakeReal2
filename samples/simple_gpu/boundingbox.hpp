@@ -108,4 +108,65 @@ struct BoundingBox
             Corners[i] = vExtents * g_BoxOffset[i] + vCenter;
         }
     }
+
+    BoundingBox GetMin(const BoundingBox& other)
+    {
+        BoundingBox tmp;
+        tmp.min = min;
+        tmp.max = max;
+        if (tmp.min.x < other.min.x) tmp.min.x = other.min.x;
+        if (tmp.min.y < other.min.y) tmp.min.y = other.min.y;
+        if (tmp.min.z < other.min.z) tmp.min.z = other.min.z;
+
+        if (tmp.max.x > other.max.x) tmp.max.x = other.max.x;
+        if (tmp.max.y > other.max.y) tmp.max.y = other.max.y;
+        if (tmp.max.z > other.max.z) tmp.max.z = other.max.z;
+        return tmp;
+    }
+
+    glm::vec3 GetCenter() const
+    {
+        return (max + min) * 0.5f;
+    }
+
+    inline int RelationWithRay(const glm::vec3& ori, const glm::vec3& dir, float& hitt0, float& hitt1) const
+    {
+        hitt0 = -FLT_MAX;
+        hitt1 = FLT_MAX;
+        float t0;
+        float t1;
+        float tmp;
+        glm::vec3 min = this->min;
+        glm::vec3 max = this->max;
+        for (int i = 0; i < 3; i++)
+        {
+            if (glm::abs(dir[i]) < std::numeric_limits<float>().epsilon())
+            {
+                if ((ori[i] < min[i]) || (ori[i] > max[i])) return 0;
+            }
+            t0 = (min[i] - ori[i]) / dir[i];
+            t1 = (max[i] - ori[i]) / dir[i];
+            if (t0 > t1)
+            {
+                tmp = t0;
+                t0  = t1;
+                t1  = tmp;
+            }
+            if (t0 > hitt0) hitt0 = t0;
+            if (t1 < hitt1) hitt1 = t1;
+            if (hitt0 > hitt1) return 0;
+            if (hitt1 < 0) return 0;
+        }
+
+        if (hitt1 < 0.0f)
+        {
+            return 0;
+        }
+        if (hitt0 < 0.0f)
+        {
+            hitt0 = hitt1;
+        }
+
+        return 1;
+    }
 };
