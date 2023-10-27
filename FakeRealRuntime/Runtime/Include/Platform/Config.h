@@ -30,3 +30,9 @@
         #define FORCEINLINE inline __attribute__((always_inline))
     #endif
 #endif
+
+#if defined(_MSC_VER)
+    #define FR_ALIGNAS(x) __declspec(align(x))
+#else
+    #define FR_ALIGNAS(x) __attribute__((aligned(x)))
+#endif

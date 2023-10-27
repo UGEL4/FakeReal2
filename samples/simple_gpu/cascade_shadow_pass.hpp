@@ -756,18 +756,37 @@ public:
         );
     }
 
+    void CreateEuler(float Z, float X, float Y)
+    {
+        float SX, SY, SZ, CX, CY, CZ;
+
+        SZ = sin(Z);
+        CZ = cos(Z);
+        SY = sin(Y);
+        CY = cos(Y);
+        SX = sin(X);
+        CX = cos(X);
+
+        float mat[3][3];
+        mat[0][0] = CY * CZ + SX * SY * SZ;
+        mat[0][1] = CX * SZ;
+        mat[0][2] = -SY * CZ + SX * CY * SZ;
+        mat[1][0] = -CY * SZ + SX * SY * CZ;
+        mat[1][1] = CX * CZ;
+        mat[1][2] = SY * SZ + SX * CY * CZ;
+        ;
+        mat[2][0] = -CX * SY;
+        mat[2][1] = SX;
+        mat[2][2] = -CX * CY;
+        glm::vec3 right = glm::normalize(glm::vec3(mat[0][0], mat[0][1], mat[0][2]));
+        glm::vec3 up = glm::normalize(glm::vec3(mat[1][0], mat[1][1], mat[1][2]));
+        glm::vec3 f = glm::normalize(glm::vec3(mat[2][0], mat[2][1], mat[2][2]));
+        int i = 0;
+    }
+
     void CalculateDirectionalLightCamera2(const Camera& cam, const BoundingBox& entityBoundingBox, const glm::mat4& entityModel, const glm::vec3& lightDir)
     {
-        glm::mat4 rot = glm::eulerAngleXYZ(glm::radians(-45.f), glm::radians(-90.f), glm::radians(0.f));
-        glm::mat4 rot1 = glm::rotate(glm::mat4(1.f), glm::radians(-45.f), glm::vec3(1.f, 0.f, 0.f));
-        rot1 = glm::rotate(rot1, glm::radians(-90.f), glm::vec3(0.f, 1.f, 0.f));
-        rot1 = glm::rotate(rot1, glm::radians(0.f), glm::vec3(0.f, 0.f, 1.f));
-        //rot = glm::inverse(rot);
-        glm::vec4 right = glm::normalize(rot[0]);
-        glm::vec4 up = glm::normalize(rot[1]);
-        glm::vec4 dir  = glm::normalize(-rot[2]);
-        glm::vec3 d1 =glm::normalize(lightDir);
-        glm::vec3 d2 =glm::normalize(-lightDir);
+        //CreateEuler(glm::radians(0.f), glm::radians(45.f), glm::radians((0.f)));
         // Calculate split depths based on view camera frustum
         // Based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
         float cascadeSplits[sCascadeCount];
@@ -825,8 +844,8 @@ public:
                 receiverAABB.Update(frustumPointsNDCSpace[j + 4]);
             }
 
-            glm::vec3 lightDir1 = glm::normalize(lightDir);
-            glm::mat4 lightRot = LookDirLH(glm::vec3(0.f), lightDir1);
+            glm::vec3 lightDir1 = glm::normalize(-lightDir);
+            glm::mat4 lightRot = LookDirRH(glm::vec3(0.f), lightDir1);
 
             BoundingBox newCasterAABB = BoundingBox::BoundingBoxTransform(casterAABB, lightRot);
             BoundingBox newReceiveAABB = BoundingBox::BoundingBoxTransform(receiverAABB, lightRot);
@@ -839,8 +858,9 @@ public:
 
             glm::vec3 center = minAABB.GetCenter();
 
+            glm::vec3 front(0.f, 0.f, -1);
             glm::vec3 rayOri(center);
-            glm::vec3 rayDir(0.f, 0.f, 1); // front vec3(0.f, 0.f, -1.f);
+            glm::vec3 rayDir(front * (-1.f)); // front vec3(0.f, 0.f, -1.f);
 
             float tNear = 0.f, tFar = 0.f;
             if (minAABB.RelationWithRay(rayOri, glm::normalize(rayDir), tNear, tFar) != 1)
@@ -852,16 +872,16 @@ public:
                 continue;
             }
 
-            glm::vec3 lightPT = center - lightDir1 * tNear * 10.f;
+            glm::vec3 lightPT = center - front * tNear * 10.f;
             glm::vec3 newLigthPT = glm::inverse(lightRot) * glm::vec4(lightPT, 1.f);
 
-            glm::mat4 lightViewMT = LookDirLH(newLigthPT, lightDir1);
+            glm::mat4 lightViewMT = LookDirRH(newLigthPT, lightDir1);
 
             minAABB.max = minAABB.max - lightPT;
             minAABB.min = minAABB.min - lightPT;
 
-            glm::mat4 ligthOrthoMT = glm::ortho(minAABB.min.x, minAABB.max.x, minAABB.min.y, minAABB.max.y, minAABB.min.z, minAABB.max.z);
-
+            glm::mat4 ligthOrthoMT = glm::ortho(minAABB.min.x, minAABB.max.x, minAABB.min.y, minAABB.max.y, -minAABB.max.z, -minAABB.min.z);
+            
             // Store split distance and matrix in cascade
             cascades[i].splitDepth     = (cam.getNearClip() + splitDist * clipRange) * -1.0f;
             cascades[i].viewProjMatrix = ligthOrthoMT * lightViewMT;
@@ -889,6 +909,28 @@ public:
         Result[3][0] = -dot(s, pos);
         Result[3][1] = -dot(u, pos);
         Result[3][2] = -dot(f, pos);
+        return Result;
+    }
+
+    glm::mat4 LookDirRH(const glm::vec3& pos, const glm::vec3& dir, const glm::vec3& up = glm::vec3(0.f, 1.f, 0.f)) const
+    {
+        glm::vec3 f = glm::normalize(dir);
+        glm::vec3 s(glm::normalize(glm::cross(f, up)));
+        glm::vec3 u(glm::cross(s, f));
+
+        glm::mat4 Result(1);
+        Result[0][0] = s.x;
+		Result[1][0] = s.y;
+		Result[2][0] = s.z;
+		Result[0][1] = u.x;
+		Result[1][1] = u.y;
+		Result[2][1] = u.z;
+		Result[0][2] =-f.x;
+		Result[1][2] =-f.y;
+		Result[2][2] =-f.z;
+		Result[3][0] =-dot(s, pos);
+		Result[3][1] =-dot(u, pos);
+		Result[3][2] = dot(f, pos);
         return Result;
     }
 
