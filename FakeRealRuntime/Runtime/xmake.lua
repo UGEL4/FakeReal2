@@ -21,7 +21,7 @@ local rapid_json_include_dir = "$(projectdir)/3rdparty/rapidjson/include"
 -- local glfw_include_dir       = "$(projectdir)/3rdparty/GLFW/include"
 local runtime_include        = "$(projectdir)/FakeRealRuntime/Runtime/Include"
 local old_runtime_include    = "$(projectdir)/FakeRealRuntime/Source"
-local runtime_indluces_dir   = {spdlog_include_dir, vulkan_include_dir, glm_include_dir, rapid_json_include_dir, runtime_include}
+local runtime_indluces_dir   = {spdlog_include_dir, vulkan_include_dir, rapid_json_include_dir, runtime_include}
 
 local targetdir = "$(projectdir)/bin/" .. output_dir .. "/Runtime"
 local objdir    = "$(projectdir)/bin-init/" .. output_dir .. "/Runtime"

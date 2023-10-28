@@ -3,11 +3,9 @@
 #include "Gpu/GpuApi.h"
 #include "utils.hpp"
 #include "model.hpp"
-#include  "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
 #include <array>
 #include "Camera.hpp"
-#include "glm/gtx/euler_angles.hpp"
+#include "Math/glm/gtx/euler_angles.hpp"
 
 class CascadeShadowPass
 {

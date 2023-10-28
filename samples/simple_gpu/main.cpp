@@ -10,8 +10,6 @@
 #include "model.hpp"
 #include "Utils/Log/LogSystem.h"
 // #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
 #include "sky_box.hpp"
 #include "camera.hpp"
 #include "character_model.hpp"

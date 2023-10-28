@@ -8,9 +8,11 @@
 #pragma once
 //#define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+//#include <glm/glm.hpp>
+//#include <glm/gtc/quaternion.hpp>
+//#include <glm/gtc/matrix_transform.hpp>
+
+#include "Math/Matrix.h"
 
 #if defined(_WIN32)
     #define KEY_ESCAPE VK_ESCAPE
@@ -43,19 +45,20 @@ private:
 
     void updateViewMatrix()
     {
-        glm::mat4 rotM = glm::mat4(1.0f);
-        glm::mat4 transM;
+        using namespace FakeReal;
+        math::Matrix4X4 rotM(1.0f);
+        math::Matrix4X4 transM;
 
-        rotM = glm::rotate(rotM, glm::radians(rotation.x * (flipY ? -1.0f : 1.0f)), glm::vec3(1.0f, 0.0f, 0.0f));
-        rotM = glm::rotate(rotM, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-        rotM = glm::rotate(rotM, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+        rotM = glm::rotate(rotM, glm::radians(rotation.x * (flipY ? -1.0f : 1.0f)), math::Vector3(1.0f, 0.0f, 0.0f));
+        rotM = glm::rotate(rotM, glm::radians(rotation.y), math::Vector3(0.0f, 1.0f, 0.0f));
+        rotM = glm::rotate(rotM, glm::radians(rotation.z), math::Vector3(0.0f, 0.0f, 1.0f));
 
-        glm::vec3 translation = position;
+        math::Vector3 translation = position;
         if (flipY)
         {
             translation.y *= -1.0f;
         }
-        transM = glm::translate(glm::mat4(1.0f), translation);
+        transM = glm::translate(math::Matrix4X4(1.0f), translation);
 
         if (type == CameraType::firstperson)
         {
@@ -66,7 +69,7 @@ private:
             matrices.view = transM * rotM;
         }
 
-        viewPos = glm::vec4(position, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
+        viewPos = math::Vector4(position, 0.0f) * math::Vector4(-1.0f, 1.0f, -1.0f, 1.0f);
 
         updated = true;
     };
@@ -79,9 +82,9 @@ public:
     };
     CameraType type = CameraType::lookat;
 
-    glm::vec3 rotation = glm::vec3();
-    glm::vec3 position = glm::vec3();
-    glm::vec4 viewPos  = glm::vec4();
+    FakeReal::math::Vector3 rotation =  FakeReal::math::Vector3();
+    FakeReal::math::Vector3 position =  FakeReal::math::Vector3();
+    FakeReal::math::Vector4 viewPos  =  FakeReal::math::Vector4();
 
     float rotationSpeed = 1.0f;
     float movementSpeed = 1.0f;
@@ -91,8 +94,8 @@ public:
 
     struct
     {
-        glm::mat4 perspective;
-        glm::mat4 view;
+        FakeReal::math::Matrix4X4 perspective;
+        FakeReal::math::Matrix4X4 view;
     } matrices;
 
     struct
@@ -139,31 +142,31 @@ public:
         }
     }
 
-    void setPosition(glm::vec3 position)
+    void setPosition(FakeReal::math::Vector3 position)
     {
         this->position = position;
         updateViewMatrix();
     }
 
-    void setRotation(glm::vec3 rotation)
+    void setRotation(FakeReal::math::Vector3 rotation)
     {
         this->rotation = rotation;
         updateViewMatrix();
     }
 
-    void rotate(glm::vec3 delta)
+    void rotate(FakeReal::math::Vector3 delta)
     {
         this->rotation += delta;
         updateViewMatrix();
     }
 
-    void setTranslation(glm::vec3 translation)
+    void setTranslation(FakeReal::math::Vector3 translation)
     {
         this->position = translation;
         updateViewMatrix();
     };
 
-    void translate(glm::vec3 delta)
+    void translate(FakeReal::math::Vector3 delta)
     {
         this->position += delta;
         updateViewMatrix();
@@ -181,12 +184,13 @@ public:
 
     void update(float deltaTime)
     {
+        using namespace FakeReal;
         updated = false;
         if (type == CameraType::firstperson)
         {
             if (moving())
             {
-                glm::vec3 camFront;
+                math::Vector3 camFront;
                 camFront.x = -cos(glm::radians(rotation.x)) * sin(glm::radians(rotation.y));
                 camFront.y = sin(glm::radians(rotation.x));
                 camFront.z = cos(glm::radians(rotation.x)) * cos(glm::radians(rotation.y));
@@ -199,9 +203,9 @@ public:
                 if (keys.down)
                     position -= camFront * moveSpeed;
                 if (keys.left)
-                    position -= glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
+                    position -= glm::normalize(glm::cross(camFront, math::Vector3(0.0f, 1.0f, 0.0f))) * moveSpeed;
                 if (keys.right)
-                    position += glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
+                    position += glm::normalize(glm::cross(camFront, math::Vector3(0.0f, 1.0f, 0.0f))) * moveSpeed;
             }
         }
         updateViewMatrix();
@@ -209,7 +213,7 @@ public:
 
     // Update camera passing separate axis data (gamepad)
     // Returns true if view or position has been changed
-    bool updatePad(glm::vec2 axisLeft, glm::vec2 axisRight, float deltaTime)
+    /* bool updatePad(glm::vec2 axisLeft, glm::vec2 axisRight, float deltaTime)
     {
         bool retVal = false;
 
@@ -269,5 +273,5 @@ public:
         }
 
         return retVal;
-    }
+    } */
 };

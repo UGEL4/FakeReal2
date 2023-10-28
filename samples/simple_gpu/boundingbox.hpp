@@ -1,12 +1,15 @@
 #pragma once
-#include "glm/glm.hpp"
+#include "Math/Vector.h"
+#include "Math/Matrix.h"
+
+using namespace FakeReal;
 
 struct BoundingBox
 {
-    glm::vec3 min {FLT_MAX};
-    glm::vec3 max {-FLT_MAX};
+    math::Vector3 min {FLT_MAX};
+    math::Vector3 max {-FLT_MAX};
 
-    void Update(glm::vec3 newPoint)
+    void Update(math::Vector3 newPoint)
     {
         if (min.x > newPoint.x) min.x = newPoint.x;
         if (min.y > newPoint.y) min.y = newPoint.y;
@@ -26,42 +29,42 @@ struct BoundingBox
         if (max.z < rhs.max.z) max.z = rhs.max.z;
     }
 
-    static BoundingBox BoundingBoxTransform(BoundingBox const& b, glm::mat4 const& m)
+    static BoundingBox BoundingBoxTransform(BoundingBox const& b, math::Matrix4X4 const& m)
     {
         // we follow the "BoundingBox::Transform"
 
-        glm::vec3 const g_BoxOffset[8] = { glm::vec3(-1.0f, -1.0f, 1.0f),
-                                           glm::vec3(1.0f, -1.0f, 1.0f),
-                                           glm::vec3(1.0f, 1.0f, 1.0f),
-                                           glm::vec3(-1.0f, 1.0f, 1.0f),
-                                           glm::vec3(-1.0f, -1.0f, -1.0f),
-                                           glm::vec3(1.0f, -1.0f, -1.0f),
-                                           glm::vec3(1.0f, 1.0f, -1.0f),
-                                           glm::vec3(-1.0f, 1.0f, -1.0f) };
+        math::Vector3 const g_BoxOffset[8] = { math::Vector3(-1.0f, -1.0f, 1.0f),
+                                           math::Vector3(1.0f, -1.0f, 1.0f),
+                                           math::Vector3(1.0f, 1.0f, 1.0f),
+                                           math::Vector3(-1.0f, 1.0f, 1.0f),
+                                           math::Vector3(-1.0f, -1.0f, -1.0f),
+                                           math::Vector3(1.0f, -1.0f, -1.0f),
+                                           math::Vector3(1.0f, 1.0f, -1.0f),
+                                           math::Vector3(-1.0f, 1.0f, -1.0f) };
 
         size_t const CORNER_COUNT = 8;
 
         // Load center and extents.
         // Center of the box.
-        glm::vec3 center((b.max.x + b.min.x) * 0.5,
+        math::Vector3 center((b.max.x + b.min.x) * 0.5,
                          (b.max.y + b.min.y) * 0.5,
                          (b.max.z + b.min.z) * 0.5);
 
         // Distance from the center to each side.
         // half extent //more exactly
-        glm::vec3 extents((b.max.x - b.min.x) * 0.5,
+        math::Vector3 extents((b.max.x - b.min.x) * 0.5,
                           (b.max.y - b.min.y) * 0.5,
                           (b.max.z - b.min.z) * 0.5);
 
-        glm::vec3 min;
-        glm::vec3 max;
+        math::Vector3 min;
+        math::Vector3 max;
 
         // Compute and transform the corners and find new min/max bounds.
         for (size_t i = 0; i < CORNER_COUNT; ++i)
         {
-            glm::vec3 corner_before = extents * g_BoxOffset[i] + center;
-            glm::vec4 corner_with_w = m * glm::vec4(corner_before.x, corner_before.y, corner_before.z, 1.0);
-            glm::vec3 corner        = glm::vec3(corner_with_w.x / corner_with_w.w,
+            math::Vector3 corner_before = extents * g_BoxOffset[i] + center;
+            math::Vector4 corner_with_w = m * math::Vector4(corner_before.x, corner_before.y, corner_before.z, 1.0);
+            math::Vector3 corner        = math::Vector3(corner_with_w.x / corner_with_w.w,
                                                 corner_with_w.y / corner_with_w.w,
                                                 corner_with_w.z / corner_with_w.w);
 
@@ -72,8 +75,8 @@ struct BoundingBox
             }
             else
             {
-                min = glm::vec3(std::min(min[0], corner[0]), std::min(min[1], corner[1]), std::min(min[2], corner[2]));
-                max = glm::vec3(std::max(max[0], corner[0]), std::max(max[1], corner[1]), std::max(max[2], corner[2]));
+                min = math::Vector3(std::min(min[0], corner[0]), std::min(min[1], corner[1]), std::min(min[2], corner[2]));
+                max = math::Vector3(std::max(max[0], corner[0]), std::max(max[1], corner[1]), std::max(max[2], corner[2]));
             }
         }
 
@@ -83,22 +86,22 @@ struct BoundingBox
         return b_out;
     }
 
-    inline void GetCorners(glm::vec3* Corners) const
+    inline void GetCorners(math::Vector3* Corners) const
     {
-        glm::vec3 const g_BoxOffset[8] = { glm::vec3(-1.0f, -1.0f, 1.0f),
-                                           glm::vec3(1.0f, -1.0f, 1.0f),
-                                           glm::vec3(1.0f, 1.0f, 1.0f),
-                                           glm::vec3(-1.0f, 1.0f, 1.0f),
-                                           glm::vec3(-1.0f, -1.0f, -1.0f),
-                                           glm::vec3(1.0f, -1.0f, -1.0f),
-                                           glm::vec3(1.0f, 1.0f, -1.0f),
-                                           glm::vec3(-1.0f, 1.0f, -1.0f) };
+        math::Vector3 const g_BoxOffset[8] = { math::Vector3(-1.0f, -1.0f, 1.0f),
+                                           math::Vector3(1.0f, -1.0f, 1.0f),
+                                           math::Vector3(1.0f, 1.0f, 1.0f),
+                                           math::Vector3(-1.0f, 1.0f, 1.0f),
+                                           math::Vector3(-1.0f, -1.0f, -1.0f),
+                                           math::Vector3(1.0f, -1.0f, -1.0f),
+                                           math::Vector3(1.0f, 1.0f, -1.0f),
+                                           math::Vector3(-1.0f, 1.0f, -1.0f) };
 
-        glm::vec3 vCenter = glm::vec3(
+        math::Vector3 vCenter = math::Vector3(
         (max.x + min.x) * 0.5f,
         (max.y + min.y) * 0.5f,
         (max.z + min.z) * 0.5f);
-        glm::vec3 vExtents = glm::vec3(
+        math::Vector3 vExtents = math::Vector3(
         (max.x - min.x) * 0.5f,
         (max.y - min.y) * 0.5f,
         (max.z - min.z) * 0.5f);
@@ -124,20 +127,20 @@ struct BoundingBox
         return tmp;
     }
 
-    glm::vec3 GetCenter() const
+    math::Vector3 GetCenter() const
     {
         return (max + min) * 0.5f;
     }
 
-    inline int RelationWithRay(const glm::vec3& ori, const glm::vec3& dir, float& hitt0, float& hitt1) const
+    inline int RelationWithRay(const math::Vector3& ori, const math::Vector3& dir, float& hitt0, float& hitt1) const
     {
         hitt0 = -FLT_MAX;
         hitt1 = FLT_MAX;
         float t0;
         float t1;
         float tmp;
-        glm::vec3 min = this->min;
-        glm::vec3 max = this->max;
+        math::Vector3 min = this->min;
+        math::Vector3 max = this->max;
         for (int i = 0; i < 3; i++)
         {
             if (glm::abs(dir[i]) < std::numeric_limits<float>().epsilon())
