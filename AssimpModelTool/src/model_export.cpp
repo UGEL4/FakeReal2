@@ -8,11 +8,14 @@
 #include <sstream>
 #include <format>
 #include <iostream>
-
+#include <assimp/Exporter.hpp>
 const aiScene* g_scene = nullptr;
 
 std::vector<MeshData> g_meshes;
 std::vector<Materials> g_materials;
+std::unordered_map<aiMesh*, MeshData> g_meshs_map;
+std::vector<MeshComp> g_mesh_comp;
+uint32_t node_count = 0;
 
 void ExportModel(std::string_view file, std::string_view outFile)
 {
@@ -23,17 +26,43 @@ void ExportModel(std::string_view file, std::string_view outFile)
     g_scene =  aiImportFile(file.data(), flags);
     std::cout << "num of mesh : " << g_scene->mNumMeshes <<std::endl;
     ProcessMaterials();
+    for (uint32_t i = 0; i < g_scene->mNumMeshes; i++)
+    {
+        ProcessMesh(g_scene->mMeshes[i]);
+    }
     ProcessNode(g_scene->mRootNode);
     SaveFile(outFile);
     aiReleaseImport(g_scene);
+    Assimp::Exporter ex;
 }
 
 void ProcessNode(const aiNode* node)
 {
-    for (uint32_t i = 0; i < node->mNumMeshes; i++)
+    aiString name = node->mName;
+    uint32_t a = node->mNumMeshes;
+    uint32_t b = node->mNumChildren;
+    //std::cout << "name: " << name.C_Str() << ", num: " << a << std::endl; 
+    /* for (uint32_t i = 0; i < node->mNumMeshes; i++)
     {
         auto mesh = g_scene->mMeshes[node->mMeshes[i]];
         ProcessMesh(mesh);
+    } */
+    if (node->mNumMeshes > 0)
+    {
+        auto mesh = g_scene->mMeshes[node->mMeshes[0]];
+        MeshComp comp;
+        comp.url = mesh->mName.C_Str();
+        comp.materialIndex = mesh->mMaterialIndex;
+        aiMatrix4x4 localMat = node->mTransformation;
+        aiVector3D scale, position;
+        aiQuaternion rotation;
+        localMat.Decompose(scale, rotation, position);
+        comp.transform.position = FakeReal::math::Vector3(position.x, position.y, position.z);
+        comp.transform.scale    = FakeReal::math::Vector3(scale.x, scale.y, scale.z);
+        comp.transform.rotation = FakeReal::math::Quaternion(rotation.w, rotation.x, rotation.y, rotation.z);
+        comp.id = node_count;
+        node_count++;
+        g_mesh_comp.push_back(comp);
     }
 
     for (uint32_t i = 0; i < node->mNumChildren; i++)
@@ -102,6 +131,7 @@ void ProcessMesh(const aiMesh* mesh)
     }
 
     g_meshes.emplace_back(meshData);
+    g_meshs_map.insert(std::make_pair(const_cast<aiMesh*>(mesh), meshData));
 }
 
 // For some reason the roughness maps aren't coming through in the SHININESS channel after Assimp import. :(
@@ -206,21 +236,25 @@ void SaveFile(const std::string_view filePath)
     std::stringstream out;
     out << "{\n"
            "    \"mMeshes\": [\n";
-    for (size_t i = 0; i < g_meshes.size(); i++)
+    //for (size_t i = 0; i < g_meshes.size(); i++)
+    size_t i = 0;
+    for (auto& iter : g_meshs_map)
     {
         //mesh begin
+
+        const MeshData& mesh = iter.second;
 
         //vertices
         out << "        {\n"
                "            \"mVertices\": [\n";
         
-        for (size_t vn = 0; vn < g_meshes[i].vertices.size(); vn++)
+        for (size_t vn = 0; vn < mesh.vertices.size(); vn++)
         {
             out << "                {";
-            auto& v = g_meshes[i].vertices[vn];
+            auto& v = mesh.vertices[vn];
             out << std::format("\"x\":{:f}, \"y\":{:f}, \"z\":{:f}, \"nx\":{:f}, \"ny\":{:f}, \"nz\":{:f}, \"tx\":{:f}, \"ty\":{:f}, \"tanx\":{:f}, \"tany\":{:f}, \"tanz\":{:f}, \"btanx\":{:f}, \"btany\":{:f}, \"btanz\":{:f}", 
             v.x, v.y, v.z, v.nx, v.ny, v.nz, v.u, v.v, v.tx, v.ty, v.tz, v.btx, v.bty, v.btz);
-            if (vn == g_meshes[i].vertices.size() - 1)
+            if (vn == mesh.vertices.size() - 1)
             {
                 out << '}';
             }
@@ -234,25 +268,25 @@ void SaveFile(const std::string_view filePath)
         //indices
         out <<"            \"mIndices\": [\n";
         size_t c = 1;
-        for (size_t idx = 0; idx < g_meshes[i].indices.size(); idx++)
+        for (size_t idx = 0; idx < mesh.indices.size(); idx++)
         {
             if (c == 1) out <<  "                " ;
-            if (idx < g_meshes[i].indices.size() - 1)
+            if (idx < mesh.indices.size() - 1)
             {
                 if ((c % 3) == 0)
                 {
-                    out << g_meshes[i].indices[idx] << ",\n";
+                    out << mesh.indices[idx] << ",\n";
                     c = 1;
                 }
                 else
                 {
-                    out << g_meshes[i].indices[idx] << ',';
+                    out << mesh.indices[idx] << ',';
                     c++;
                 }
             }
             else
             {
-                out << g_meshes[i].indices[idx];
+                out << mesh.indices[idx];
                 c++;
             }
         }
@@ -303,10 +337,10 @@ void SaveFile(const std::string_view filePath)
         out << "\n            },"; */
         //texture
 
-        out <<"\n            \"mMaterialIndex\": " << g_meshes[i].materialIndex;
+        out <<"\n            \"mMaterialIndex\": " << mesh.materialIndex;
 
         //mesh end
-        if (i == g_meshes.size() - 1)
+        if (i == g_meshs_map.size() - 1)
         {
             out << "\n        }";
         }
@@ -314,6 +348,7 @@ void SaveFile(const std::string_view filePath)
         {
             out << "\n        },\n";
         }
+        i++;
     }
     out << "\n    ],\n";
 

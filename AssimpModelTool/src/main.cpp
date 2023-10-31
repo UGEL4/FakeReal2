@@ -8,15 +8,15 @@ int main(int argc, char** argv)
     if (argc < 3)
     {
         std::cerr << "args less then 2." << std::endl;
-        return -1;
+        //return -1;
     }
 
     const char* inFile = argv[1];
     const char* outFile = argv[2];
 
-    //ExportModel("C:\\Dev\\nanosuit\\nanosuit.obj", "C:\\Dev\\nanosuit\\out\\nanosuit.json");
+    ExportModel("C:/Dev/FakeReal2/asset/objects/sponza/Sponza_Modular.FBX", "C:/Dev/FakeReal2/asset/objects/sponza/Sponza_Modular.json");
     //ExportModel("D:\\c++\\nanosuit\\nanosuit.obj", "D:\\c++\\nanosuit\\out\\nanosuit.json");
-    ExportModel(inFile, outFile);
+    //ExportModel(inFile, outFile);
 
     return 0;
 }

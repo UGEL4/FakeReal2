@@ -6,6 +6,7 @@
 #include <array>
 #include "Camera.hpp"
 #include "Math/glm/gtx/euler_angles.hpp"
+#include"Math/Transform.h"
 
 class CascadeShadowPass
 {

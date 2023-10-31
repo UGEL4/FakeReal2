@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Math/glm/gtc/quaternion.hpp"
+#include "Math/glm/gtx/quaternion.hpp"
 
 namespace FakeReal
 {

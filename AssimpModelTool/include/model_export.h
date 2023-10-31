@@ -3,6 +3,7 @@
 #include <string_view>
 #include <vector>
 #include "assimp/material.h"
+#include "Math/Transform.h"
 
 struct Vertex
 {
@@ -11,6 +12,11 @@ struct Vertex
     float u, v;
     float tx, ty, tz;
     float btx, bty, btz;
+
+    bool operator ==(const Vertex& other) const
+    {
+        return x == other.x && y == other.y && z == other.z && nx == other.nx && ny == other.ny && nz == other.nz && u == other.u && v == other.v;
+    }
 };
 
 struct TextureDate
@@ -35,6 +41,15 @@ struct Materials
 {
     uint32_t index;
     std::vector<TextureDate> textures;
+};
+
+struct MeshComp
+{
+    std::string url;
+    FakeReal::math::Transform transform;
+    uint32_t materialIndex;
+    uint32_t id;
+    uint32_t parentId;
 };
 
 void ExportModel(std::string_view file, std::string_view outFile);

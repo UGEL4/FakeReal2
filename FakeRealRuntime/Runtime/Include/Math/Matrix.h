@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Platform/Config.h"
 #include "Math/glm/mat4x4.hpp"
 #include "Math/Vector.h"
 #include "Math/glm/gtc/matrix_transform.hpp"
@@ -10,7 +11,7 @@ namespace FakeReal
     {
         using Matrix4X4 = glm::mat4;
 
-        /* Matrix4X4 CreateFromLookDirRH(const Vector3& pos, const Vector3& dir, const Vector3& up = Vector3(0.f, 1.f, 0.f))
+        FORCEINLINE Matrix4X4 CreateFromLookDirRH(const Vector3& pos, const Vector3& dir, const Vector3& up = Vector3(0.f, 1.f, 0.f))
         {
             glm::vec3 f = glm::normalize(dir);
             glm::vec3 s(glm::normalize(glm::cross(f, up)));
@@ -30,6 +31,21 @@ namespace FakeReal
             Result[3][1] = -dot(u, pos);
             Result[3][2] = dot(f, pos);
             return Result;
-        } */
+        }
+
+        FORCEINLINE Matrix4X4 CreateFromLookAtRH(const Vector3& eye, const Vector3& target, const Vector3& up = Vector3(0.f, 1.f, 0.f))
+        {
+            return CreateFromLookDirRH(eye, target - eye, up);
+        }
+
+        FORCEINLINE Matrix4X4 Ortho(float left, float right, float bottom, float top, float n, float f)
+        {
+            return glm::ortho(left, right, bottom, top, n, f);
+        }
+
+        FORCEINLINE Matrix4X4 Perspective(float fov, float aspect, float n, float f)
+        {
+            return glm::perspective(fov, aspect, n, f);
+        }
     }
 }

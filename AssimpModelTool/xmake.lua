@@ -12,8 +12,10 @@ target("assimp_model_tool")
     set_targetdir(targetdir) ]]
 
     --if(has_config("is_msvc")) then
-        add_linkdirs("$(projectdir)/3rdparty/Assimp/lib/debug-vc14.3")
-        add_links("assimp")
+        add_deps("RenderGraph", "GLFW", "Runtime")
+
+        add_linkdirs("$(projectdir)/3rdparty/Assimp/lib/debug-vc14.3", "$(projectdir)/bin/" .. output_dir .. "/Runtime")
+        add_links("assimp", "Runtime")
     --end
 
     add_includedirs("$(projectdir)/3rdparty/Assimp/include", "$(projectdir)/AssimpModelTool/include")
