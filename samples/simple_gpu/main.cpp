@@ -15,6 +15,7 @@
 #include "character_model.hpp"
 #include "shadow_pass.hpp"
 #include "cascade_shadow_pass.hpp"
+#include "model_entity.hpp"
 
 static int WIDTH = 1080;
 static int HEIGHT = 1080;
@@ -1134,6 +1135,7 @@ void NormalRenderSimple()
     //chModel->LoadModel("../../../../asset/objects/character/garam_obj.json");
     chModel->LoadModel("D:/c++/Garam (v1.0)/garam_obj.json");
     chModel->InitModelResource(device, graphicQueue, skyBox); */
+    EntityModel entity_model("../../../../asset/objects/sponza/Sponza_Modular.json.json", device, graphicQueue);
 
     ShadowPass* pShadowPass = new ShadowPass(device, graphicQueue);
     pShadowPass->InitRenderObjects();

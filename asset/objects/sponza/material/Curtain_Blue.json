@@ -1,0 +1,7 @@
+        {
+           "index":3,
+           "name":"Curtain_Blue",
+           "textures":[
+               {"name":"C:/Dev/FakeReal2/asset/objects/sponza/texture/Curtain_Blue/Fabric_Curtain_Diffuse_Blue.png", "type":"diffuse"}
+           ]
+        }

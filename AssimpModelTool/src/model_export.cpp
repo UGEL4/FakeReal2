@@ -8,13 +8,13 @@
 #include <sstream>
 #include <format>
 #include <iostream>
-#include <assimp/Exporter.hpp>
+#include <assimp/Importer.hpp>
 const aiScene* g_scene = nullptr;
 
 std::vector<MeshData> g_meshes;
 std::vector<Materials> g_materials;
 std::unordered_map<aiMesh*, MeshData> g_meshs_map;
-std::vector<MeshComp> g_mesh_comp;
+std::unordered_map<aiNode*, MeshComp> g_mesh_comp;
 uint32_t node_count = 0;
 
 void ExportModel(std::string_view file, std::string_view outFile)
@@ -23,7 +23,11 @@ void ExportModel(std::string_view file, std::string_view outFile)
     uint32_t flags = aiProcess_CalcTangentSpace |
                    aiProcess_Triangulate |
                    aiProcess_RemoveRedundantMaterials;
-    g_scene =  aiImportFile(file.data(), flags);
+
+    Assimp::Importer importer;
+    importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
+    g_scene = importer.ReadFile(file.data(), flags);
+    //g_scene =  aiImportFile(file.data(), flags);
     std::cout << "num of mesh : " << g_scene->mNumMeshes <<std::endl;
     ProcessMaterials();
     for (uint32_t i = 0; i < g_scene->mNumMeshes; i++)
@@ -32,8 +36,7 @@ void ExportModel(std::string_view file, std::string_view outFile)
     }
     ProcessNode(g_scene->mRootNode);
     SaveFile(outFile);
-    aiReleaseImport(g_scene);
-    Assimp::Exporter ex;
+    //aiReleaseImport(g_scene);
 }
 
 void ProcessNode(const aiNode* node)
@@ -51,8 +54,8 @@ void ProcessNode(const aiNode* node)
     {
         auto mesh = g_scene->mMeshes[node->mMeshes[0]];
         MeshComp comp;
-        comp.url = mesh->mName.C_Str();
-        comp.materialIndex = mesh->mMaterialIndex;
+        comp.url             = mesh->mName.C_Str();
+        comp.materialIndex   = mesh->mMaterialIndex;
         aiMatrix4x4 localMat = node->mTransformation;
         aiVector3D scale, position;
         aiQuaternion rotation;
@@ -60,9 +63,20 @@ void ProcessNode(const aiNode* node)
         comp.transform.position = FakeReal::math::Vector3(position.x, position.y, position.z);
         comp.transform.scale    = FakeReal::math::Vector3(scale.x, scale.y, scale.z);
         comp.transform.rotation = FakeReal::math::Quaternion(rotation.w, rotation.x, rotation.y, rotation.z);
+        if (comp.materialIndex >= 0)
+        {
+            auto material     = g_scene->mMaterials[comp.materialIndex];
+            comp.materialName = material->GetName().C_Str();
+        }
         comp.id = node_count;
+        comp.parentId = -1;
+        if (node->mParent)
+        {
+            auto p = g_mesh_comp.find(const_cast<aiNode*>(node->mParent));
+            if (p != g_mesh_comp.end()) comp.parentId = p->second.id;
+        }
         node_count++;
-        g_mesh_comp.push_back(comp);
+        g_mesh_comp.insert(std::make_pair(const_cast<aiNode*>(node), comp));
     }
 
     for (uint32_t i = 0; i < node->mNumChildren; i++)
@@ -129,7 +143,7 @@ void ProcessMesh(const aiMesh* mesh)
         LoadTexture(material, aiTextureType_DIFFUSE_ROUGHNESS, meshData.roughness, "texture_roughness");
         LoadTexture(material, aiTextureType_NORMALS, meshData.normal, "texture_normal"); */
     }
-
+    meshData.meshName = mesh->mName.C_Str();
     g_meshes.emplace_back(meshData);
     g_meshs_map.insert(std::make_pair(const_cast<aiMesh*>(mesh), meshData));
 }
@@ -177,25 +191,52 @@ void ProcessMaterials()
         if(mat->GetTexture(aiTextureType_DIFFUSE, 0, &diffuseTexPath) == aiReturn_SUCCESS)
         {
             auto&& tex = material.textures.emplace_back();
-            tex.url = diffuseTexPath.C_Str();
+            std::filesystem::path p(diffuseTexPath.C_Str());
+            p.replace_extension("png");
+            std::string tmp = p.generic_string();
+            size_t index    = tmp.rfind('/');
+            if (index != std::string::npos)
+            {
+                tmp = tmp.substr(index + 1);
+            }
+            tex.url = tmp;
             tex.typeName = "diffuse";
         }
 
         aiString normalMapPath;
         if(mat->GetTexture(aiTextureType_NORMALS, 0, &normalMapPath) == aiReturn_SUCCESS
-           || mat->GetTexture(aiTextureType_HEIGHT, 0, &normalMapPath) == aiReturn_SUCCESS)
+           || mat->GetTexture(aiTextureType_HEIGHT, 0, &normalMapPath) == aiReturn_SUCCESS
+           || mat->GetTexture(aiTextureType_NORMAL_CAMERA, 0, &normalMapPath) == aiReturn_SUCCESS)
         {
             auto&& tex = material.textures.emplace_back();
-            tex.url = normalMapPath.C_Str();
+            std::filesystem::path p(normalMapPath.C_Str());
+            p.replace_extension("png");
+            std::string tmp = p.generic_string();
+            size_t index    = tmp.rfind('/');
+            if (index != std::string::npos)
+            {
+                tmp = tmp.substr(index + 1);
+            }
+            tex.url = tmp;
             tex.typeName = "normal";
         }
 
         aiString roughnessMapPath;
-        //if(mat->GetTexture(aiTextureType_SHININESS, 0, &roughnessMapPath) == aiReturn_SUCCESS)
-        if(SponzaRoughnessMaps[i])
+        if(mat->GetTexture(aiTextureType_SHININESS, 0, &roughnessMapPath) == aiReturn_SUCCESS
+        || mat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &roughnessMapPath) == aiReturn_SUCCESS)
+        //if(SponzaRoughnessMaps[i])
         {
             auto&& tex = material.textures.emplace_back();
-            tex.url = (const char*)SponzaRoughnessMaps[i];
+            std::filesystem::path p(roughnessMapPath.C_Str());
+            p.replace_extension("png");
+            std::string tmp = p.generic_string();
+            size_t index    = tmp.rfind('/');
+            if (index != std::string::npos)
+            {
+                tmp = tmp.substr(index + 1);
+            }
+            tex.url = tmp;
+            //tex.url = (const char*)SponzaRoughnessMaps[i];
             tex.typeName = "roughness";
         }
 
@@ -204,12 +245,23 @@ void ProcessMaterials()
             material.TextureNames[uint64(MaterialTextures::Roughness)] = GetFileName(SponzaRoughnessMaps[i]); */
 
         aiString metallicMapPath;
-        if(mat->GetTexture(aiTextureType_AMBIENT, 0, &metallicMapPath) == aiReturn_SUCCESS)
+        if(mat->GetTexture(aiTextureType_AMBIENT, 0, &metallicMapPath) == aiReturn_SUCCESS
+        || mat->GetTexture(aiTextureType_METALNESS, 0, &metallicMapPath) == aiReturn_SUCCESS)
         {
             auto&& tex = material.textures.emplace_back();
-            tex.url = metallicMapPath.C_Str();
+            std::filesystem::path p(metallicMapPath.C_Str());
+            p.replace_extension("png");
+            std::string tmp = p.generic_string();
+            size_t index    = tmp.rfind('/');
+            if (index != std::string::npos)
+            {
+                tmp = tmp.substr(index + 1);
+            }
+            tex.url = tmp;
             tex.typeName = "metallic";
         }
+
+        material.name = mat->GetName().C_Str();
     }
 }
 
@@ -233,13 +285,14 @@ void SaveFile(const std::string_view filePath)
     std::filesystem::path file(filePath);
     std::cout << file.parent_path().generic_string() << std::endl;
     std::string directory = file.has_parent_path() ? file.parent_path().generic_string() + "/" : "";
-    std::stringstream out;
+    /* std::stringstream out;
     out << "{\n"
-           "    \"mMeshes\": [\n";
+           "    \"mMeshes\": [\n"; */
     //for (size_t i = 0; i < g_meshes.size(); i++)
     size_t i = 0;
     for (auto& iter : g_meshs_map)
     {
+        std::stringstream out;
         //mesh begin
 
         const MeshData& mesh = iter.second;
@@ -339,8 +392,17 @@ void SaveFile(const std::string_view filePath)
 
         out <<"\n            \"mMaterialIndex\": " << mesh.materialIndex;
 
+        out << "\n    }";
+
+        std::string saveName = directory + "/mesh/" + mesh.meshName + ".json";
+        std::ofstream outFile(saveName.data());
+        if (outFile.is_open())
+        {
+            outFile << out.rdbuf();
+            outFile.close();
+        }
         //mesh end
-        if (i == g_meshs_map.size() - 1)
+        /* if (i == g_meshs_map.size() - 1)
         {
             out << "\n        }";
         }
@@ -348,21 +410,23 @@ void SaveFile(const std::string_view filePath)
         {
             out << "\n        },\n";
         }
-        i++;
+        i++; */
     }
-    out << "\n    ],\n";
+    //out << "\n    ],\n";
 
-    size_t c = 0;
-    out << "    \"mMaterials\": [\n";
+    //size_t c = 0;
+    //out << "    \"mMaterials\": [\n";
     for (const auto& mat : g_materials)
     {
+        std::stringstream out;
         out << "        {\n           \"index\":" << mat.index << ",\n";
+        out << "           \"name\":\"" << mat.name << "\",\n";
         out << "           \"textures\":[\n";
         for (size_t i = 0; i < mat.textures.size(); i++)
         {
             out << "               {";
             out << "\"name\":"
-                << "\"" << directory + mat.textures[i].url << "\", ";
+                << "\"" << directory + "texture/" + mat.name + '/' + mat.textures[i].url << "\", ";
             out << "\"type\":"
                 << "\"" << mat.textures[i].typeName << "\"";
             if (i < (mat.textures.size() - 1))
@@ -375,7 +439,19 @@ void SaveFile(const std::string_view filePath)
             }
         }
         out << "           ]\n";
-        if (c < (g_materials.size() - 1))
+        out << "        }\n";
+
+        std::string saveName = directory + "/material";
+        std::filesystem::directory_entry dir(saveName);
+        if (!dir.exists()) std::filesystem::create_directory(saveName);
+        saveName += "/" + mat.name + ".json";
+        std::ofstream outFile(saveName.data());
+        if (outFile.is_open())
+        {
+            outFile << out.rdbuf();
+            outFile.close();
+        }
+        /* if (c < (g_materials.size() - 1))
         {
             out << "        },\n";
         }
@@ -383,11 +459,53 @@ void SaveFile(const std::string_view filePath)
         {
             out << "        }\n";
         }
-        c++;
+        c++; */
     }
-    out << "\n    ]\n}";
+    /* out << "\n    ]\n}";
 
     std::ofstream outFile(filePath.data());
+    if (outFile.is_open())
+    {
+        outFile << out.rdbuf();
+        outFile.close();
+    } */
+
+    //
+    std::stringstream out;
+    out << "{\n\"components\":[\n";
+           //"            \"mVertices\": [\n";
+    
+    i = 0;
+    for (auto iter : g_mesh_comp)
+    {
+        //begin
+        out << "    {\n";
+
+        out << "        \"mesh\":\"" << iter.second.url << "\",\n";
+        out << "        \"materialName\":\"" << iter.second.materialName << "\",\n";
+        out << "        \"materialIndex\":" << iter.second.materialIndex << ",\n";
+        out << "        \"id\":" << iter.second.id << ",\n";
+        out << "        \"parentId\":" << iter.second.parentId << ",\n";
+        out << "        \"transform\":{\n";
+        out << "            \"position\":[" << std::format("{:f}", iter.second.transform.position.x) << ',' << std::format("{:f}", iter.second.transform.position.y) << ',' << std::format("{:f}", iter.second.transform.position.z) << "],\n";
+        out << "            \"rotation\":[" << std::format("{:f}", iter.second.transform.rotation.w) << ',' << std::format("{:f}", iter.second.transform.rotation.x) << ',' << std::format("{:f}", iter.second.transform.rotation.y) << ',' << std::format("{:f}", iter.second.transform.rotation.z) << "],\n";
+        out << "            \"scale\":[" << std::format("{:f}", iter.second.transform.scale.x) << ',' << std::format("{:f}", iter.second.transform.scale.y) << ',' << std::format("{:f}", iter.second.transform.scale.z) << "]\n";
+        out << "        }\n";
+
+        //end
+        if (i == g_mesh_comp.size() - 1)
+        {
+            out << "    }";
+        }
+        else
+        {
+            out << "    },\n";
+        }
+        i++;
+    }
+    out << "\n]}";
+    std::string saveName = directory + file.filename().generic_string() + ".json";
+    std::ofstream outFile(saveName.data());
     if (outFile.is_open())
     {
         outFile << out.rdbuf();

@@ -1,0 +1,101 @@
+#pragma once
+#include <vector>
+#include <unordered_map>
+#include <string>
+#include "boundingbox.hpp"
+#include "Gpu/GpuApi.h"
+
+namespace global
+{
+    struct GlobalMeshRes
+    {
+        struct Vertex
+        {
+            float x, y, z;
+            float nx, ny, nz;
+            float u, v;
+            float tan_x, tan_y, tan_z;
+            float btan_x, btan_y, btan_z;
+
+            bool operator==(const Vertex& other) const
+            {
+                return (x == other.x && y == other.y && z == other.z && nx == other.nx && ny == other.ny && nz == other.nz && u == other.u && v == other.v && tan_x == other.tan_x && tan_y == other.tan_y && tan_z == other.tan_z && btan_x == other.btan_x && btan_y == other.btan_y && btan_z == other.btan_z);
+            }
+        };
+
+        std::vector<Vertex> vertexBuffer;
+        std::vector<uint32_t> indexBuffer;
+    };
+
+    extern std::unordered_map<std::string, GlobalMeshRes> g_mesh_pool;
+    extern std::unordered_map<std::string, BoundingBox> g_cache_mesh_bounding_box;
+    bool HasMeshRes(const std::string& file);
+    void LoadMeshRes(const std::string& file);
+
+
+    ///////////////////////////////////////////////////
+    struct GlobalTextureRes
+    {
+        uint32_t width;
+        uint32_t heigh;
+        uint32_t flip;
+        uint32_t dataBytes;
+        EGPUFormat format{EGPUFormat::GPU_FORMAT_R8G8B8A8_SRGB};
+        void* data;
+    };
+    extern std::unordered_map<std::string, GlobalTextureRes> g_texture_pool;
+    bool HasTextureRes(const std::string& file);
+    void LoadTextureRes(const std::string& file, EGPUFormat format, bool flip);
+    void FreeTextureRes(const std::string& file);
+    ///////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////
+    struct GlobalMaterialRes
+    {
+        std::string baseColorTextureFile;
+        std::string normalTextureFile;
+        std::string metallicTextureFile;
+        std::string roughnessTextureFile;
+        bool withTexture {false};
+    };
+    extern std::unordered_map<std::string, GlobalMaterialRes> g_material_pool;
+    bool HasMaterialRes(const std::string& file);
+    void LoadMaterialRes(const std::string& file);
+    bool GetMaterialRes(const std::string& file, GlobalMaterialRes& outRes);
+    ///////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////
+    void FreeMeshResPool();
+    void FreeTextureResPool();
+    ///////////////////////////////////////////////////
+    
+    ///////////////////////////////////////////////////GPU Resource ///////////////////////////////////////////////////
+    ///////////////////////////////////////////////////
+    struct GlobalGPUTextureRes
+    {
+        uint32_t width;
+        uint32_t heigh;
+        EGPUFormat format;
+        GPUTextureID texture {nullptr};
+        GPUTextureViewID textureView {nullptr};
+    };
+    extern std::unordered_map<std::string, GlobalGPUTextureRes> g_gpu_texture_pool;
+    bool HasGpuTextureRes(const std::string& name);
+    void LoadGpuTextureRes(const std::string& name, GPUDeviceID device, GPUQueueID gfxQueue);
+    void FreeGpuTexturePool();
+    bool GetGpuTextureRes(const std::string& name, GlobalGPUTextureRes& out);
+    ///////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////
+    struct GlobalGPUMeshRes
+    {
+        GPUBufferID vertexBuffer;
+        GPUBufferID indexBuffer;
+    };
+    extern std::unordered_map<std::string, GlobalGPUMeshRes> g_gpu_mesh_pool;
+    bool HasGpuMeshRes(const std::string& name);
+    void LoadGpuMeshRes(const std::string& name, GPUDeviceID device, GPUQueueID gfxQueue);
+    void FreeGpuMeshPool();
+    bool GetGpuMeshRes(const std::string& name, GlobalGPUMeshRes& out);
+    ///////////////////////////////////////////////////
+} // namespace global

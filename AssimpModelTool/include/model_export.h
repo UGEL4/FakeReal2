@@ -4,6 +4,7 @@
 #include <vector>
 #include "assimp/material.h"
 #include "Math/Transform.h"
+#include <unordered_map>
 
 struct Vertex
 {
@@ -35,11 +36,13 @@ struct MeshData
     std::vector<TextureDate> roughness;
     std::vector<TextureDate> normal;
     uint32_t materialIndex;
+    std::string meshName;
 };
 
 struct Materials
 {
     uint32_t index;
+    std::string name;
     std::vector<TextureDate> textures;
 };
 
@@ -47,9 +50,10 @@ struct MeshComp
 {
     std::string url;
     FakeReal::math::Transform transform;
+    std::string materialName;
     uint32_t materialIndex;
-    uint32_t id;
-    uint32_t parentId;
+    int32_t id;
+    int32_t parentId;
 };
 
 void ExportModel(std::string_view file, std::string_view outFile);

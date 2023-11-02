@@ -1,0 +1,7 @@
+        {
+           "index":5,
+           "name":"Fabric_Round_Red",
+           "textures":[
+               {"name":"C:/Dev/FakeReal2/asset/objects/sponza/texture/Fabric_Round_Red/Fabric_Round_Diffuse_Red.png", "type":"diffuse"}
+           ]
+        }

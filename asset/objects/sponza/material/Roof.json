@@ -1,0 +1,7 @@
+        {
+           "index":0,
+           "name":"Roof",
+           "textures":[
+               {"name":"C:/Dev/FakeReal2/asset/objects/sponza/texture/Roof/Roof_Diffuse.png", "type":"diffuse"}
+           ]
+        }
