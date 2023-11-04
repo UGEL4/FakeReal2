@@ -98,4 +98,25 @@ namespace global
     void FreeGpuMeshPool();
     bool GetGpuMeshRes(const std::string& name, GlobalGPUMeshRes& out);
     ///////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////
+    struct GlobalGPUMaterialRes
+    {
+        struct Pack
+        {
+            GPUTextureID texture;
+            GPUTextureViewID textureView;
+            uint32_t slotIndex;
+            std::string name;
+        };
+        std::vector<Pack> textures;
+        GPUSamplerID sampler;
+        GPUDescriptorSetID set;
+    };
+    extern std::unordered_map<std::string, GlobalGPUMaterialRes> g_gpu_material_pool;
+    bool HasGpuMaterialRes(const std::string& name);
+    void LoadGpuMaterialRes(const std::string& name, GPUDeviceID device, GPUQueueID gfxQueue, GPURootSignatureID rs, GPUSamplerID sampler);
+    void FreeGpuMaterialPool();
+    bool GetGpuMaterialRes(const std::string& name, GlobalGPUMaterialRes& out);
+    ///////////////////////////////////////////////////
 } // namespace global

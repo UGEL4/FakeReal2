@@ -15,7 +15,9 @@ class EntityModel
 {
 public:
     EntityModel(const std::string_view file, GPUDeviceID device, GPUQueueID gfxQueue);
-    ~EntityModel() = default;
+    ~EntityModel();
+
+    void UploadRenderResource(class SkyBox* skyBox);
 
 private:
     //void LoadModel(const std::string_view file);
@@ -54,25 +56,19 @@ public:
 
     /* void UploadResource(class SkyBox* skyBox);
     PBRMaterial* CreateMaterial(uint32_t materialIndex, const std::vector<std::pair<PBRMaterialTextureType, std::pair<std::string, bool>>>& textures);
-    void Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos, const glm::mat4& lightSpaceMatrix);
+    void Draw(GPURenderPassEncoderID encoder, const glm::mat4& view, const glm::mat4& proj, const glm::vec4& viewPos, const glm::mat4& lightSpaceMatrix);*/
     void UpdateShadowMapSet(GPUTextureViewID shadowMap, GPUSamplerID sampler);
-    void Draw(GPURenderPassEncoderID encoder, const class Camera* cam, const glm::vec4& viewPos, const class CascadeShadowPass* shadowPass); */
+    void Draw(GPURenderPassEncoderID encoder, const class Camera* cam, const glm::vec4& viewPos, const class CascadeShadowPass* shadowPass);
 
-    //Mesh mMesh;
     std::string mMeshFile;
-    //std::unordered_map<uint32_t, PBRMaterial*> mMaterials;
-    //std::unordered_map<std::string_view, TextureData> mTexturePool;
     GPUDeviceID mDevice;
     GPUQueueID mGfxQueue;
     GPURenderPipelineID mPbrPipeline;
     GPURootSignatureID mRootSignature;
     GPUDescriptorSetID mSet;
     GPUDescriptorSetID mShadowMapSet;
-    GPUBufferID mVertexBuffer;
-    GPUBufferID mIndexBuffer;
     GPUSamplerID mSampler;
     GPUBufferID mUBO;
-    glm::mat4 mModelMatrix;
 
     ///
     FakeReal::MeshComponent mMeshComp;

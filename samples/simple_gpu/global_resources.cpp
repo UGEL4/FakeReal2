@@ -225,9 +225,9 @@ namespace global
             if (materialRes.withTexture)
             {
                 if (materialRes.baseColorTextureFile != "") LoadTextureRes(materialRes.baseColorTextureFile, EGPUFormat::GPU_FORMAT_R8G8B8A8_SRGB, true);
-                if (materialRes.normalTextureFile != "") LoadTextureRes(materialRes.normalTextureFile, EGPUFormat::GPU_FORMAT_R8G8B8A8_SRGB, true);
-                if (materialRes.metallicTextureFile != "") LoadTextureRes(materialRes.metallicTextureFile, EGPUFormat::GPU_FORMAT_R8G8B8A8_SRGB, true);
-                if (materialRes.roughnessTextureFile != "") LoadTextureRes(materialRes.roughnessTextureFile, EGPUFormat::GPU_FORMAT_R8G8B8A8_SRGB, true);
+                if (materialRes.normalTextureFile != "") LoadTextureRes(materialRes.normalTextureFile, EGPUFormat::GPU_FORMAT_R8G8B8A8_UNORM, true);
+                if (materialRes.metallicTextureFile != "") LoadTextureRes(materialRes.metallicTextureFile, EGPUFormat::GPU_FORMAT_R8G8B8A8_UNORM, true);
+                if (materialRes.roughnessTextureFile != "") LoadTextureRes(materialRes.roughnessTextureFile, EGPUFormat::GPU_FORMAT_R8G8B8A8_UNORM, true);
             }
         }
     }
@@ -477,6 +477,119 @@ namespace global
     {
         auto iter = g_gpu_mesh_pool.find(name);
         if (iter == g_gpu_mesh_pool.end()) return false;
+        out = iter->second;
+        return true;
+    }
+    ///////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////
+    std::unordered_map<std::string, GlobalGPUMaterialRes> g_gpu_material_pool;
+    bool HasGpuMaterialRes(const std::string& name)
+    {
+        auto iter = g_gpu_material_pool.find(name);
+        return iter != g_gpu_material_pool.end();
+    }
+
+    void LoadGpuMaterialRes(const std::string& name, GPUDeviceID device, GPUQueueID gfxQueue, GPURootSignatureID rs, GPUSamplerID sampler)
+    {
+        if (HasGpuMaterialRes(name)) return;
+        if (!HasMaterialRes(name)) return;
+        GlobalMaterialRes& materialRes = g_material_pool[name];
+
+        GlobalGPUMaterialRes tmp;
+        auto result = g_gpu_material_pool.insert(std::make_pair(name, std::move(tmp)));
+        assert(result.second);
+        GlobalGPUMaterialRes& newMaterial = result.first->second;
+
+        if (materialRes.withTexture)
+        {
+            if (materialRes.baseColorTextureFile != "")
+            {
+                GlobalGPUTextureRes baseColorTexRes;
+                LoadGpuTextureRes(materialRes.baseColorTextureFile, device, gfxQueue);
+                GetGpuTextureRes(materialRes.baseColorTextureFile, baseColorTexRes);
+                GlobalGPUMaterialRes::Pack& pack = newMaterial.textures.emplace_back();
+                pack.texture     = baseColorTexRes.texture;
+                pack.textureView = baseColorTexRes.textureView;
+                pack.name        = materialRes.baseColorTextureFile;
+                pack.slotIndex   = 0;
+            }
+            if (materialRes.normalTextureFile != "")
+            {
+                GlobalGPUTextureRes normalTexRes;
+                LoadGpuTextureRes(materialRes.normalTextureFile, device, gfxQueue);
+                GetGpuTextureRes(materialRes.normalTextureFile, normalTexRes);
+                GlobalGPUMaterialRes::Pack& pack = newMaterial.textures.emplace_back();
+                pack.texture     = normalTexRes.texture;
+                pack.textureView = normalTexRes.textureView;
+                pack.name        = materialRes.baseColorTextureFile;
+                pack.slotIndex   = 0;
+            }
+            if (materialRes.metallicTextureFile != "")
+            {
+                GlobalGPUTextureRes metallicTexRes;
+                LoadGpuTextureRes(materialRes.metallicTextureFile, device, gfxQueue);
+                GetGpuTextureRes(materialRes.metallicTextureFile, metallicTexRes);
+                GlobalGPUMaterialRes::Pack& pack = newMaterial.textures.emplace_back();
+                pack.texture     = metallicTexRes.texture;
+                pack.textureView = metallicTexRes.textureView;
+                pack.name        = materialRes.baseColorTextureFile;
+                pack.slotIndex   = 0;
+            }
+            if (materialRes.roughnessTextureFile != "")
+            {
+                GlobalGPUTextureRes roughnessTexRes;
+                LoadGpuTextureRes(materialRes.roughnessTextureFile, device, gfxQueue);
+                GetGpuTextureRes(materialRes.roughnessTextureFile, roughnessTexRes);
+                GlobalGPUMaterialRes::Pack& pack = newMaterial.textures.emplace_back();
+                pack.texture     = roughnessTexRes.texture;
+                pack.textureView = roughnessTexRes.textureView;
+                pack.name        = materialRes.baseColorTextureFile;
+                pack.slotIndex   = 0;
+            }
+        }
+        else
+        {
+            //TODO: default texture
+        }
+
+        GPUDescriptorSetDescriptor setDesc = {
+            .root_signature = rs,
+            .set_index      = 1 // 
+        };
+        newMaterial.set     = GPUCreateDescriptorSet(device, &setDesc);
+        newMaterial.sampler = sampler;
+
+        std::vector<GPUDescriptorData> desc_data(1 + newMaterial.textures.size()); // 1 sampler + all textures
+        desc_data[0].name         = u8"texSamp";
+        desc_data[0].binding      = 0;
+        desc_data[0].binding_type = GPU_RESOURCE_TYPE_SAMPLER;
+        desc_data[0].count        = 1;
+        desc_data[0].samplers     = &newMaterial.sampler;
+        for (size_t i = 0; i < newMaterial.textures.size(); i++)
+        {
+            desc_data[i + 1].name         = nullptr;
+            desc_data[i + 1].binding      = newMaterial.textures[i].slotIndex + desc_data[0].binding + 1; // todo : a better way?
+            desc_data[i + 1].binding_type = GPU_RESOURCE_TYPE_TEXTURE;
+            desc_data[i + 1].count        = 1;
+            desc_data[i + 1].textures     = &newMaterial.textures[i].textureView;
+        }
+        GPUUpdateDescriptorSet(newMaterial.set, desc_data.data(), desc_data.size());
+    }
+    
+    void FreeGpuMaterialPool()
+    {
+        for (auto iter : g_gpu_material_pool)
+        {
+            if (iter.second.set) GPUFreeDescriptorSet(iter.second.set);
+        }
+        g_gpu_material_pool.clear();
+    }
+
+    bool GetGpuMaterialRes(const std::string& name, GlobalGPUMaterialRes& out)
+    {
+        auto iter = g_gpu_material_pool.find(name);
+        if (iter == g_gpu_material_pool.end()) return false;
         out = iter->second;
         return true;
     }
