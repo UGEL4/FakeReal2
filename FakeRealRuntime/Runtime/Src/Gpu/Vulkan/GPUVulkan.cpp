@@ -2018,7 +2018,7 @@ void GPURenderEncoderBindIndexBuffer_Vulkan(GPURenderPassEncoderID encoder, GPUB
     D->mVkDeviceTable.vkCmdBindIndexBuffer(Cmd->pVkCmd, B->pVkBuffer, offset, indexType);
 }
 
-void GPURenderEncoderBindDescriptorSet_Vulkan(GPURenderPassEncoderID encoder, GPUDescriptorSetID set)
+void GPURenderEncoderBindDescriptorSet_Vulkan(GPURenderPassEncoderID encoder, GPUDescriptorSetID set, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets)
 {
     GPUCommandBuffer_Vulkan* Cmd = (GPUCommandBuffer_Vulkan*)encoder;
     const GPUDevice_Vulkan* D    = (GPUDevice_Vulkan*)Cmd->super.device;

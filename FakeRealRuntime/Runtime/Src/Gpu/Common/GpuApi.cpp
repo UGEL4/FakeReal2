@@ -574,13 +574,13 @@ void GPURenderEncoderBindIndexBuffer(GPURenderPassEncoderID encoder, GPUBufferID
     encoder->device->pProcTableCache->RenderEncoderBindIndexBuffer(encoder, buffer, offset, indexStride);
 }
 
-void GPURenderEncoderBindDescriptorSet(GPURenderPassEncoderID encoder, GPUDescriptorSetID set)
+void GPURenderEncoderBindDescriptorSet(GPURenderPassEncoderID encoder, GPUDescriptorSetID set, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets)
 {
     assert(encoder && "Null renderpass encoder!");
     assert(encoder->device && "Null gpu device!");
     assert(set && "Null descriptorset!");
     assert(encoder->device->pProcTableCache->RenderEncoderBindDescriptorSet && "RenderEncoderBindDescriptorSet not loaded!");
-    encoder->device->pProcTableCache->RenderEncoderBindDescriptorSet(encoder, set);
+    encoder->device->pProcTableCache->RenderEncoderBindDescriptorSet(encoder, set, dynamicOffsetCount, pDynamicOffsets);
 }
 
 void GPURenderEncoderPushConstant(GPURenderPassEncoderID encoder, GPURootSignatureID rs, void* data)

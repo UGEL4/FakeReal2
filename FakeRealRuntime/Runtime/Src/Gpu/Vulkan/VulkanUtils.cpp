@@ -743,6 +743,8 @@ VkDescriptorType VulkanUtil_TranslateResourceType(EGPUResourceType type)
         case GPU_RESOURCE_TYPE_BUFFER:
         case GPU_RESOURCE_TYPE_RW_BUFFER:
             return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        case GPU_RESOURCE_TYPE_RW_BUFFER_RAW:
+            return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
         case GPU_RESOURCE_TYPE_INPUT_ATTACHMENT:
             return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
         case GPU_RESOURCE_TYPE_TEXEL_BUFFER:

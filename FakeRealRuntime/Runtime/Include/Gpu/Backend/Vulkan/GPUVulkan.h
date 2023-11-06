@@ -98,7 +98,7 @@ GPU_API void GPURenderEncoderDrawIndexed_Vulkan(GPURenderPassEncoderID encoder, 
 GPU_API void GPURenderEncoderDrawIndexedInstanced_Vulkan(GPURenderPassEncoderID encoder, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance);
 GPU_API void GPURenderEncoderBindVertexBuffers_Vulkan(GPURenderPassEncoderID encoder, uint32_t buffer_count, const GPUBufferID* buffers, const uint32_t* strides, const uint32_t* offsets);
 GPU_API void GPURenderEncoderBindIndexBuffer_Vulkan(GPURenderPassEncoderID encoder, GPUBufferID buffer, uint32_t offset, uint64_t indexStride);
-GPU_API void GPURenderEncoderBindDescriptorSet_Vulkan(GPURenderPassEncoderID encoder, GPUDescriptorSetID set);
+GPU_API void GPURenderEncoderBindDescriptorSet_Vulkan(GPURenderPassEncoderID encoder, GPUDescriptorSetID set, uint32_t dynamicOffsetCount = 0, const uint32_t* pDynamicOffsets = nullptr);
 GPU_API void GPURenderEncoderPushConstant_Vulkan(GPURenderPassEncoderID encoder, GPURootSignatureID rs, void* data);
 
 // buffer

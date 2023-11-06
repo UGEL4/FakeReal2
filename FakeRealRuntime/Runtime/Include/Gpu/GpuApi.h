@@ -180,8 +180,8 @@ GPU_API void GPURenderEncoderBindVertexBuffers(GPURenderPassEncoderID encoder, u
 typedef void (*GPUProcRenderEncoderBindVertexBuffers)(GPURenderPassEncoderID encoder, uint32_t buffer_count, const GPUBufferID *buffers, const uint32_t *strides, const uint32_t *offsets);
 GPU_API void GPURenderEncoderBindIndexBuffer(GPURenderPassEncoderID encoder, GPUBufferID buffer, uint32_t offset, uint64_t indexStride);
 typedef void (*GPUProcRenderEncoderBindIndexBuffer)(GPURenderPassEncoderID encoder, GPUBufferID buffer, uint32_t offset, uint64_t indexStride);
-GPU_API void GPURenderEncoderBindDescriptorSet(GPURenderPassEncoderID encoder, GPUDescriptorSetID set);
-typedef void (*GPUProcRenderEncoderBindDescriptorSet)(GPURenderPassEncoderID encoder, GPUDescriptorSetID set);
+GPU_API void GPURenderEncoderBindDescriptorSet(GPURenderPassEncoderID encoder, GPUDescriptorSetID set, uint32_t dynamicOffsetCount = 0, const uint32_t* pDynamicOffsets = nullptr);
+typedef void (*GPUProcRenderEncoderBindDescriptorSet)(GPURenderPassEncoderID encoder, GPUDescriptorSetID set, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets);
 GPU_API void GPURenderEncoderPushConstant(GPURenderPassEncoderID encoder, GPURootSignatureID rs, void* data);
 typedef void (*GPUProcRenderEncoderPushConstant)(GPURenderPassEncoderID encoder, GPURootSignatureID rs, void* data);
 
