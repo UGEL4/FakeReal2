@@ -2,7 +2,7 @@
 #include "Gpu/GpuApi.h"
 #include "Math/Matrix.h"
 
-struct DirectionalLight
+/* struct DirectionalLight
 {
     glm::vec3 direction;
     float padding_direction;
@@ -32,7 +32,7 @@ struct PerframeUniformBuffer
     PointLight pointLight;
     float cascadeSplits[16]; //stupid std140， 16 byte align, need 16 * 4 bytes, that means 16 * sizeof(float)
 };
-
+ */
 class MainCameraPass
 {
 public:
@@ -44,10 +44,11 @@ public:
                     GPUSemaphoreID presentSemaphore,
                     GPUFenceID* presenFences,
                     GPUCommandPoolID* cmdPools,
-                    GPUCommandBufferID* cmds);
-    void DrawForward(const class EntityModel* modelEntity, const class Camera* cam, const class CascadeShadowPass* shadowPass, const class SkyBox* skyBox);
+                    GPUCommandBufferID* cmds,
+                    const class SkyBox* skyBox);
+    void DrawForward(const class EntityModel* modelEntity, const class Camera* cam, const class CascadeShadowPass* shadowPass);
     void DrawMeshLighting(GPURenderPassEncoderID encoder, const class EntityModel* modelEntity);
-    void SetupRenderPipeline(const class SkyBox* skyBox);
+    void SetupRenderPipeline();
 
     GPUDeviceID mDevice;
     GPUQueueID mGfxQueue;
@@ -88,4 +89,7 @@ public:
     GPUDescriptorSetID mDefaultMeshDescriptorSet;
     GPUDescriptorSetID mShadowMapSet;
     GPUBufferID mUBO;
+
+public:
+    const class SkyBox* mSkyBoxRef;
 };

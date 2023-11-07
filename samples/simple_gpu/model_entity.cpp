@@ -84,6 +84,9 @@ EntityModel::EntityModel(const std::string_view file, GPUDeviceID device, GPUQue
                     url = directory + "/material/" + materialName + ".json";
                     global::LoadMaterialRes(url);
                     subMesh.materialFile = url;
+
+                    /* auto aabbPair = global::g_cache_mesh_bounding_box.find(subMesh.meshFile);
+                    if (aabbPair != global::g_cache_mesh_bounding_box.end()) mAABB.Merge(aabbPair->second); */
                 }
                 reader.EndObject();
             }
@@ -99,9 +102,6 @@ EntityModel::~EntityModel()
     if (mUBO) GPUFreeBuffer(mUBO);
     if (mSampler) GPUFreeSampler(mSampler);
     if (mSet) GPUFreeDescriptorSet(mSet);
-    if (mShadowMapSet) GPUFreeDescriptorSet(mShadowMapSet);
-    if (mRootSignature) GPUFreeRootSignature(mRootSignature);
-    if (mPbrPipeline) GPUFreeRenderPipeline(mPbrPipeline);
 }
 
 void EntityModel::UploadRenderResource(SkyBox* skyBox)
@@ -116,130 +116,6 @@ void EntityModel::UploadRenderResource(SkyBox* skyBox)
         .compare_func = GPU_CMP_NEVER,
     };
     mSampler = GPUCreateSampler(mDevice, &sampleDesc);
-    const char8_t* samplerName = u8"texSamp";
-
-    uint32_t* shaderCode;
-    uint32_t size = 0;
-    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/pbr_scene_model.vert", &shaderCode, &size);
-    GPUShaderLibraryDescriptor shaderDesc = {
-        .pName    = u8"",
-        .code     = shaderCode,
-        .codeSize = size,
-        .stage    = GPU_SHADER_STAGE_VERT
-    };
-    GPUShaderLibraryID vsShader = GPUCreateShaderLibrary(mDevice, &shaderDesc);
-    free(shaderCode);
-    shaderCode = nullptr;
-    size = 0;
-    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/pbr_scene_model.frag", &shaderCode, &size);
-    shaderDesc = {
-        .pName    = u8"",
-        .code     = shaderCode,
-        .codeSize = size,
-        .stage    = GPU_SHADER_STAGE_FRAG
-    };
-    GPUShaderLibraryID psShader = GPUCreateShaderLibrary(mDevice, &shaderDesc);
-    free(shaderCode);
-    shaderCode = nullptr;
-
-    CGPUShaderEntryDescriptor entry_desc[2] = {};
-    entry_desc[0].pLibrary = vsShader;
-    entry_desc[0].entry    = u8"main";
-    entry_desc[0].stage    = GPU_SHADER_STAGE_VERT;
-    entry_desc[1].pLibrary = psShader;
-    entry_desc[1].entry    = u8"main";
-    entry_desc[1].stage    = GPU_SHADER_STAGE_FRAG;
-
-    GPURootSignatureDescriptor rs_desc = {
-        .shaders              = entry_desc,
-        .shader_count         = 2,
-    };
-    mRootSignature = GPUCreateRootSignature(mDevice, &rs_desc);
-
-    // vertex layout
-    GPUVertexLayout vertexLayout {};
-    vertexLayout.attributeCount = 5;
-    vertexLayout.attributes[0]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, 0, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
-    vertexLayout.attributes[1]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 3, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
-    vertexLayout.attributes[2]  = { 1, GPU_FORMAT_R32G32_SFLOAT, 0, sizeof(float) * 6, sizeof(float) * 2, GPU_INPUT_RATE_VERTEX };
-    vertexLayout.attributes[3]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 8, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
-    vertexLayout.attributes[4]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 11, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
-    // renderpipeline
-    GPURasterizerStateDescriptor rasterizerState = {
-        .cullMode             = GPU_CULL_MODE_BACK,
-        .fillMode             = GPU_FILL_MODE_SOLID,
-        .frontFace            = GPU_FRONT_FACE_CCW,
-        .depthBias            = 0,
-        .slopeScaledDepthBias = 0.f,
-        .enableMultiSample    = false,
-        .enableScissor        = false,
-        .enableDepthClamp     = false
-    };
-    GPUDepthStateDesc depthDesc = {
-        .depthTest  = true,
-        .depthWrite = true,
-        .depthFunc  = GPU_CMP_LEQUAL
-    };
-    EGPUFormat swapchainFormat = GPU_FORMAT_B8G8R8A8_UNORM;
-    GPURenderPipelineDescriptor pipelineDesc = {
-        .pRootSignature     = mRootSignature,
-        .pVertexShader      = &entry_desc[0],
-        .pFragmentShader    = &entry_desc[1],
-        .pVertexLayout      = &vertexLayout,
-        .pDepthState        = &depthDesc,
-        .pRasterizerState   = &rasterizerState,
-        .primitiveTopology  = GPU_PRIM_TOPO_TRI_LIST,
-        .pColorFormats      = const_cast<EGPUFormat*>(&swapchainFormat),
-        .renderTargetCount  = 1,
-        .depthStencilFormat = GPU_FORMAT_D32_SFLOAT
-    };
-    mPbrPipeline = GPUCreateRenderPipeline(mDevice, &pipelineDesc);
-    GPUFreeShaderLibrary(vsShader);
-    GPUFreeShaderLibrary(psShader);
-
-    GPUDescriptorSetDescriptor setDesc = {
-        .root_signature = mRootSignature,
-        .set_index      = 0
-    };
-    mSet = GPUCreateDescriptorSet(mDevice, &setDesc);
-
-    setDesc = {
-        .root_signature = mRootSignature,
-        .set_index      = 2
-    };
-    mShadowMapSet = GPUCreateDescriptorSet(mDevice, &setDesc);
-
-    GPUBufferDescriptor uboDesc = {
-        .size             = sizeof(PerframeUniformBuffer),
-        .descriptors      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER,
-        .memory_usage     = GPU_MEM_USAGE_CPU_TO_GPU,
-        .flags            = GPU_BCF_PERSISTENT_MAP_BIT,
-        .prefer_on_device = true
-    };
-    mUBO = GPUCreateBuffer(mDevice, &uboDesc);
-
-    GPUDescriptorData dataDesc[5] = {};
-    dataDesc[0].binding           = 0;
-    dataDesc[0].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
-    dataDesc[0].textures          = &skyBox->mIrradianceMap->mTextureView;
-    dataDesc[0].count             = 1;
-    dataDesc[1].binding           = 1;
-    dataDesc[1].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
-    dataDesc[1].textures          = &skyBox->mPrefilteredMap->mTextureView;
-    dataDesc[1].count             = 1;
-    dataDesc[2].binding           = 2;
-    dataDesc[2].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
-    dataDesc[2].textures          = &skyBox->mBRDFLut->mTextureView;
-    dataDesc[2].count             = 1;
-    dataDesc[3].binding           = 3;
-    dataDesc[3].binding_type      = GPU_RESOURCE_TYPE_SAMPLER;
-    dataDesc[3].samplers          = &skyBox->mSamplerRef;
-    dataDesc[3].count             = 1;
-    dataDesc[4].binding           = 4;
-    dataDesc[4].binding_type      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
-    dataDesc[4].buffers           = &mUBO;
-    dataDesc[4].count             = 1;
-    GPUUpdateDescriptorSet(mSet, dataDesc, 5);
 
     for (size_t i = 0; i < mMeshComp.rawMeshes.size(); i++)
     {

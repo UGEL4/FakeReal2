@@ -25,7 +25,8 @@ void MainCameraPass::Initialize(GPUDeviceID device, GPUQueueID gfxQueue, GPUSwap
                                 GPUSemaphoreID presentSemaphore,
                                 GPUFenceID* presenFences,
                                 GPUCommandPoolID* cmdPools,
-                                GPUCommandBufferID* cmds)
+                                GPUCommandBufferID* cmds,
+                                const SkyBox* skyBox)
 {
     mDevice           = device;
     mGfxQueue         = gfxQueue;
@@ -35,6 +36,7 @@ void MainCameraPass::Initialize(GPUDeviceID device, GPUQueueID gfxQueue, GPUSwap
     mPresenFences     = presenFences;
     mCmdPools         = cmdPools;
     mCmds             = cmds;
+    mSkyBoxRef        = skyBox;
 
     // In Vulkan, the storage buffer should be pre-allocated.
     // The size is 128MB in NVIDIA D3D11
@@ -84,6 +86,8 @@ void MainCameraPass::Initialize(GPUDeviceID device, GPUQueueID gfxQueue, GPUSwap
     };
     mDepthTexView = GPUCreateTextureView(device, &depth_tex_view_desc);
 
+    SetupRenderPipeline();
+
     //default descriptorset
     GPUDescriptorSetDescriptor setDesc{
         .root_signature = mRootSignature,
@@ -93,7 +97,7 @@ void MainCameraPass::Initialize(GPUDeviceID device, GPUQueueID gfxQueue, GPUSwap
 
 }
 
-void MainCameraPass::DrawForward(const EntityModel* modelEntity, const Camera* cam, const CascadeShadowPass* shadowPass, const SkyBox* skyBox)
+void MainCameraPass::DrawForward(const EntityModel* modelEntity, const Camera* cam, const CascadeShadowPass* shadowPass)
 {
     //reset
     mUploadStorageBuffer._global_upload_ringbuffers_end[mCurrFrame] = mUploadStorageBuffer._global_upload_ringbuffers_begin[mCurrFrame];
@@ -137,7 +141,7 @@ void MainCameraPass::DrawForward(const EntityModel* modelEntity, const Camera* c
         GPUCmdResourceBarrier(cmd, &draw_barrier);
 
         // pShadowPass->Draw(sceneInfo, cmd, gCamera.matrices.view, gCamera.matrices.perspective, viewPos, directLightPos, pModel->mBoundingBox);
-        shadowPass->Draw(sceneInfo, cmd, *cam, viewPos, directLightPos, pModel->mBoundingBox);
+        const_cast<CascadeShadowPass*>(shadowPass)->Draw(sceneInfo, cmd, *cam, viewPos, directLightPos, modelEntity->mAABB);
         GPUColorAttachment screenAttachment{
             .view         = backbuffer_view,
             .load_action  = GPU_LOAD_ACTION_CLEAR,
@@ -169,7 +173,7 @@ void MainCameraPass::DrawForward(const EntityModel* modelEntity, const Camera* c
             DrawMeshLighting(encoder, modelEntity);
 
             // skyybox
-            const_cast<SkyBox*>(skyBox)->Draw(encoder, cam->matrices.view, cam->matrices.perspective, viewPos);
+            const_cast<SkyBox*>(mSkyBoxRef)->Draw(encoder, cam->matrices.view, cam->matrices.perspective, viewPos);
 
             // pShadowPass->DebugShadow(encoder);
         }
@@ -291,7 +295,7 @@ void MainCameraPass::DrawMeshLighting(GPURenderPassEncoderID encoder, const Enti
     }
 }
 
-void MainCameraPass::SetupRenderPipeline(const class SkyBox* skyBox)
+void MainCameraPass::SetupRenderPipeline()
 {
     /* GPUSamplerDescriptor sampleDesc = {
         .min_filter   = GPU_FILTER_TYPE_LINEAR,
@@ -407,22 +411,22 @@ void MainCameraPass::SetupRenderPipeline(const class SkyBox* skyBox)
 
     dataDesc[1].binding           = 1;
     dataDesc[1].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
-    dataDesc[1].textures          = &skyBox->mIrradianceMap->mTextureView;
+    dataDesc[1].textures          = &mSkyBoxRef->mIrradianceMap->mTextureView;
     dataDesc[1].count             = 1;
 
     dataDesc[2].binding           = 2;
     dataDesc[2].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
-    dataDesc[2].textures          = &skyBox->mPrefilteredMap->mTextureView;
+    dataDesc[2].textures          = &mSkyBoxRef->mPrefilteredMap->mTextureView;
     dataDesc[2].count             = 1;
 
     dataDesc[3].binding           = 3;
     dataDesc[3].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
-    dataDesc[3].textures          = &skyBox->mBRDFLut->mTextureView;
+    dataDesc[3].textures          = &mSkyBoxRef->mBRDFLut->mTextureView;
     dataDesc[3].count             = 1;
 
     dataDesc[4].binding           = 4;
     dataDesc[4].binding_type      = GPU_RESOURCE_TYPE_SAMPLER;
-    dataDesc[4].samplers          = &(const_cast<SkyBox*>(skyBox))->mSamplerRef;
+    dataDesc[4].samplers          = &(const_cast<SkyBox*>(mSkyBoxRef))->mSamplerRef;
     dataDesc[4].count             = 1;
 
     dataDesc[5].binding           = 5;
