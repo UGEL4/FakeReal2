@@ -202,6 +202,10 @@ void VulkanUtil_EnumFormatSupport(GPUAdapter_Vulkan* pAdapter)
 void VulkanUtil_RecordAdaptorDetail(GPUAdapter_Vulkan* pAdapter)
 {
     //TODO
+    GPUAdapterDetail* detail          = &pAdapter->adapterDetail;
+    VkPhysicalDeviceProperties* props = &pAdapter->physicalDeviceProperties.properties;
+    detail->minStorageBufferAligment  = props->limits.minStorageBufferOffsetAlignment;
+    detail->maxStorageBufferRange     = props->limits.maxStorageBufferRange;
 }
 
 void VulkanUtil_EnableValidationLayers(struct GPUInstance_Vulkan* pInstance, const struct VkDebugUtilsMessengerCreateInfoEXT* pMessengerCreateInfo)

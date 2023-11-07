@@ -48,6 +48,8 @@ typedef void (*GPUProcFreeInstance)(GPUInstanceID instance);
 // adapter api
 GPU_API void GPUEnumerateAdapters(GPUInstanceID pInstance, GPUAdapterID *const ppAdapters, uint32_t *adapterCount);
 typedef void (*GPUProcEnumerateAdapters)(GPUInstanceID pInstance, GPUAdapterID *const ppAdapters, uint32_t *adapterCount);
+GPU_API const struct GPUAdapterDetail* GPUQueryAdapterDetail(const GPUAdapterID pAdapter);
+typedef const struct GPUAdapterDetail* (*GPUProcQueryAdapterDetail)(const GPUAdapterID pAdapter);
 
 // device api
 GPU_API GPUDeviceID GPUCreateDevice(GPUAdapterID pAdapter, const struct GPUDeviceDescriptor *pDesc);
@@ -215,6 +217,7 @@ typedef struct GPUProcTable {
 
     // adapter api
     const GPUProcEnumerateAdapters EnumerateAdapters;
+    const GPUProcQueryAdapterDetail QueryAdapterDetail;
 
     // device api
     const GPUProcCreateDevice CreateDevice;
@@ -331,6 +334,8 @@ typedef struct GPUFormatSupport
 typedef struct GPUAdapterDetail
 {
     GPUFormatSupport format_supports[GPU_FORMAT_COUNT];
+    uint32_t minStorageBufferAligment;
+    uint32_t maxStorageBufferRange;
 } GPUAdapterDetail;
 
 typedef struct GPUAdapter

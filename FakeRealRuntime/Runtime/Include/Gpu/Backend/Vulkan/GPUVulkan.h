@@ -29,6 +29,7 @@ GPU_API void GPUFreeInstance_Vllkan(GPUInstanceID pInstance);
 
 // adapter
 GPU_API void GPUEnumerateAdapters_Vulkan(GPUInstanceID pInstance, GPUAdapterID* const ppAdapters, uint32_t* adapterCount);
+GPU_API const struct GPUAdapterDetail* GPUQueryAdapterDetail_Vulkan(const GPUAdapterID pAdapter);
 
 // device api
 GPU_API GPUDeviceID GPUCreateDevice_Vulkan(GPUAdapterID pAdapter, const GPUDeviceDescriptor* pDesc);

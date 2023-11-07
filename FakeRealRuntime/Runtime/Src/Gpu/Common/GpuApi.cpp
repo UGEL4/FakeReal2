@@ -61,6 +61,13 @@ void GPUEnumerateAdapters(GPUInstanceID pInstance, GPUAdapterID *const ppAdapter
     }
 }
 
+const struct GPUAdapterDetail* GPUQueryAdapterDetail(const GPUAdapterID pAdapter)
+{
+    assert(pAdapter->pProcTableCache && "No ProcTableCach!");
+    assert(pAdapter->pProcTableCache->QueryAdapterDetail && "QueryAdapterDetail not loaded!");
+    return pAdapter->pProcTableCache->QueryAdapterDetail(pAdapter);
+}
+
 GPUDeviceID GPUCreateDevice(GPUAdapterID pAdapter, const struct GPUDeviceDescriptor *pDesc)
 {
     assert(pAdapter->pProcTableCache && "No ProcTableCach!");

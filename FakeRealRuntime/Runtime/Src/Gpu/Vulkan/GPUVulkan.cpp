@@ -348,6 +348,12 @@ void GPUEnumerateAdapters_Vulkan(GPUInstanceID pInstance, GPUAdapterID* const pp
     }
 }
 
+const GPUAdapterDetail* GPUQueryAdapterDetail_Vulkan(const GPUAdapterID pAdapter)
+{
+    const GPUAdapter_Vulkan* pVkAdapter = (const GPUAdapter_Vulkan*)pAdapter;
+    return &pVkAdapter->adapterDetail;
+}
+
 const float queuePriorities[] = {
     1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, //
     1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, //
