@@ -193,12 +193,9 @@ void ProcessMaterials()
             auto&& tex = material.textures.emplace_back();
             std::filesystem::path p(diffuseTexPath.C_Str());
             p.replace_extension("png");
-            std::string tmp = p.generic_string();
-            size_t index    = tmp.rfind('/');
-            if (index != std::string::npos)
-            {
-                tmp = tmp.substr(index + 1);
-            }
+            std::string tmp = p.parent_path().filename().generic_string() + '/' + p.filename().generic_string();
+           /*  auto p1 = p.parent_path().filename();
+            auto p2 = p.filename(); */
             tex.url = tmp;
             tex.typeName = "diffuse";
         }
@@ -208,7 +205,7 @@ void ProcessMaterials()
            || mat->GetTexture(aiTextureType_HEIGHT, 0, &normalMapPath) == aiReturn_SUCCESS
            || mat->GetTexture(aiTextureType_NORMAL_CAMERA, 0, &normalMapPath) == aiReturn_SUCCESS)
         {
-            auto&& tex = material.textures.emplace_back();
+            /* auto&& tex = material.textures.emplace_back();
             std::filesystem::path p(normalMapPath.C_Str());
             p.replace_extension("png");
             std::string tmp = p.generic_string();
@@ -218,7 +215,7 @@ void ProcessMaterials()
                 tmp = tmp.substr(index + 1);
             }
             tex.url = tmp;
-            tex.typeName = "normal";
+            tex.typeName = "normal"; */
         }
 
         aiString roughnessMapPath;
@@ -226,7 +223,7 @@ void ProcessMaterials()
         || mat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &roughnessMapPath) == aiReturn_SUCCESS)
         //if(SponzaRoughnessMaps[i])
         {
-            auto&& tex = material.textures.emplace_back();
+            /* auto&& tex = material.textures.emplace_back();
             std::filesystem::path p(roughnessMapPath.C_Str());
             p.replace_extension("png");
             std::string tmp = p.generic_string();
@@ -237,7 +234,7 @@ void ProcessMaterials()
             }
             tex.url = tmp;
             //tex.url = (const char*)SponzaRoughnessMaps[i];
-            tex.typeName = "roughness";
+            tex.typeName = "roughness"; */
         }
 
         // For some reason the roughness maps aren't coming through in the SHININESS channel after Assimp import. :(
@@ -248,7 +245,7 @@ void ProcessMaterials()
         if(mat->GetTexture(aiTextureType_AMBIENT, 0, &metallicMapPath) == aiReturn_SUCCESS
         || mat->GetTexture(aiTextureType_METALNESS, 0, &metallicMapPath) == aiReturn_SUCCESS)
         {
-            auto&& tex = material.textures.emplace_back();
+            /* auto&& tex = material.textures.emplace_back();
             std::filesystem::path p(metallicMapPath.C_Str());
             p.replace_extension("png");
             std::string tmp = p.generic_string();
@@ -258,7 +255,7 @@ void ProcessMaterials()
                 tmp = tmp.substr(index + 1);
             }
             tex.url = tmp;
-            tex.typeName = "metallic";
+            tex.typeName = "metallic"; */
         }
 
         material.name = mat->GetName().C_Str();
@@ -426,7 +423,7 @@ void SaveFile(const std::string_view filePath)
         {
             out << "               {";
             out << "\"name\":"
-                << "\"" << directory + "texture/" + mat.name + '/' + mat.textures[i].url << "\", ";
+                << "\"" << directory + "texture/" + mat.textures[i].url << "\", ";
             out << "\"type\":"
                 << "\"" << mat.textures[i].typeName << "\"";
             if (i < (mat.textures.size() - 1))

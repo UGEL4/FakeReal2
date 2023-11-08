@@ -2,6 +2,6 @@
            "index":6,
            "name":"Fabric_Round_Blue",
            "textures":[
-               {"name":"C:/Dev/FakeReal2/asset/objects/sponza/texture/Fabric_Round_Blue/Fabric_Round_Diffuse_Blue.png", "type":"diffuse"}
+               {"name":"C:/Dev/FakeReal2/asset/objects/sponza/texture/Fabrics/Fabric_Round_Diffuse_Blue.png", "type":"diffuse"}
            ]
         }

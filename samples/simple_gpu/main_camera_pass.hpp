@@ -49,6 +49,7 @@ public:
     void DrawForward(const class EntityModel* modelEntity, const class Camera* cam, const class CascadeShadowPass* shadowPass);
     void DrawMeshLighting(GPURenderPassEncoderID encoder, const class EntityModel* modelEntity);
     void SetupRenderPipeline();
+    void UpdateShadowMapSet(GPUTextureViewID shadowMap, GPUSamplerID sampler);
 
     GPUDeviceID mDevice;
     GPUQueueID mGfxQueue;

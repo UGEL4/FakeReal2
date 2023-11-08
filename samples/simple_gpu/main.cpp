@@ -16,6 +16,7 @@
 #include "shadow_pass.hpp"
 #include "cascade_shadow_pass.hpp"
 #include "model_entity.hpp"
+#include "main_camera_pass.hpp"
 
 static int WIDTH = 1080;
 static int HEIGHT = 1080;
@@ -1123,32 +1124,40 @@ void NormalRenderSimple()
     }
     ///skybox
     ///normal
-    CreateNormalRendeObjects(skyBox);
+    //CreateNormalRendeObjects(skyBox);
     ///normal
 
-    Model* pModel = new Model("../../../../asset/objects/sponza/test_shadow_box.json", device, graphicQueue);
+    /* Model* pModel = new Model("../../../../asset/objects/sponza/test_shadow_box.json", device, graphicQueue);
     //Model* pModel = new Model("../../../../asset/objects/sponza/Sponza_new.json", device, graphicQueue);
    // pModel->mModelMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(0.02f, 0.02f, 0.02f));
-    pModel->mModelMatrix = glm::mat4(1.0f);
-    pModel->UploadResource(skyBox);
+    pModel->mModelMatrix = glm::mat4(1.0f); */
+    //pModel->UploadResource(skyBox);
     /* CharacterModel* chModel = new CharacterModel();
     //chModel->LoadModel("../../../../asset/objects/character/garam_obj.json");
     chModel->LoadModel("D:/c++/Garam (v1.0)/garam_obj.json");
     chModel->InitModelResource(device, graphicQueue, skyBox); */
-    EntityModel entity_model("../../../../asset/objects/sponza/Sponza_Modular.json.json", device, graphicQueue);
 
-    ShadowPass* pShadowPass = new ShadowPass(device, graphicQueue);
-    pShadowPass->InitRenderObjects();
+    /* ShadowPass* pShadowPass = new ShadowPass(device, graphicQueue);
+    pShadowPass->InitRenderObjects(); */
 
     CascadeShadowPass* pCascadeShadow = new CascadeShadowPass(device, graphicQueue);
     pCascadeShadow->InitRenderObjects();
 
     //pModel->UpdateShadowMapSet(pShadowPass->mDepthTextureView, pShadowPass->mSampler);
-    pModel->UpdateShadowMapSet(pCascadeShadow->mDepthTextureView, pCascadeShadow->mSampler);
+    //pModel->UpdateShadowMapSet(pCascadeShadow->mDepthTextureView, pCascadeShadow->mSampler);
+
+    MainCameraPass main_pass;
+    main_pass.Initialize(device, graphicQueue, swapchain, ppSwapchainImage, presentSemaphore, presenFences, pools, cmds, skyBox);
+    //main_pass.UpdateShadowMapSet(pCascadeShadow->mDepthTextureView, pCascadeShadow->mSampler);
+
+    EntityModel entity_model("../../../../asset/objects/sponza/Sponza_Modular.json.json", device, graphicQueue);
+    entity_model.mRootSignature = main_pass.mRootSignature;
+    entity_model.UploadRenderResource();
+
 
 
     //light
-    LightParam lightInfo    = {};
+    /* LightParam lightInfo    = {};
     const float p           = 15.0f;
     lightInfo.lightPos[0]   = glm::vec4(-10.f, 10.f, 10.f, 1.f);
     lightInfo.lightPos[1]   = glm::vec4( 10.f, 10.f, 10.f, 1.f);
@@ -1157,7 +1166,7 @@ void NormalRenderSimple()
     lightInfo.lightColor[0] = glm::vec4(300.f, 300.f, 300.f, 1.f);
     lightInfo.lightColor[1] = glm::vec4(300.f, 300.f, 300.f, 1.f);
     lightInfo.lightColor[2] = glm::vec4(300.f, 300.f, 300.f, 1.f);
-    lightInfo.lightColor[3] = glm::vec4(300.f, 300.f, 300.f, 1.f);
+    lightInfo.lightColor[3] = glm::vec4(300.f, 300.f, 300.f, 1.f); */
 
     //render loop begin
     uint32_t backbufferIndex = 0;
@@ -1178,7 +1187,7 @@ void NormalRenderSimple()
         {
             auto tStart = std::chrono::high_resolution_clock::now();
 
-            GPUAcquireNextDescriptor acq_desc{};
+            /* GPUAcquireNextDescriptor acq_desc{};
             acq_desc.signal_semaphore        = presentSemaphore;
             backbufferIndex                  = GPUAcquireNextImage(swapchain, &acq_desc);
             GPUTextureID backbuffer          = swapchain->ppBackBuffers[backbufferIndex];
@@ -1278,7 +1287,9 @@ void NormalRenderSimple()
             presentDesc.index                = backbufferIndex;
             presentDesc.wait_semaphores      = &presentSemaphore;
             presentDesc.wait_semaphore_count = 1;
-            GPUQueuePresent(graphicQueue, &presentDesc);
+            GPUQueuePresent(graphicQueue, &presentDesc); */
+
+            main_pass.DrawForward(&entity_model, &gCamera, pCascadeShadow);
 
             auto tEnd = std::chrono::high_resolution_clock::now();
             auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
@@ -1304,7 +1315,7 @@ void NormalRenderSimple()
     }
     GPUFreeSampler(staticSampler);
     
-    delete pShadowPass;
+    //delete pShadowPass;
     delete pCascadeShadow;
     ////////////model
     //FreeModelRendderObjects();

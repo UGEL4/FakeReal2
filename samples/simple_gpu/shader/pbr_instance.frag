@@ -40,12 +40,12 @@ layout(std140, set = 0, binding = 5) uniform PerframeUniformBuffer
 
 layout(set = 1, binding = 0) uniform sampler texSamp;
 layout(set = 1, binding = 1) uniform texture2D baseColor;
-layout(set = 1, binding = 2) uniform texture2D normalMap;
+/* layout(set = 1, binding = 2) uniform texture2D normalMap;
 layout(set = 1, binding = 3) uniform texture2D metallicMap;
-layout(set = 1, binding = 4) uniform texture2D roughnessMap;
+layout(set = 1, binding = 4) uniform texture2D roughnessMap; */
 
-layout(set = 2, binding = 0) uniform texture2DArray shadowMap;
-layout(set = 2, binding = 1) uniform sampler shadowSamp;
+/* layout(set = 2, binding = 0) uniform texture2DArray shadowMap;
+layout(set = 2, binding = 1) uniform sampler shadowSamp; */
 
 
 layout(location = 0) in vec3 inWorldPos;
@@ -65,7 +65,7 @@ layout(location = 0) out vec4 outColor;
 float CascadedShadowCalculation(vec4 fragPosLightSpace, uint cascadeIndex, vec3 N)
 {
     // perform perspective divide
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    /* vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
     // transform to [0,1] range
@@ -74,9 +74,9 @@ float CascadedShadowCalculation(vec4 fragPosLightSpace, uint cascadeIndex, vec3 
     float bias = max(0.05 * (1.0 - dot(N, normalize(perFrameUbo.directionalLight.direction))), 0.0000075);
     float closestDepth = texture(sampler2DArray(shadowMap, shadowSamp), vec3(projCoords.xy, cascadeIndex)).r + 0.0000075; 
     // check whether current frag pos is in shadow
-    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0;
+    float shadow = currentDepth > closestDepth  ? 1.0 : 0.0; */
 
-    return shadow;
+    return 0.0;
 }
 
 void main()
@@ -116,7 +116,7 @@ void main()
     //vec3 lighting = ambient * ((1.0 - shadow) * color);
     vec3 lighting = (ambient +  (1.0 - shadow) * (diffuse + specular));
     //lighting      += CalcPointLight(perFrameUbo.pointLight, color, normal, inWorldPos, viewDir);
-    outColor= vec4(lighting, 1.0);
+    outColor= vec4(1.0, 0.0, 0.0, 1.0);
 /*     switch(cascadeIndex) {
 			case 0 : 
 				outColor.rgb *= vec3(1.0f, 0.0f, 0.0f);

@@ -94,6 +94,41 @@ void MainCameraPass::Initialize(GPUDeviceID device, GPUQueueID gfxQueue, GPUSwap
         .set_index = 0
     };
     mDefaultMeshDescriptorSet = GPUCreateDescriptorSet(mDevice, &setDesc);
+    GPUDescriptorData dataDesc[6]      = {};
+    dataDesc[0].binding                = 0;
+    dataDesc[0].binding_type           = GPU_RESOURCE_TYPE_RW_BUFFER_RAW;
+    dataDesc[0].buffers                = &mUploadStorageBuffer.buffer;
+    uint64_t offsets[1]                = { 0 };
+    uint64_t ranges[1]                 = { sizeof(MeshPerdrawcallStorageBufferObject) };
+    dataDesc[0].buffers_params.offsets = offsets;
+    dataDesc[0].buffers_params.sizes   = ranges;
+    dataDesc[0].count                  = 1;
+
+    dataDesc[1].binding           = 1;
+    dataDesc[1].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
+    dataDesc[1].textures          = &mSkyBoxRef->mIrradianceMap->mTextureView;
+    dataDesc[1].count             = 1;
+
+    dataDesc[2].binding           = 2;
+    dataDesc[2].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
+    dataDesc[2].textures          = &mSkyBoxRef->mPrefilteredMap->mTextureView;
+    dataDesc[2].count             = 1;
+
+    dataDesc[3].binding           = 3;
+    dataDesc[3].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
+    dataDesc[3].textures          = &mSkyBoxRef->mBRDFLut->mTextureView;
+    dataDesc[3].count             = 1;
+
+    dataDesc[4].binding           = 4;
+    dataDesc[4].binding_type      = GPU_RESOURCE_TYPE_SAMPLER;
+    dataDesc[4].samplers          = &(const_cast<SkyBox*>(mSkyBoxRef))->mSamplerRef;
+    dataDesc[4].count             = 1;
+
+    dataDesc[5].binding           = 5;
+    dataDesc[5].binding_type      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
+    dataDesc[5].buffers           = &mUBO;
+    dataDesc[5].count             = 1;
+    GPUUpdateDescriptorSet(mDefaultMeshDescriptorSet, dataDesc, sizeof(dataDesc) / sizeof(dataDesc[0]));
 
 }
 
@@ -141,7 +176,7 @@ void MainCameraPass::DrawForward(const EntityModel* modelEntity, const Camera* c
         GPUCmdResourceBarrier(cmd, &draw_barrier);
 
         // pShadowPass->Draw(sceneInfo, cmd, gCamera.matrices.view, gCamera.matrices.perspective, viewPos, directLightPos, pModel->mBoundingBox);
-        const_cast<CascadeShadowPass*>(shadowPass)->Draw(sceneInfo, cmd, *cam, viewPos, directLightPos, modelEntity->mAABB);
+        // const_cast<CascadeShadowPass*>(shadowPass)->Draw(sceneInfo, cmd, *cam, viewPos, directLightPos, modelEntity->mAABB);
         GPUColorAttachment screenAttachment{
             .view         = backbuffer_view,
             .load_action  = GPU_LOAD_ACTION_CLEAR,
@@ -222,14 +257,14 @@ void MainCameraPass::DrawMeshLighting(GPURenderPassEncoderID encoder, const Enti
     //
     for (auto& mesh : modelEntity->mMeshComp.rawMeshes)
     {
-        global::GlobalGPUMaterialRes material;
+        global::GlobalGPUMaterialRes* material = nullptr;
         if (global::GetGpuMaterialRes(mesh.materialFile, material))
         {
-            global::GlobalGPUMeshRes refMesh;
+            global::GlobalGPUMeshRes* refMesh = nullptr;
             if (!global::GetGpuMeshRes(mesh.meshFile, refMesh)) continue;
 
-            auto& meshInstanced = drawCallBatch[&material];
-            auto& meshNodes = meshInstanced[&refMesh];
+            auto& meshInstanced = drawCallBatch[material];
+            auto& meshNodes = meshInstanced[refMesh];
 
             TransformComponent transComp;
             transComp.transform = mesh.transform;
@@ -246,12 +281,15 @@ void MainCameraPass::DrawMeshLighting(GPURenderPassEncoderID encoder, const Enti
         return tmp - tmp % aligment;
     };
 
+    GPURenderEncoderBindPipeline(encoder, mPbrPipeline);
+
     for (auto& pair1 : drawCallBatch)
     {
         auto& material = *pair1.first;
         auto& meshInstanced = pair1.second;
 
         //bind material descriptorset
+        GPURenderEncoderBindDescriptorSet(encoder, material.set);
 
         for (auto& pair2 : meshInstanced)
         {
@@ -283,12 +321,15 @@ void MainCameraPass::DrawMeshLighting(GPURenderPassEncoderID encoder, const Enti
                     for (uint32_t i = 0; i < currInstanceCount; i++)
                     {
                         perdrawcallStorageBufferObject.meshInstances[i].model = mesh_nodes[drawcallMaxInctanceCount * drawcallIndex + i].modelMatrix;
+                        perdrawcallStorageBufferObject.meshInstances[i].model = math::Matrix4X4(1.f);
                     }
 
-                    //bind perdrawcall
+                    //bind perdrawcall set
                     uint32_t dynamicOffsets[1] = {perdrawcall_dynamic_offset};
+                    GPURenderEncoderBindDescriptorSet(encoder, mDefaultMeshDescriptorSet, 1, dynamicOffsets);
 
                     //draw indexed
+                    GPURenderEncoderDrawIndexedInstanced(encoder, mesh.indexCount, currInstanceCount, 0, 0, 0);
                 }
             }
         }
@@ -392,7 +433,7 @@ void MainCameraPass::SetupRenderPipeline()
         .root_signature = mRootSignature,
         .set_index      = 2
     };
-    mShadowMapSet = GPUCreateDescriptorSet(mDevice, &setDesc);
+    //mShadowMapSet = GPUCreateDescriptorSet(mDevice, &setDesc);
 
     GPUBufferDescriptor uboDesc = {
         .size             = sizeof(PerframeUniformBuffer),
@@ -402,36 +443,18 @@ void MainCameraPass::SetupRenderPipeline()
         .prefer_on_device = true
     };
     mUBO = GPUCreateBuffer(mDevice, &uboDesc);
+}
 
-    GPUDescriptorData dataDesc[6] = {};
+void MainCameraPass::UpdateShadowMapSet(GPUTextureViewID shadowMap, GPUSamplerID sampler)
+{
+    GPUDescriptorData dataDesc[2] = {};
     dataDesc[0].binding           = 0;
-    dataDesc[0].binding_type      = GPU_RESOURCE_TYPE_RW_BUFFER_RAW;
-    dataDesc[0].buffers          = &mUploadStorageBuffer.buffer;
+    dataDesc[0].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
+    dataDesc[0].textures          = &shadowMap;
     dataDesc[0].count             = 1;
-
     dataDesc[1].binding           = 1;
-    dataDesc[1].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
-    dataDesc[1].textures          = &mSkyBoxRef->mIrradianceMap->mTextureView;
+    dataDesc[1].binding_type      = GPU_RESOURCE_TYPE_SAMPLER;
+    dataDesc[1].samplers          = &sampler;
     dataDesc[1].count             = 1;
-
-    dataDesc[2].binding           = 2;
-    dataDesc[2].binding_type      = GPU_RESOURCE_TYPE_TEXTURE_CUBE;
-    dataDesc[2].textures          = &mSkyBoxRef->mPrefilteredMap->mTextureView;
-    dataDesc[2].count             = 1;
-
-    dataDesc[3].binding           = 3;
-    dataDesc[3].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
-    dataDesc[3].textures          = &mSkyBoxRef->mBRDFLut->mTextureView;
-    dataDesc[3].count             = 1;
-
-    dataDesc[4].binding           = 4;
-    dataDesc[4].binding_type      = GPU_RESOURCE_TYPE_SAMPLER;
-    dataDesc[4].samplers          = &(const_cast<SkyBox*>(mSkyBoxRef))->mSamplerRef;
-    dataDesc[4].count             = 1;
-
-    dataDesc[5].binding           = 5;
-    dataDesc[5].binding_type      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
-    dataDesc[5].buffers           = &mUBO;
-    dataDesc[5].count             = 1;
-    GPUUpdateDescriptorSet(mDefaultMeshDescriptorSet, dataDesc, sizeof(dataDesc) / sizeof(dataDesc[0]));
+    GPUUpdateDescriptorSet(mShadowMapSet, dataDesc, 2);
 }

@@ -91,12 +91,14 @@ namespace global
     {
         GPUBufferID vertexBuffer;
         GPUBufferID indexBuffer;
+        uint32_t vertexCount;
+        uint32_t indexCount;
     };
     extern std::unordered_map<std::string, GlobalGPUMeshRes> g_gpu_mesh_pool;
     bool HasGpuMeshRes(const std::string& name);
     void LoadGpuMeshRes(const std::string& name, GPUDeviceID device, GPUQueueID gfxQueue);
     void FreeGpuMeshPool();
-    bool GetGpuMeshRes(const std::string& name, GlobalGPUMeshRes& out);
+    bool GetGpuMeshRes(const std::string& name, GlobalGPUMeshRes*& out);
     ///////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////
@@ -117,6 +119,6 @@ namespace global
     bool HasGpuMaterialRes(const std::string& name);
     void LoadGpuMaterialRes(const std::string& name, GPUDeviceID device, GPUQueueID gfxQueue, GPURootSignatureID rs, GPUSamplerID sampler);
     void FreeGpuMaterialPool();
-    bool GetGpuMaterialRes(const std::string& name, GlobalGPUMaterialRes& out);
+    bool GetGpuMaterialRes(const std::string& name, GlobalGPUMaterialRes*& out);
     ///////////////////////////////////////////////////
 } // namespace global

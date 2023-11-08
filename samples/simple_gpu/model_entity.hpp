@@ -18,7 +18,7 @@ public:
     EntityModel(const std::string_view file, GPUDeviceID device, GPUQueueID gfxQueue);
     ~EntityModel();
 
-    void UploadRenderResource(class SkyBox* skyBox);
+    void UploadRenderResource();
 
 public:
     void UpdateShadowMapSet(GPUTextureViewID shadowMap, GPUSamplerID sampler);

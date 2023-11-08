@@ -385,6 +385,9 @@ namespace global
         assert(result.second);
         GlobalGPUMeshRes& newMesh = result.first->second;
 
+        newMesh.vertexCount = meshRes.vertexBuffer.size();
+        newMesh.indexCount  = meshRes.indexBuffer.size();
+
         uint32_t vb_size           = meshRes.vertexBuffer.size() * sizeof(GlobalMeshRes::Vertex);
         GPUBufferDescriptor v_desc = {
             .size         = vb_size,
@@ -473,11 +476,11 @@ namespace global
         g_gpu_mesh_pool.clear();
     }
 
-    bool GetGpuMeshRes(const std::string& name, GlobalGPUMeshRes& out)
+    bool GetGpuMeshRes(const std::string& name, GlobalGPUMeshRes*& out)
     {
         auto iter = g_gpu_mesh_pool.find(name);
         if (iter == g_gpu_mesh_pool.end()) return false;
-        out = iter->second;
+        out = &iter->second;
         return true;
     }
     ///////////////////////////////////////////////////
@@ -576,7 +579,7 @@ namespace global
         }
         GPUUpdateDescriptorSet(newMaterial.set, desc_data.data(), desc_data.size());
     }
-    
+
     void FreeGpuMaterialPool()
     {
         for (auto iter : g_gpu_material_pool)
@@ -586,11 +589,11 @@ namespace global
         g_gpu_material_pool.clear();
     }
 
-    bool GetGpuMaterialRes(const std::string& name, GlobalGPUMaterialRes& out)
+    bool GetGpuMaterialRes(const std::string& name, GlobalGPUMaterialRes*& out)
     {
         auto iter = g_gpu_material_pool.find(name);
         if (iter == g_gpu_material_pool.end()) return false;
-        out = iter->second;
+        out = &iter->second;
         return true;
     }
     ///////////////////////////////////////////////////

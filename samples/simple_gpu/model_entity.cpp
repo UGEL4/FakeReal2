@@ -3,7 +3,6 @@
 #include "Utils/Json/JsonReader.h"
 #include <filesystem>
 #include "global_resources.hpp"
-#include "sky_box.hpp"
 #include "cascade_shadow_pass.hpp"
 
 EntityModel::EntityModel(const std::string_view file, GPUDeviceID device, GPUQueueID gfxQueue)
@@ -99,12 +98,12 @@ EntityModel::EntityModel(const std::string_view file, GPUDeviceID device, GPUQue
 
 EntityModel::~EntityModel()
 {
-    if (mUBO) GPUFreeBuffer(mUBO);
+    //if (mUBO) GPUFreeBuffer(mUBO);
     if (mSampler) GPUFreeSampler(mSampler);
     if (mSet) GPUFreeDescriptorSet(mSet);
 }
 
-void EntityModel::UploadRenderResource(SkyBox* skyBox)
+void EntityModel::UploadRenderResource()
 {
     GPUSamplerDescriptor sampleDesc = {
         .min_filter   = GPU_FILTER_TYPE_LINEAR,
@@ -128,7 +127,7 @@ void EntityModel::UploadRenderResource(SkyBox* skyBox)
 
 void EntityModel::UpdateShadowMapSet(GPUTextureViewID shadowMap, GPUSamplerID sampler)
 {
-    GPUDescriptorData dataDesc[2] = {};
+    /* GPUDescriptorData dataDesc[2] = {};
     dataDesc[0].binding           = 0;
     dataDesc[0].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
     dataDesc[0].textures          = &shadowMap;
@@ -137,12 +136,12 @@ void EntityModel::UpdateShadowMapSet(GPUTextureViewID shadowMap, GPUSamplerID sa
     dataDesc[1].binding_type      = GPU_RESOURCE_TYPE_SAMPLER;
     dataDesc[1].samplers          = &sampler;
     dataDesc[1].count             = 1;
-    GPUUpdateDescriptorSet(mShadowMapSet, dataDesc, 2);
+    GPUUpdateDescriptorSet(mShadowMapSet, dataDesc, 2); */
 }
 
 void EntityModel::Draw(GPURenderPassEncoderID encoder, const class Camera* cam, const glm::vec4& viewPos,  const class CascadeShadowPass* shadowPass)
 {
-    PointLight pointLight = {
+    /* PointLight pointLight = {
         .position  = glm::vec3(-1.0f, 0.0f, 0.0f),
         .color     = glm::vec3(0.0f, 1.0f, 0.0f),
         .constant  = 1.0f,
@@ -215,5 +214,5 @@ void EntityModel::Draw(GPURenderPassEncoderID encoder, const class Camera* cam, 
             GPURenderEncoderPushConstant(encoder, mRootSignature, &push);
             GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, mesh->indexOffset, mesh->vertexOffset, 0);
         }
-    }
+    } */
 }
