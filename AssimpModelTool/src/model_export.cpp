@@ -21,8 +21,7 @@ void ExportModel(std::string_view file, std::string_view outFile)
 {
     g_meshes.clear();
     uint32_t flags = aiProcess_CalcTangentSpace |
-                   aiProcess_Triangulate |
-                   aiProcess_RemoveRedundantMaterials;
+                   aiProcess_Triangulate;
 
     Assimp::Importer importer;
     importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
@@ -57,6 +56,14 @@ void ProcessNode(const aiNode* node)
         comp.url             = mesh->mName.C_Str();
         comp.materialIndex   = mesh->mMaterialIndex;
         aiMatrix4x4 localMat = node->mTransformation;
+        //aiMatrix4x4 localMat = GetNodeTransform(node);
+        aiNode* tmpNode = const_cast<aiNode*>(node);
+        while (tmpNode->mParent)
+        {
+            aiMatrix4x4 parentMat = tmpNode->mParent->mTransformation;
+            localMat = localMat * parentMat;
+            tmpNode = tmpNode->mParent;
+        }
         aiVector3D scale, position;
         aiQuaternion rotation;
         localMat.Decompose(scale, rotation, position);
@@ -83,6 +90,16 @@ void ProcessNode(const aiNode* node)
     {
         ProcessNode(node->mChildren[i]);
     }
+}
+
+aiMatrix4x4 GetNodeTransform(const struct aiNode* node)
+{
+    if (!node->mParent)
+    {
+        return node->mTransformation;
+    }
+    aiMatrix4x4 localMat = node->mTransformation;
+    return localMat * GetNodeTransform(node->mParent);
 }
 
 void ProcessMesh(const aiMesh* mesh)

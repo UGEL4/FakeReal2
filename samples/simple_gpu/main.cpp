@@ -966,11 +966,11 @@ int main(int argc, char** argv)
     FakeReal::LogSystem::Initialize();
 
     gCamera.type          = Camera::CameraType::firstperson;
-    gCamera.movementSpeed = 10.0f;
+    gCamera.movementSpeed = 100.0f;
     gCamera.setPerspective(90.0f, (float)WIDTH / (float)HEIGHT, 0.1f, 1000.0f);
     gCamera.rotationSpeed = 0.25f;
     //gCamera.setRotation({ -3.75f, 180.0f, 0.0f });
-    gCamera.setPosition({ 5.0f,0.f,-5.f });
+    gCamera.setPosition({ 0.0f,0.f,-5.f });
 
     NormalRenderSimple();
    // RenderGraphSimple();

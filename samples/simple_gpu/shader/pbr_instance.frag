@@ -116,7 +116,7 @@ void main()
     //vec3 lighting = ambient * ((1.0 - shadow) * color);
     vec3 lighting = (ambient +  (1.0 - shadow) * (diffuse + specular));
     //lighting      += CalcPointLight(perFrameUbo.pointLight, color, normal, inWorldPos, viewDir);
-    outColor= vec4(1.0, 0.0, 0.0, 1.0);
+    outColor= vec4(lighting, 1.0);
 /*     switch(cascadeIndex) {
 			case 0 : 
 				outColor.rgb *= vec3(1.0f, 0.0f, 0.0f);

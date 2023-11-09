@@ -137,6 +137,31 @@ void MainCameraPass::DrawForward(const EntityModel* modelEntity, const Camera* c
     //reset
     mUploadStorageBuffer._global_upload_ringbuffers_end[mCurrFrame] = mUploadStorageBuffer._global_upload_ringbuffers_begin[mCurrFrame];
 
+    //uniform
+    PointLight pointLight = {
+        .position  = glm::vec3(-1.0f, 0.0f, 0.0f),
+        .color     = glm::vec3(0.0f, 1.0f, 0.0f),
+        .constant  = 1.0f,
+        .linear    = 0.045f,
+        .quadratic = 0.0075f
+    };
+    //update uniform bffer
+    math::Vector4 viewPos(-cam->position, 1.0f);
+    PerframeUniformBuffer ubo = {
+        .view                       = cam->matrices.view,
+        .proj                       = cam->matrices.perspective,
+        .viewPos                    = viewPos,
+        .directionalLight.direction = glm::vec3(-0.5f, 0.5f, 0.f),
+        .directionalLight.color     = glm::vec3(1.0, 1.0, 1.0),
+        .pointLight                 = pointLight
+    };
+   /*  for (uint32_t i = 0; i < CascadeShadowPass::sCascadeCount; i++)
+    {
+        ubo.cascadeSplits[i * 4] = shadowPass->cascades[i].splitDepth;
+        ubo.lightSpaceMat[i] = shadowPass->cascades[i].viewProjMatrix;
+    } */
+    memcpy(mUBO->cpu_mapped_address, &ubo, sizeof(ubo));
+
     GPUAcquireNextDescriptor acq_desc{};
     acq_desc.signal_semaphore        = mPresentSemaphore;
     uint32_t backbufferIndex         = GPUAcquireNextImage(mSwapchain, &acq_desc);
@@ -321,7 +346,6 @@ void MainCameraPass::DrawMeshLighting(GPURenderPassEncoderID encoder, const Enti
                     for (uint32_t i = 0; i < currInstanceCount; i++)
                     {
                         perdrawcallStorageBufferObject.meshInstances[i].model = mesh_nodes[drawcallMaxInctanceCount * drawcallIndex + i].modelMatrix;
-                        perdrawcallStorageBufferObject.meshInstances[i].model = math::Matrix4X4(1.f);
                     }
 
                     //bind perdrawcall set

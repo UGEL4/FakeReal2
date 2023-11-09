@@ -69,7 +69,7 @@ void main()
     gl_Position = vec4(v * 2.0f - 1.0f, 0.0f, 1.0f); */
     mat4 model_matrix = mesh_instances[gl_InstanceIndex].model;
     mat3 normalMatrix = mat3(transpose(inverse(model_matrix)));
-    vec4 worldPos     = vec4(inPos, 1.0);
+    vec4 worldPos     = model_matrix * vec4(inPos, 1.0);
     gl_Position       = ubo.proj * ubo.view * worldPos;
     outWorldPos       = worldPos.xyz;
     outNormal         = normalMatrix * inNormal;
