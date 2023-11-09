@@ -345,7 +345,7 @@ void MainCameraPass::DrawMeshLighting(GPURenderPassEncoderID encoder, const Enti
 
                     for (uint32_t i = 0; i < currInstanceCount; i++)
                     {
-                        perdrawcallStorageBufferObject.meshInstances[i].model = glm::translate(mesh_nodes[drawcallMaxInctanceCount * drawcallIndex + i].modelMatrix, glm::vec3(i + 20.f, 0.f, 0.f));
+                        perdrawcallStorageBufferObject.meshInstances[i].model = mesh_nodes[drawcallMaxInctanceCount * drawcallIndex + i].modelMatrix;
                     }
 
                     //bind perdrawcall set

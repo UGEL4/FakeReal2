@@ -68,9 +68,18 @@ void main()
 {
     /* vec2 v = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
     gl_Position = vec4(v * 2.0f - 1.0f, 0.0f, 1.0f); */
+    vec3 tmpPos = inPos;
+    if (gl_InstanceIndex % 2 == 0)
+    {
+        tmpPos.x = tmpPos.x + (gl_InstanceIndex + 1) * 50.0;
+    }
+    else
+    {
+        tmpPos.x = tmpPos.x + (gl_InstanceIndex + 1) * -50.0;
+    }
     mat4 model_matrix = mesh_instances[gl_InstanceIndex].model;
     mat3 normalMatrix = mat3(transpose(inverse(model_matrix)));
-    vec4 worldPos     = model_matrix * vec4(inPos, 1.0);
+    vec4 worldPos     = model_matrix * vec4(tmpPos, 1.0);
     gl_Position       = ubo.proj * ubo.view * worldPos;
     outWorldPos       = worldPos.xyz;
     outNormal         = normalMatrix * inNormal;
@@ -86,11 +95,4 @@ void main()
     vs_out.TBN             = mat3(T, B, N);
     //vs_out.lightSpacePos = ubo.lightSpaceMat * pushConsts.model * vec4(inPos, 1.0);
     vs_out.fragViewPos   = ubo.view * worldPos;
-    if (gl_InstanceIndex <= 0) {
-        vs_out.instance_id.x = 1.0;
-    }
-    else 
-    {
-      vs_out.instance_id.y = 1.0;
-    }
 }

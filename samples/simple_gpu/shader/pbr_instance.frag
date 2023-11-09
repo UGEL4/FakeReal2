@@ -115,10 +115,10 @@ void main()
 	vec4 shadowCoord = (perFrameUbo.lightSpaceMat[cascadeIndex]) * vec4(inWorldPos, 1.0);	
     float shadow  = CascadedShadowCalculation(shadowCoord, cascadeIndex, normal);
     //vec3 lighting = ambient * ((1.0 - shadow) * color);
-    //vec3 lighting = (ambient +  (1.0 - shadow) * (diffuse + specular));
-    vec3 lighting = (ambient +  vec3(fs_in.instance_id.xyz));
+    vec3 lighting = (ambient +  (1.0 - shadow) * (diffuse + specular));
+    //vec3 lighting = (ambient +  vec3(fs_in.instance_id.xyz));
     //lighting      += CalcPointLight(perFrameUbo.pointLight, color, normal, inWorldPos, viewDir);
-    outColor= vec4(fs_in.instance_id.xyz, 1.0);
+    outColor= vec4(lighting, 1.0);
 /*     switch(cascadeIndex) {
 			case 0 : 
 				outColor.rgb *= vec3(1.0f, 0.0f, 0.0f);
