@@ -60,6 +60,7 @@ layout(location = 3) out VS_TengentOut
     vec3 tangentFragPos;
     //vec4 lightSpacePos;
     vec4 fragViewPos;
+    vec4 instance_id;
     mat3 TBN;
 } vs_out;
 
@@ -85,4 +86,11 @@ void main()
     vs_out.TBN             = mat3(T, B, N);
     //vs_out.lightSpacePos = ubo.lightSpaceMat * pushConsts.model * vec4(inPos, 1.0);
     vs_out.fragViewPos   = ubo.view * worldPos;
+    if (gl_InstanceIndex <= 0) {
+        vs_out.instance_id.x = 1.0;
+    }
+    else 
+    {
+      vs_out.instance_id.y = 1.0;
+    }
 }

@@ -294,7 +294,7 @@ void MainCameraPass::DrawMeshLighting(GPURenderPassEncoderID encoder, const Enti
             TransformComponent transComp;
             transComp.transform = mesh.transform;
             MeshNode tmpNode;
-            tmpNode.modelMatrix = transComp.GetMatrix();
+            tmpNode.modelMatrix = glm::scale(glm::mat4(1.f), glm::vec3(0.2f, 0.2f, 0.2f));
 
             meshNodes.emplace_back(tmpNode);
         }
@@ -345,7 +345,7 @@ void MainCameraPass::DrawMeshLighting(GPURenderPassEncoderID encoder, const Enti
 
                     for (uint32_t i = 0; i < currInstanceCount; i++)
                     {
-                        perdrawcallStorageBufferObject.meshInstances[i].model = mesh_nodes[drawcallMaxInctanceCount * drawcallIndex + i].modelMatrix;
+                        perdrawcallStorageBufferObject.meshInstances[i].model = glm::translate(mesh_nodes[drawcallMaxInctanceCount * drawcallIndex + i].modelMatrix, glm::vec3(i + 20.f, 0.f, 0.f));
                     }
 
                     //bind perdrawcall set

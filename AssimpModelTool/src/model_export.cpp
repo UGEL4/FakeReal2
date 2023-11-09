@@ -57,13 +57,14 @@ void ProcessNode(const aiNode* node)
         comp.materialIndex   = mesh->mMaterialIndex;
         aiMatrix4x4 localMat = node->mTransformation;
         //aiMatrix4x4 localMat = GetNodeTransform(node);
-        aiNode* tmpNode = const_cast<aiNode*>(node);
-        while (tmpNode->mParent)
+        aiNode* tmpNode = node->mParent;
+        while (tmpNode)
         {
-            aiMatrix4x4 parentMat = tmpNode->mParent->mTransformation;
+            aiMatrix4x4 parentMat = tmpNode->mTransformation;
             localMat = localMat * parentMat;
-            tmpNode = tmpNode->mParent;
+            tmpNode  = tmpNode->mParent;
         }
+        localMat = localMat * g_scene->mRootNode->mTransformation.Inverse();
         aiVector3D scale, position;
         aiQuaternion rotation;
         localMat.Decompose(scale, rotation, position);

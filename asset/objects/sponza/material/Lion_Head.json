@@ -2,6 +2,6 @@
            "index":17,
            "name":"Lion_Head",
            "textures":[
-               {"name":"C:/Dev/FakeReal2/asset/objects/sponza/texture/Lion_Head/Lion_Head_Diffuse.png", "type":"diffuse"}
+               {"name":"D:/c++/FakeReal2/asset/objects/sponza/texture/Lion_Head/Lion_Head_Diffuse.png", "type":"diffuse"}
            ]
         }

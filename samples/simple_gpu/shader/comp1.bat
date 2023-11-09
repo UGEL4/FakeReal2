@@ -21,6 +21,8 @@
 @REM D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V character_fur.frag -o character_fur.frag.spv
 D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V pbr_scene_model.vert -o pbr_scene_model.vert.spv
 D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V pbr_scene_model.frag -o pbr_scene_model.frag.spv
+D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V pbr_instance.vert -o pbr_instance.vert.spv
+D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V pbr_instance.frag -o pbr_instance.frag.spv
 D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V shadow_map.vert -o shadow_map.vert.spv
 D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V shadow_map.frag -o shadow_map.frag.spv
 D:/VulkanSDK/1.3.216.0/Bin/glslangValidator.exe -V debug_shadow_map.vert -o debug_shadow_map.vert.spv
