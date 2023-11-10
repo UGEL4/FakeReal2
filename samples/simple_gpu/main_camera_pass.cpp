@@ -12,12 +12,13 @@ MainCameraPass::MainCameraPass()
 
 MainCameraPass::~MainCameraPass()
 {
+    if (mUBO) GPUFreeBuffer(mUBO); mUBO = nullptr;
     if (mDefaultMeshDescriptorSet) GPUFreeDescriptorSet(mDefaultMeshDescriptorSet); mDefaultMeshDescriptorSet = nullptr;
     if (mUploadStorageBuffer.buffer) GPUFreeBuffer(mUploadStorageBuffer.buffer); mUploadStorageBuffer.buffer = nullptr;
-    if (mDepthTexView) GPUProcFreeTextureView(mDepthTexView); mDepthTexView = nullptr;
-    if (mDepthTex) GPUProcFreeTexture(mDepthTex); mDepthTex = nullptr;
-    /* if (mPbrPipeline) GPUFreeRenderPipeline(mPbrPipeline); mPbrPipeline = nullptr;
-    if (mRootSignature) GPUFreeRootSignature(mRootSignature); mRootSignature = nullptr; */
+    if (mDepthTexView) GPUFreeTextureView(mDepthTexView); mDepthTexView = nullptr;
+    if (mDepthTex) GPUFreeTexture(mDepthTex); mDepthTex = nullptr;
+    if (mPbrPipeline) GPUFreeRenderPipeline(mPbrPipeline); mPbrPipeline = nullptr;
+    if (mRootSignature) GPUFreeRootSignature(mRootSignature); mRootSignature = nullptr;
 }
 
 void MainCameraPass::Initialize(GPUDeviceID device, GPUQueueID gfxQueue, GPUSwapchainID swapchain,
@@ -45,7 +46,7 @@ void MainCameraPass::Initialize(GPUDeviceID device, GPUQueueID gfxQueue, GPUSwap
     GPUBufferDescriptor desc{
         .size             =  global_storage_buffer_size,
         .descriptors      = GPU_RESOURCE_TYPE_RW_BUFFER_RAW,
-        .memory_usage     = GPU_MEM_USAGE_CPU_TO_GPU,
+        .memory_usage     = GPU_MEM_USAGE_CPU_ONLY,
         .flags            = GPU_BCF_PERSISTENT_MAP_BIT,
         .prefer_on_device = true
     };
@@ -233,7 +234,7 @@ void MainCameraPass::DrawForward(const EntityModel* modelEntity, const Camera* c
             DrawMeshLighting(encoder, modelEntity);
 
             // skyybox
-            const_cast<SkyBox*>(mSkyBoxRef)->Draw(encoder, cam->matrices.view, cam->matrices.perspective, viewPos);
+            //const_cast<SkyBox*>(mSkyBoxRef)->Draw(encoder, cam->matrices.view, cam->matrices.perspective, viewPos);
 
             // pShadowPass->DebugShadow(encoder);
         }
@@ -278,7 +279,8 @@ void MainCameraPass::DrawMeshLighting(GPURenderPassEncoderID encoder, const Enti
     {
         FakeReal::math::Matrix4X4 modelMatrix;
     };
-    std::unordered_map<global::GlobalGPUMaterialRes*, std::unordered_map<global::GlobalGPUMeshRes*, std::vector<MeshNode>>> drawCallBatch;
+    //std::unordered_map<global::GlobalGPUMaterialRes*, std::unordered_map<global::GlobalGPUMeshRes*, std::vector<MeshNode>>> drawCallBatch;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::vector<MeshNode>>> drawCallBatch;
     //
     for (auto& mesh : modelEntity->mMeshComp.rawMeshes)
     {
@@ -288,8 +290,8 @@ void MainCameraPass::DrawMeshLighting(GPURenderPassEncoderID encoder, const Enti
             global::GlobalGPUMeshRes* refMesh = nullptr;
             if (!global::GetGpuMeshRes(mesh.meshFile, refMesh)) continue;
 
-            auto& meshInstanced = drawCallBatch[material];
-            auto& meshNodes = meshInstanced[refMesh];
+            auto& meshInstanced = drawCallBatch[mesh.materialFile];
+            auto& meshNodes = meshInstanced[mesh.meshFile];
 
             TransformComponent transComp;
             transComp.transform = mesh.transform;
@@ -310,23 +312,27 @@ void MainCameraPass::DrawMeshLighting(GPURenderPassEncoderID encoder, const Enti
 
     for (auto& pair1 : drawCallBatch)
     {
-        auto& material = *pair1.first;
+        auto& material = pair1.first;
         auto& meshInstanced = pair1.second;
 
         //bind material descriptorset
-        GPURenderEncoderBindDescriptorSet(encoder, material.set);
+        global::GlobalGPUMaterialRes* mat = nullptr;
+        global::GetGpuMaterialRes(material, mat);
+        GPURenderEncoderBindDescriptorSet(encoder, mat->set);
 
         for (auto& pair2 : meshInstanced)
         {
-            auto& mesh = *pair2.first;
+            auto& meshf = pair2.first;
             auto& mesh_nodes = pair2.second;
 
+            global::GlobalGPUMeshRes* mesh = nullptr;
+            global::GetGpuMeshRes(meshf, mesh);
             uint32_t totalInstanceCount = mesh_nodes.size();
             if (totalInstanceCount > 0)
             {
                 uint32_t strides = sizeof(global::GlobalMeshRes::Vertex);
-                GPURenderEncoderBindVertexBuffers(encoder, 1, &mesh.vertexBuffer, &strides, nullptr);
-                GPURenderEncoderBindIndexBuffer(encoder, mesh.indexBuffer, 0, sizeof(uint32_t));
+                GPURenderEncoderBindVertexBuffers(encoder, 1, &mesh->vertexBuffer, &strides, nullptr);
+                GPURenderEncoderBindIndexBuffer(encoder, mesh->indexBuffer, 0, sizeof(uint32_t));
 
                 uint32_t drawcallMaxInctanceCount = sizeof(MeshPerdrawcallStorageBufferObject::meshInstances) / sizeof(MeshPerdrawcallStorageBufferObject::meshInstances[0]);
                 uint32_t drawCount = roundUp(totalInstanceCount, drawcallMaxInctanceCount) / drawcallMaxInctanceCount;
@@ -353,7 +359,7 @@ void MainCameraPass::DrawMeshLighting(GPURenderPassEncoderID encoder, const Enti
                     GPURenderEncoderBindDescriptorSet(encoder, mDefaultMeshDescriptorSet, 1, dynamicOffsets);
 
                     //draw indexed
-                    GPURenderEncoderDrawIndexedInstanced(encoder, mesh.indexCount, currInstanceCount, 0, 0, 0);
+                    GPURenderEncoderDrawIndexedInstanced(encoder, mesh->indexCount, currInstanceCount, 0, 0, 0);
                 }
             }
         }

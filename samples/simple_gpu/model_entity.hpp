@@ -21,18 +21,12 @@ public:
     void UploadRenderResource();
 
 public:
-    void UpdateShadowMapSet(GPUTextureViewID shadowMap, GPUSamplerID sampler);
-    void Draw(GPURenderPassEncoderID encoder, const class Camera* cam, const glm::vec4& viewPos, const class CascadeShadowPass* shadowPass);
 
     std::string mMeshFile;
     GPUDeviceID mDevice;
     GPUQueueID mGfxQueue;
-    GPURenderPipelineID mPbrPipeline;
     GPURootSignatureID mRootSignature;
-    GPUDescriptorSetID mSet;
-    GPUDescriptorSetID mShadowMapSet;
-    GPUSamplerID mSampler;
-    GPUBufferID mUBO;
+    GPUSamplerID mSampler{nullptr};
 
     ///
     FakeReal::MeshComponent mMeshComp;

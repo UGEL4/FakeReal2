@@ -17,6 +17,7 @@
 #include "cascade_shadow_pass.hpp"
 #include "model_entity.hpp"
 #include "main_camera_pass.hpp"
+#include "global_resources.hpp"
 
 static int WIDTH = 1080;
 static int HEIGHT = 1080;
@@ -967,7 +968,7 @@ int main(int argc, char** argv)
 
     gCamera.type          = Camera::CameraType::firstperson;
     gCamera.movementSpeed = 100.0f;
-    gCamera.setPerspective(90.0f, (float)WIDTH / (float)HEIGHT, 0.1f, 1000.0f);
+    gCamera.setPerspective(90.0f, (float)WIDTH / (float)HEIGHT, 0.1f, 100000.0f);
     gCamera.rotationSpeed = 0.25f;
     //gCamera.setRotation({ -3.75f, 180.0f, 0.0f });
     gCamera.setPosition({ 0.0f,0.f,-5.f });
@@ -1146,13 +1147,13 @@ void NormalRenderSimple()
     //pModel->UpdateShadowMapSet(pShadowPass->mDepthTextureView, pShadowPass->mSampler);
     //pModel->UpdateShadowMapSet(pCascadeShadow->mDepthTextureView, pCascadeShadow->mSampler);
 
-    MainCameraPass main_pass;
-    main_pass.Initialize(device, graphicQueue, swapchain, ppSwapchainImage, presentSemaphore, presenFences, pools, cmds, skyBox);
+    MainCameraPass* main_pass = new MainCameraPass();
+    main_pass->Initialize(device, graphicQueue, swapchain, ppSwapchainImage, presentSemaphore, presenFences, pools, cmds, skyBox);
     //main_pass.UpdateShadowMapSet(pCascadeShadow->mDepthTextureView, pCascadeShadow->mSampler);
 
-    EntityModel entity_model("../../../../asset/objects/sponza/Sponza_Modular.json.json", device, graphicQueue);
-    entity_model.mRootSignature = main_pass.mRootSignature;
-    entity_model.UploadRenderResource();
+    EntityModel *entity_model = new EntityModel("../../../../asset/objects/sponza/Sponza_Modular.json.json", device, graphicQueue);
+    entity_model->mRootSignature = main_pass->mRootSignature;
+    entity_model->UploadRenderResource();
 
 
 
@@ -1289,7 +1290,7 @@ void NormalRenderSimple()
             presentDesc.wait_semaphore_count = 1;
             GPUQueuePresent(graphicQueue, &presentDesc); */
 
-            main_pass.DrawForward(&entity_model, &gCamera, pCascadeShadow);
+            main_pass->DrawForward(entity_model, &gCamera, pCascadeShadow);
 
             auto tEnd = std::chrono::high_resolution_clock::now();
             auto tDiff = std::chrono::duration<double, std::milli>(tEnd - tStart).count();
@@ -1314,15 +1315,23 @@ void NormalRenderSimple()
         GPUFreeTextureView(ppSwapchainImage[i]);
     }
     GPUFreeSampler(staticSampler);
+
+    global::FreeGpuMaterialPool();
+    global::FreeGpuTexturePool();
+    global::FreeGpuMeshPool();
+    global::FreeTextureResPool();
+    global::FreeMeshResPool();
+    delete entity_model;
+    delete main_pass;
     
     //delete pShadowPass;
     delete pCascadeShadow;
     ////////////model
     //FreeModelRendderObjects();
-    delete pModel;
+    //delete pModel;
     ////////////model
     ///normal
-    FreeNormalRenderObjects();
+    //FreeNormalRenderObjects();
     //delete chModel;
     ///normal
     ///skybox

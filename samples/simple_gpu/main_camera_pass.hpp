@@ -53,20 +53,20 @@ public:
 
     GPUDeviceID mDevice;
     GPUQueueID mGfxQueue;
-    GPURenderPipelineID mPbrPipeline;
-    GPURootSignatureID mRootSignature;
+    GPURenderPipelineID mPbrPipeline{nullptr};
+    GPURootSignatureID mRootSignature{nullptr};
     GPUSwapchainID mSwapchain;
     GPUTextureViewID* mSwapchainImages;
     GPUSemaphoreID mPresentSemaphore;
     GPUFenceID* mPresenFences;
     GPUCommandPoolID* mCmdPools;
     GPUCommandBufferID* mCmds;
-    GPUTextureID mDepthTex;
-    GPUTextureViewID mDepthTexView;
+    GPUTextureID mDepthTex{nullptr};
+    GPUTextureViewID mDepthTexView{nullptr};
 
     struct StorageBuffer
     {
-        GPUBufferID buffer;
+        GPUBufferID buffer{nullptr};
         uint32_t minAlignment;
         uint32_t maxRange;
         std::vector<uint32_t> _global_upload_ringbuffers_begin;
@@ -87,9 +87,9 @@ public:
         RenderMeshInstance meshInstances[MeshPerDrawcallMaxInstanceCount];
     };
 
-    GPUDescriptorSetID mDefaultMeshDescriptorSet;
+    GPUDescriptorSetID mDefaultMeshDescriptorSet{nullptr};
     GPUDescriptorSetID mShadowMapSet;
-    GPUBufferID mUBO;
+    GPUBufferID mUBO{nullptr};
 
 public:
     const class SkyBox* mSkyBoxRef;

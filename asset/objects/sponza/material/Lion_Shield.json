@@ -2,6 +2,6 @@
            "index":18,
            "name":"Lion_Shield",
            "textures":[
-               {"name":"D:/c++/FakeReal2/asset/objects/sponza/texture/Lion_Shield/Lion_Shield_Diffuse.png", "type":"diffuse"}
+               {"name":"C:/Dev/FakeReal2/asset/objects/sponza/texture/Lion_Shield/Lion_Shield_Diffuse.png", "type":"diffuse"}
            ]
         }

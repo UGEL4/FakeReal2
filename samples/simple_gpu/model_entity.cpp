@@ -99,8 +99,7 @@ EntityModel::EntityModel(const std::string_view file, GPUDeviceID device, GPUQue
 EntityModel::~EntityModel()
 {
     //if (mUBO) GPUFreeBuffer(mUBO);
-    if (mSampler) GPUFreeSampler(mSampler);
-    if (mSet) GPUFreeDescriptorSet(mSet);
+    if (mSampler) GPUFreeSampler(mSampler); mSampler = nullptr;
 }
 
 void EntityModel::UploadRenderResource()
@@ -123,96 +122,4 @@ void EntityModel::UploadRenderResource()
         global::LoadGpuMeshRes(meshFile, mDevice, mGfxQueue);
         global::LoadGpuMaterialRes(materialFile, mDevice, mGfxQueue, mRootSignature, mSampler);
     }
-}
-
-void EntityModel::UpdateShadowMapSet(GPUTextureViewID shadowMap, GPUSamplerID sampler)
-{
-    /* GPUDescriptorData dataDesc[2] = {};
-    dataDesc[0].binding           = 0;
-    dataDesc[0].binding_type      = GPU_RESOURCE_TYPE_TEXTURE;
-    dataDesc[0].textures          = &shadowMap;
-    dataDesc[0].count             = 1;
-    dataDesc[1].binding           = 1;
-    dataDesc[1].binding_type      = GPU_RESOURCE_TYPE_SAMPLER;
-    dataDesc[1].samplers          = &sampler;
-    dataDesc[1].count             = 1;
-    GPUUpdateDescriptorSet(mShadowMapSet, dataDesc, 2); */
-}
-
-void EntityModel::Draw(GPURenderPassEncoderID encoder, const class Camera* cam, const glm::vec4& viewPos,  const class CascadeShadowPass* shadowPass)
-{
-    /* PointLight pointLight = {
-        .position  = glm::vec3(-1.0f, 0.0f, 0.0f),
-        .color     = glm::vec3(0.0f, 1.0f, 0.0f),
-        .constant  = 1.0f,
-        .linear    = 0.045f,
-        .quadratic = 0.0075f
-    };
-    //update uniform bffer
-    PerframeUniformBuffer ubo = {
-        .view                       = cam->matrices.view,
-        .proj                       = cam->matrices.perspective,
-        .viewPos                    = viewPos,
-        .directionalLight.direction = glm::vec3(-0.5f, 0.5f, 0.f),
-        .directionalLight.color     = glm::vec3(1.0, 1.0, 1.0),
-        .pointLight                 = pointLight
-    };
-    for (uint32_t i = 0; i < CascadeShadowPass::sCascadeCount; i++)
-    {
-        ubo.cascadeSplits[i * 4] = shadowPass->cascades[i].splitDepth;
-        ubo.lightSpaceMat[i]     = shadowPass->cascades[i].viewProjMatrix;
-    }
-    memcpy(mUBO->cpu_mapped_address, &ubo, sizeof(ubo));
-
-    // reorganize mesh
-    std::unordered_map<PBRMaterial*, std::vector<SubMesh*>> drawNodesInfo;
-    for (size_t i = 0; i < mMesh.subMeshes.size(); i++)
-    {
-        const auto itr = mMaterials.find(mMesh.subMeshes[i].materialIndex);
-        if (itr != mMaterials.end())
-        {
-            auto cur_pair = drawNodesInfo.find(itr->second);
-            if (cur_pair != drawNodesInfo.end())
-            {
-                cur_pair->second.push_back(&mMesh.subMeshes[i]);
-            }
-            else
-            {
-                auto& nodes = drawNodesInfo[itr->second];
-                nodes.push_back(&mMesh.subMeshes[i]);
-            }
-        }
-    }
-
-    //draw call
-    GPURenderEncoderBindPipeline(encoder, mPbrPipeline);
-    GPURenderEncoderBindDescriptorSet(encoder, mSet);
-    uint32_t strides = sizeof(NewVertex);
-    GPURenderEncoderBindVertexBuffers(encoder, 1, &mVertexBuffer, &strides, nullptr);
-    GPURenderEncoderBindIndexBuffer(encoder, mIndexBuffer, 0, sizeof(uint32_t));
-    struct
-    {
-        glm::mat4 model;
-        float offsets[8];
-    } push;
-    push.model = mModelMatrix;
-    for (uint32_t i = 0; i < 8; i++)
-    {
-        push.offsets[i] = 50.f * i;
-    }
-    for (auto& nodePair : drawNodesInfo)
-    {
-        GPURenderEncoderBindDescriptorSet(encoder, mShadowMapSet);
-        //per material
-        auto& mat = nodePair.first;
-        GPURenderEncoderBindDescriptorSet(encoder, mat->set);
-        for (size_t i = 0; i < nodePair.second.size() && i < 1 ; i++)
-        {
-            //per mesh
-            auto& mesh = nodePair.second[i];
-            uint32_t indexCount = mesh->indexCount;
-            GPURenderEncoderPushConstant(encoder, mRootSignature, &push);
-            GPURenderEncoderDrawIndexedInstanced(encoder, indexCount, 1, mesh->indexOffset, mesh->vertexOffset, 0);
-        }
-    } */
 }

@@ -137,7 +137,7 @@ namespace FakeReal
         // instance
         if (m_pInstance)
         {
-            GPUProcFreeInstance(m_pInstance);
+            GPUFreeInstance(m_pInstance);
             m_pInstance = nullptr;
         }
     }
