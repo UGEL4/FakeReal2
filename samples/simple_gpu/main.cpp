@@ -1092,6 +1092,9 @@ void NormalRenderSimple()
 
     ////model
     //CreateModelRenderObjects();
+
+    //global
+    global::g_global_reader_resource.Initialize(device, graphicQueue);
     
     ////model
     ///skybox
@@ -1338,6 +1341,9 @@ void NormalRenderSimple()
     //skyBox.~SkyBox(); Dont do this!
     delete skyBox;
     ///skybox
+
+    //global
+    global::g_global_reader_resource.Free();
 
     GPUFreeTextureView(depthTextureView);
     GPUFreeTexture(depthTexture);

@@ -14,8 +14,8 @@ int main(int argc, char** argv)
     const char* inFile = argv[1];
     const char* outFile = argv[2];
 
-    //ExportModel("C:/Dev/FakeReal2/asset/objects/sponza/Sponza_Modular.FBX", "C:/Dev/FakeReal2/asset/objects/sponza/Sponza_Modular.json");
-    ExportModel("D:/c++/FakeReal2/asset/objects/sponza/Sponza_Modular.FBX", "D:/c++/FakeReal2/asset/objects/sponza/Sponza_Modular.json");
+    ExportModel("C:/Dev/FakeReal2/asset/objects/sponza/Sponza_Modular.FBX", "C:/Dev/FakeReal2/asset/objects/sponza/Sponza_Modular.json");
+    //ExportModel("D:/c++/FakeReal2/asset/objects/sponza/Sponza_Modular.FBX", "D:/c++/FakeReal2/asset/objects/sponza/Sponza_Modular.json");
     //ExportModel("D:\\c++\\nanosuit\\nanosuit.obj", "D:\\c++\\nanosuit\\out\\nanosuit.json");
     //ExportModel(inFile, outFile);
 

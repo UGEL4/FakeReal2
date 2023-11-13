@@ -14,7 +14,7 @@ MainCameraPass::~MainCameraPass()
 {
     if (mUBO) GPUFreeBuffer(mUBO); mUBO = nullptr;
     if (mDefaultMeshDescriptorSet) GPUFreeDescriptorSet(mDefaultMeshDescriptorSet); mDefaultMeshDescriptorSet = nullptr;
-    if (mUploadStorageBuffer.buffer) GPUFreeBuffer(mUploadStorageBuffer.buffer); mUploadStorageBuffer.buffer = nullptr;
+    //if (mUploadStorageBuffer.buffer) GPUFreeBuffer(mUploadStorageBuffer.buffer); mUploadStorageBuffer.buffer = nullptr;
     if (mDepthTexView) GPUFreeTextureView(mDepthTexView); mDepthTexView = nullptr;
     if (mDepthTex) GPUFreeTexture(mDepthTex); mDepthTex = nullptr;
     if (mPbrPipeline) GPUFreeRenderPipeline(mPbrPipeline); mPbrPipeline = nullptr;
@@ -39,7 +39,7 @@ void MainCameraPass::Initialize(GPUDeviceID device, GPUQueueID gfxQueue, GPUSwap
     mCmds             = cmds;
     mSkyBoxRef        = skyBox;
 
-    // In Vulkan, the storage buffer should be pre-allocated.
+    /* // In Vulkan, the storage buffer should be pre-allocated.
     // The size is 128MB in NVIDIA D3D11
     // driver(https://developer.nvidia.com/content/constant-buffers-without-constant-pain-0).
     uint32_t global_storage_buffer_size = 1024 * 1024 * 128;
@@ -61,7 +61,7 @@ void MainCameraPass::Initialize(GPUDeviceID device, GPUQueueID gfxQueue, GPUSwap
     }
     const GPUAdapterDetail* detail = GPUQueryAdapterDetail(mDevice->pAdapter);
     mUploadStorageBuffer.minAlignment = detail->minStorageBufferAligment;
-    mUploadStorageBuffer.maxRange     = detail->maxStorageBufferRange;
+    mUploadStorageBuffer.maxRange     = detail->maxStorageBufferRange; */
 
     GPUTextureDescriptor depth_tex_desc{
         .flags       = GPU_TCF_OWN_MEMORY_BIT,
@@ -98,9 +98,9 @@ void MainCameraPass::Initialize(GPUDeviceID device, GPUQueueID gfxQueue, GPUSwap
     GPUDescriptorData dataDesc[6]      = {};
     dataDesc[0].binding                = 0;
     dataDesc[0].binding_type           = GPU_RESOURCE_TYPE_RW_BUFFER_RAW;
-    dataDesc[0].buffers                = &mUploadStorageBuffer.buffer;
+    dataDesc[0].buffers                = &global::g_global_reader_resource.storage.buffer;
     uint64_t offsets[1]                = { 0 };
-    uint64_t ranges[1]                 = { sizeof(MeshPerdrawcallStorageBufferObject) };
+    uint64_t ranges[1]                 = { sizeof(global::MeshPerdrawcallStorageBufferObject) };
     dataDesc[0].buffers_params.offsets = offsets;
     dataDesc[0].buffers_params.sizes   = ranges;
     dataDesc[0].count                  = 1;
@@ -136,7 +136,7 @@ void MainCameraPass::Initialize(GPUDeviceID device, GPUQueueID gfxQueue, GPUSwap
 void MainCameraPass::DrawForward(const EntityModel* modelEntity, const Camera* cam, const CascadeShadowPass* shadowPass)
 {
     //reset
-    mUploadStorageBuffer._global_upload_ringbuffers_end[mCurrFrame] = mUploadStorageBuffer._global_upload_ringbuffers_begin[mCurrFrame];
+    global::g_global_reader_resource.Reset(mCurrFrame);
 
     //uniform
     PointLight pointLight = {
@@ -296,7 +296,7 @@ void MainCameraPass::DrawMeshLighting(GPURenderPassEncoderID encoder, const Enti
             TransformComponent transComp;
             transComp.transform = mesh.transform;
             MeshNode tmpNode;
-            tmpNode.modelMatrix = glm::scale(glm::mat4(1.f), glm::vec3(0.2f, 0.2f, 0.2f)) * transComp.GetMatrix();
+            tmpNode.modelMatrix = modelEntity->mTransformComp.GetMatrix() * transComp.GetMatrix();
 
             meshNodes.emplace_back(tmpNode);
         }
@@ -334,7 +334,7 @@ void MainCameraPass::DrawMeshLighting(GPURenderPassEncoderID encoder, const Enti
                 GPURenderEncoderBindVertexBuffers(encoder, 1, &mesh->vertexBuffer, &strides, nullptr);
                 GPURenderEncoderBindIndexBuffer(encoder, mesh->indexBuffer, 0, sizeof(uint32_t));
 
-                uint32_t drawcallMaxInctanceCount = sizeof(MeshPerdrawcallStorageBufferObject::meshInstances) / sizeof(MeshPerdrawcallStorageBufferObject::meshInstances[0]);
+                uint32_t drawcallMaxInctanceCount = sizeof(global::MeshPerdrawcallStorageBufferObject::meshInstances) / sizeof(global::MeshPerdrawcallStorageBufferObject::meshInstances[0]);
                 uint32_t drawCount = roundUp(totalInstanceCount, drawcallMaxInctanceCount) / drawcallMaxInctanceCount;
                 for (uint32_t drawcallIndex = 0; drawcallIndex < drawCount; drawcallIndex++)
                 {
@@ -342,12 +342,12 @@ void MainCameraPass::DrawMeshLighting(GPURenderPassEncoderID encoder, const Enti
                     ((totalInstanceCount - drawcallMaxInctanceCount * drawcallIndex) < drawcallMaxInctanceCount) ?
                     (totalInstanceCount - drawcallMaxInctanceCount * drawcallIndex) : drawcallMaxInctanceCount;
 
-                    uint32_t perdrawcall_dynamic_offset                             = roundUp(mUploadStorageBuffer._global_upload_ringbuffers_end[mCurrFrame], mUploadStorageBuffer.minAlignment);
-                    mUploadStorageBuffer._global_upload_ringbuffers_end[mCurrFrame] = perdrawcall_dynamic_offset + sizeof(MeshPerdrawcallStorageBufferObject);
-                    assert(mUploadStorageBuffer._global_upload_ringbuffers_end[mCurrFrame] <=
-                           (mUploadStorageBuffer._global_upload_ringbuffers_begin[mCurrFrame] + mUploadStorageBuffer._global_upload_ringbuffers_size[mCurrFrame]));
-                    MeshPerdrawcallStorageBufferObject& perdrawcallStorageBufferObject =
-                    (*reinterpret_cast<MeshPerdrawcallStorageBufferObject*>(reinterpret_cast<uintptr_t>(mUploadStorageBuffer.buffer->cpu_mapped_address) + perdrawcall_dynamic_offset));
+                    uint32_t perdrawcall_dynamic_offset                                                 = roundUp(global::g_global_reader_resource.storage._global_upload_ringbuffers_end[mCurrFrame], global::g_global_reader_resource.storage.minAlignment);
+                    global::g_global_reader_resource.storage._global_upload_ringbuffers_end[mCurrFrame] = perdrawcall_dynamic_offset + sizeof(global::MeshPerdrawcallStorageBufferObject);
+                    assert(global::g_global_reader_resource.storage._global_upload_ringbuffers_end[mCurrFrame] <=
+                           (global::g_global_reader_resource.storage._global_upload_ringbuffers_begin[mCurrFrame] + global::g_global_reader_resource.storage._global_upload_ringbuffers_size[mCurrFrame]));
+                    global::MeshPerdrawcallStorageBufferObject& perdrawcallStorageBufferObject =
+                    (*reinterpret_cast<global::MeshPerdrawcallStorageBufferObject*>(reinterpret_cast<uintptr_t>(global::g_global_reader_resource.storage.buffer->cpu_mapped_address) + perdrawcall_dynamic_offset));
 
                     for (uint32_t i = 0; i < currInstanceCount; i++)
                     {

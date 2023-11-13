@@ -64,7 +64,7 @@ public:
     GPUTextureID mDepthTex{nullptr};
     GPUTextureViewID mDepthTexView{nullptr};
 
-    struct StorageBuffer
+    /* struct StorageBuffer
     {
         GPUBufferID buffer{nullptr};
         uint32_t minAlignment;
@@ -73,11 +73,11 @@ public:
         std::vector<uint32_t> _global_upload_ringbuffers_end;
         std::vector<uint32_t> _global_upload_ringbuffers_size;
     };
-    StorageBuffer mUploadStorageBuffer;
+    StorageBuffer mUploadStorageBuffer; */
 
     uint32_t mCurrFrame {0};
 
-    static constexpr uint32_t MeshPerDrawcallMaxInstanceCount = 64;
+    /* static constexpr uint32_t MeshPerDrawcallMaxInstanceCount = 64;
     struct RenderMeshInstance
     {
         FakeReal::math::Matrix4X4 model;
@@ -85,7 +85,7 @@ public:
     struct MeshPerdrawcallStorageBufferObject
     {
         RenderMeshInstance meshInstances[MeshPerDrawcallMaxInstanceCount];
-    };
+    }; */
 
     GPUDescriptorSetID mDefaultMeshDescriptorSet{nullptr};
     GPUDescriptorSetID mShadowMapSet;

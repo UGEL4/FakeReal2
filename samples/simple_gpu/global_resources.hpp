@@ -121,4 +121,41 @@ namespace global
     void FreeGpuMaterialPool();
     bool GetGpuMaterialRes(const std::string& name, GlobalGPUMaterialRes*& out);
     ///////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////
+    static constexpr uint32_t MeshPerDrawcallMaxInstanceCount = 64;
+    struct RenderMeshInstance
+    {
+        FakeReal::math::Matrix4X4 model;
+    };
+    struct MeshPerdrawcallStorageBufferObject
+    {
+        RenderMeshInstance meshInstances[MeshPerDrawcallMaxInstanceCount];
+    };
+
+    struct MeshDirectionalLightShadowPerdrawcallStorageBufferObject
+    {
+        RenderMeshInstance meshInstances[MeshPerDrawcallMaxInstanceCount];
+    };
+
+    struct StorageBuffer
+    {
+        GPUBufferID buffer{nullptr};
+        uint32_t minAlignment;
+        uint32_t maxRange;
+        std::vector<uint32_t> _global_upload_ringbuffers_begin;
+        std::vector<uint32_t> _global_upload_ringbuffers_end;
+        std::vector<uint32_t> _global_upload_ringbuffers_size;
+    };
+
+    struct GlobalRenderResource
+    {
+        StorageBuffer storage;
+        void Initialize(GPUDeviceID device, GPUQueueID queue);
+        void Free();
+        void Reset(uint32_t frame_index);
+    };
+
+    extern GlobalRenderResource g_global_reader_resource;
+    ///////////////////////////////////////////////////
 } // namespace global

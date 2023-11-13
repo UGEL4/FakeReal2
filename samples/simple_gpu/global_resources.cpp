@@ -597,4 +597,45 @@ namespace global
         return true;
     }
     ///////////////////////////////////////////////////
+
+    ///////////////////////////////////////////////////
+    GlobalRenderResource g_global_reader_resource;
+    
+    void GlobalRenderResource::Initialize(GPUDeviceID device, GPUQueueID queue)
+    {
+        // In Vulkan, the storage buffer should be pre-allocated.
+        // The size is 128MB in NVIDIA D3D11
+        // driver(https://developer.nvidia.com/content/constant-buffers-without-constant-pain-0).
+        uint32_t global_storage_buffer_size = 1024 * 1024 * 128;
+        GPUBufferDescriptor desc{
+            .size             = global_storage_buffer_size,
+            .descriptors      = GPU_RESOURCE_TYPE_RW_BUFFER_RAW,
+            .memory_usage     = GPU_MEM_USAGE_CPU_ONLY,
+            .flags            = GPU_BCF_PERSISTENT_MAP_BIT,
+            .prefer_on_device = true
+        };
+        storage.buffer = GPUCreateBuffer(device, &desc);
+        storage._global_upload_ringbuffers_begin.resize(3); // FLIGHT_FRAMES
+        storage._global_upload_ringbuffers_end.resize(3);
+        storage._global_upload_ringbuffers_size.resize(3);
+        for (uint32_t i = 0; i < 3; ++i)
+        {
+            storage._global_upload_ringbuffers_begin[i] = (global_storage_buffer_size * i) / 3;
+            storage._global_upload_ringbuffers_size[i]  = (global_storage_buffer_size * (i + 1)) / 3 - (global_storage_buffer_size * i) / 3;
+        }
+        const GPUAdapterDetail* detail = GPUQueryAdapterDetail(device->pAdapter);
+        storage.minAlignment           = detail->minStorageBufferAligment;
+        storage.maxRange               = detail->maxStorageBufferRange;
+    }
+
+    void GlobalRenderResource::Free()
+    {
+        if (storage.buffer) GPUFreeBuffer(storage.buffer); storage.buffer = nullptr;
+    }
+
+    void GlobalRenderResource::Reset(uint32_t frame_index)
+    {
+        storage._global_upload_ringbuffers_end[frame_index] = storage._global_upload_ringbuffers_begin[frame_index];
+    }
+    ///////////////////////////////////////////////////
 }

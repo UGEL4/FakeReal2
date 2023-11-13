@@ -8,6 +8,7 @@
 EntityModel::EntityModel(const std::string_view file, GPUDeviceID device, GPUQueueID gfxQueue)
 : mDevice(device), mGfxQueue(gfxQueue)
 {
+    mTransformComp.transform.scale = math::Vector3(0.2f, 0.2f, 0.2f);
     mMeshFile = file;
     //std::filesystem::path assetFilePath = GetFullPath(assetUrl);
     std::ifstream is(file.data());
@@ -84,8 +85,13 @@ EntityModel::EntityModel(const std::string_view file, GPUDeviceID device, GPUQue
                     global::LoadMaterialRes(url);
                     subMesh.materialFile = url;
 
-                    /* auto aabbPair = global::g_cache_mesh_bounding_box.find(subMesh.meshFile);
-                    if (aabbPair != global::g_cache_mesh_bounding_box.end()) mAABB.Merge(aabbPair->second); */
+                    auto aabbPair = global::g_cache_mesh_bounding_box.find(subMesh.meshFile);
+                    if (aabbPair != global::g_cache_mesh_bounding_box.end())
+                    {
+                        TransformComponent comp;
+                        comp.transform = subMesh.transform;
+                        mAABB.Merge(BoundingBox::BoundingBoxTransform(aabbPair->second, comp.GetMatrix()));
+                    }
                 }
                 reader.EndObject();
             }
