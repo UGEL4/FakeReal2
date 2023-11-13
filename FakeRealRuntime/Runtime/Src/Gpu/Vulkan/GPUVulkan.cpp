@@ -3,6 +3,7 @@
 #include "Gpu/Backend/Vulkan/VulkanUtils.h"
 #include "../Common/CommonUtils.h"
 #include "Utils/Hash/hash.h"
+#include <stdint.h>
 #include <vector>
 #include <algorithm>
 
@@ -2038,12 +2039,21 @@ void GPURenderEncoderBindDescriptorSet_Vulkan(GPURenderPassEncoderID encoder, GP
         Cmd->pLayout = RS->pPipelineLayout;
         for (uint32_t i = 0; i < RS->setLayoutsCount; i++)
         {
-            if (RS->pSetLayouts[i].pEmptyDescSet != VK_NULL_HANDLE &&
-                S->super.index != i)
+            if (RS->pSetLayouts[i].pEmptyDescSet != VK_NULL_HANDLE && S->super.index != i)
             {
+                std::vector<uint32_t> dynamicOffsets;
+                uint32_t count = RS->super.tables[i].resources_count;
+                for (uint32_t c = 0; c < count; c++)
+                {
+                    EGPUResourceType TYPE = RS->super.tables[i].resources[c].type;
+                    if (TYPE == GPU_RESOURCE_TYPE_RW_BUFFER_RAW)
+                    {
+                        dynamicOffsets.push_back(0);
+                    }
+                }
                 D->mVkDeviceTable.vkCmdBindDescriptorSets(Cmd->pVkCmd,
                                                           VK_PIPELINE_BIND_POINT_GRAPHICS, RS->pPipelineLayout, i,
-                                                          1, &RS->pSetLayouts[i].pEmptyDescSet, 0, NULL);
+                                                          1, &RS->pSetLayouts[i].pEmptyDescSet, (uint32_t)dynamicOffsets.size(), dynamicOffsets.data());
             }
         }
     }
@@ -2052,7 +2062,7 @@ void GPURenderEncoderBindDescriptorSet_Vulkan(GPURenderPassEncoderID encoder, GP
                                               VK_PIPELINE_BIND_POINT_GRAPHICS, RS->pPipelineLayout,
                                               S->super.index, 1, &S->pSet,
                                               // TODO: Dynamic Offset
-                                              0, NULL);
+                                              dynamicOffsetCount, pDynamicOffsets);
 }
 
 void GPURenderEncoderPushConstant_Vulkan(GPURenderPassEncoderID encoder, GPURootSignatureID rs, void* data)

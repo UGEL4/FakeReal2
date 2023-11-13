@@ -61,10 +61,10 @@ void ProcessNode(const aiNode* node)
         while (tmpNode)
         {
             aiMatrix4x4 parentMat = tmpNode->mTransformation;
-            localMat = localMat * parentMat;
+            localMat = parentMat * localMat;
             tmpNode  = tmpNode->mParent;
         }
-        localMat = localMat * g_scene->mRootNode->mTransformation.Inverse();
+        //localMat = localMat * g_scene->mRootNode->mTransformation.Inverse();
         aiVector3D scale, position;
         aiQuaternion rotation;
         localMat.Decompose(scale, rotation, position);

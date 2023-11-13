@@ -1,6 +1,7 @@
 #include "Gpu/Backend/Vulkan/VulkanUtils.h"
 #include <new>
 #include <memory>
+#include <string>
 #include "Utils/Hash/hash.h"
 
 void VulkanUtil_SelectValidationLayers(GPUInstance_Vulkan* pInstance, const char** instanceLayers, uint32_t layersCount)
@@ -643,6 +644,13 @@ void VulkanUtil_InitializeShaderReflection(GPUDeviceID device, GPUShaderLibrary_
                     current_res->name                            = (char8_t*)current_binding->name;
                     current_res->name_hash                       = GPU_NAME_HASH(current_binding->name, strlen(current_binding->name));
                     current_res->size                            = current_binding->count;
+                    //NOTE: deal with dynamic storage buffer
+                    if(current_binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                    {
+                        std::string name(current_binding->type_description->type_name);
+                        const bool is_dynamic = name.find("dynamic") != std::string::npos;
+                        if (is_dynamic) current_res->type = RTLut[SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC];
+                    }
                     // Solve Dimension
                     if ((current_binding->type_description->type_flags & SPV_REFLECT_TYPE_FLAG_EXTERNAL_IMAGE) ||
                         (current_binding->type_description->type_flags & SPV_REFLECT_TYPE_FLAG_EXTERNAL_SAMPLED_IMAGE))

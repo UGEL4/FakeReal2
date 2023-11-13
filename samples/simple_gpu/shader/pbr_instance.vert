@@ -39,7 +39,7 @@ struct MeshInstance
     mat4 model;
 };
 
-layout(set = 0, binding = 0) readonly buffer _unused_name_per_drawcall
+layout(set = 0, binding = 0) readonly buffer _unused_name_per_drawcall_dynamic
 {
     MeshInstance mesh_instances[MeshPerDrawcallMaxInstanceCount];
 };
@@ -68,18 +68,18 @@ void main()
 {
     /* vec2 v = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
     gl_Position = vec4(v * 2.0f - 1.0f, 0.0f, 1.0f); */
-    vec3 tmpPos = inPos;
-    if (gl_InstanceIndex % 2 == 0)
+    //vec3 tmpPos = inPos;
+    /* if (gl_InstanceIndex % 2 == 0)
     {
         tmpPos.x = tmpPos.x + (gl_InstanceIndex + 1) * 50.0;
     }
     else
     {
         tmpPos.x = tmpPos.x + (gl_InstanceIndex + 1) * -50.0;
-    }
+    } */
     mat4 model_matrix = mesh_instances[gl_InstanceIndex].model;
     mat3 normalMatrix = mat3(transpose(inverse(model_matrix)));
-    vec4 worldPos     = model_matrix * vec4(tmpPos, 1.0);
+    vec4 worldPos     = model_matrix * vec4(inPos, 1.0);
     gl_Position       = ubo.proj * ubo.view * worldPos;
     outWorldPos       = worldPos.xyz;
     outNormal         = normalMatrix * inNormal;

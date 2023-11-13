@@ -296,7 +296,7 @@ void MainCameraPass::DrawMeshLighting(GPURenderPassEncoderID encoder, const Enti
             TransformComponent transComp;
             transComp.transform = mesh.transform;
             MeshNode tmpNode;
-            tmpNode.modelMatrix = glm::scale(glm::mat4(1.f), glm::vec3(0.2f, 0.2f, 0.2f));
+            tmpNode.modelMatrix = glm::scale(glm::mat4(1.f), glm::vec3(0.2f, 0.2f, 0.2f)) * transComp.GetMatrix();
 
             meshNodes.emplace_back(tmpNode);
         }
@@ -428,7 +428,7 @@ void MainCameraPass::SetupRenderPipeline()
     vertexLayout.attributes[4]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, sizeof(float) * 11, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
     // renderpipeline
     GPURasterizerStateDescriptor rasterizerState = {
-        .cullMode             = GPU_CULL_MODE_BACK,
+        .cullMode             = GPU_CULL_MODE_NONE,
         .fillMode             = GPU_FILL_MODE_SOLID,
         .frontFace            = GPU_FRONT_FACE_CCW,
         .depthBias            = 0,
