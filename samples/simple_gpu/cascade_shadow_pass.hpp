@@ -2,11 +2,12 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "Gpu/GpuApi.h"
 #include "utils.hpp"
-#include "model.hpp"
+//#include "model.hpp"
 #include <array>
 #include "Camera.hpp"
 #include "Math/glm/gtx/euler_angles.hpp"
 #include"Math/Transform.h"
+#include "global_resources.hpp"
 
 class CascadeShadowPass
 {
@@ -38,7 +39,7 @@ public:
     };
     ~CascadeShadowPass()
     {
-        if (mUBO) GPUFreeBuffer(mUBO);
+        //if (mUBO) GPUFreeBuffer(mUBO);
         if (mSet) GPUFreeDescriptorSet(mSet);
         if (mDepthTextureView) GPUFreeTextureView(mDepthTextureView);
         if (mDepthTexture) GPUFreeTexture(mDepthTexture);
@@ -49,8 +50,8 @@ public:
 
         if (mSampler) GPUFreeSampler(mSampler);
 
-        if (mDebugSet) GPUFreeDescriptorSet(mDebugSet);
-        if (mDebugPipeline) GPUFreeRenderPipeline(mDebugPipeline);
+        //if (mDebugSet) GPUFreeDescriptorSet(mDebugSet);
+        //if (mDebugPipeline) GPUFreeRenderPipeline(mDebugPipeline);
     }
 
     void InitRenderObjects()
@@ -93,32 +94,7 @@ public:
         GPUShaderLibraryID geomShader = GPUCreateShaderLibrary(mRefDevice, &shaderDesc);
         free(shaderCode);
         
-        shaderCode = nullptr;
-        size       = 0;
-        ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/debug_shadow_map.vert", &shaderCode, &size);
-        shaderDesc = {
-            .pName    = u8"",
-            .code     = shaderCode,
-            .codeSize = size,
-            .stage    = GPU_SHADER_STAGE_VERT
-        };
-        GPUShaderLibraryID vsDShader = GPUCreateShaderLibrary(mRefDevice, &shaderDesc);
-        free(shaderCode);
-        
-        shaderCode = nullptr;
-        size       = 0;
-        ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/debug_shadow_map.frag", &shaderCode, &size);
-        shaderDesc = {
-            .pName    = u8"",
-            .code     = shaderCode,
-            .codeSize = size,
-            .stage    = GPU_SHADER_STAGE_FRAG
-        };
-        GPUShaderLibraryID psDShader = GPUCreateShaderLibrary(mRefDevice, &shaderDesc);
-        free(shaderCode);
-        shaderCode = nullptr;
-        
-        CGPUShaderEntryDescriptor entry_desc[5] = {};
+        CGPUShaderEntryDescriptor entry_desc[3] = {};
         {
             entry_desc[0].pLibrary = vsShader;
             entry_desc[0].entry    = u8"main";
@@ -126,20 +102,14 @@ public:
             entry_desc[1].pLibrary = psShader;
             entry_desc[1].entry    = u8"main";
             entry_desc[1].stage    = GPU_SHADER_STAGE_FRAG;
-            entry_desc[2].pLibrary = vsDShader;
+            entry_desc[2].pLibrary = geomShader;
             entry_desc[2].entry    = u8"main";
-            entry_desc[2].stage    = GPU_SHADER_STAGE_VERT;
-            entry_desc[3].pLibrary = psDShader;
-            entry_desc[3].entry    = u8"main";
-            entry_desc[3].stage    = GPU_SHADER_STAGE_FRAG;
-            entry_desc[4].pLibrary = geomShader;
-            entry_desc[4].entry    = u8"main";
-            entry_desc[4].stage    = GPU_SHADER_STAGE_GEOM;
+            entry_desc[2].stage    = GPU_SHADER_STAGE_GEOM;
         }
 
         GPURootSignatureDescriptor rs_desc = {
             .shaders      = entry_desc,
-            .shader_count = 5,
+            .shader_count = sizeof(entry_desc) / sizeof(entry_desc[0])
         };
         mRS = GPUCreateRootSignature(mRefDevice, &rs_desc);
 
@@ -174,7 +144,7 @@ public:
             .pRootSignature     = mRS,
             .pVertexShader      = &entry_desc[0],
             .pFragmentShader    = &entry_desc[1],
-            .pGeometryShader    = &entry_desc[4],
+            .pGeometryShader    = &entry_desc[2],
             .pVertexLayout      = &vertexLayout,
             .pDepthState        = &depthDesc,
             .pRasterizerState   = &rasterizerState,
@@ -187,32 +157,6 @@ public:
         GPUFreeShaderLibrary(vsShader);
         GPUFreeShaderLibrary(psShader);
         GPUFreeShaderLibrary(geomShader);
-
-        GPUVertexLayout emptyLayout {};
-        rasterizerState = {
-            .cullMode             = GPU_CULL_MODE_NONE,
-            .fillMode             = GPU_FILL_MODE_SOLID,
-            .frontFace            = GPU_FRONT_FACE_CCW,
-            .depthBias            = 0,
-            .slopeScaledDepthBias = 0.f,
-            .enableMultiSample    = false,
-            .enableScissor        = false,
-            .enableDepthClamp     = false
-        };
-
-        // debug pp
-        {
-            format                        = GPU_FORMAT_B8G8R8A8_UNORM;
-            pipelineDesc.pRasterizerState = &rasterizerState;
-            pipelineDesc.pVertexShader    = &entry_desc[2];
-            pipelineDesc.pFragmentShader  = &entry_desc[3];
-            pipelineDesc.pGeometryShader  = nullptr;
-            pipelineDesc.pVertexLayout    = &emptyLayout;
-            pipelineDesc.pColorFormats    = const_cast<EGPUFormat*>(&format);
-        }
-        mDebugPipeline = GPUCreateRenderPipeline(mRefDevice, &pipelineDesc);
-        GPUFreeShaderLibrary(vsDShader);
-        GPUFreeShaderLibrary(psDShader);
 
         format = GPU_FORMAT_R8G8B8A8_UNORM;
         GPUTextureDescriptor desc = {
@@ -273,27 +217,37 @@ public:
         };
         mSet = GPUCreateDescriptorSet(mRefDevice, &setDesc);
 
-        setDesc = {
+        /* setDesc = {
             .root_signature = mRS,
             .set_index      = 1
         };
-        mDebugSet = GPUCreateDescriptorSet(mRefDevice, &setDesc);
+        mDebugSet = GPUCreateDescriptorSet(mRefDevice, &setDesc); */
 
-        GPUBufferDescriptor uboDesc = {
+        /* GPUBufferDescriptor uboDesc = {
             .size             = sizeof(glm::mat4) * sCascadeCount,
             .descriptors      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER,
             .memory_usage     = GPU_MEM_USAGE_CPU_TO_GPU,
             .flags            = GPU_BCF_PERSISTENT_MAP_BIT,
             .prefer_on_device = true
         };
-        mUBO = GPUCreateBuffer(mRefDevice, &uboDesc);
+        mUBO = GPUCreateBuffer(mRefDevice, &uboDesc); */
 
-        GPUDescriptorData dataDesc[2] = {};
-        dataDesc[0].binding           = 0;
-        dataDesc[0].binding_type      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
-        dataDesc[0].buffers           = &mUBO;
-        dataDesc[0].count             = 1;
-        GPUUpdateDescriptorSet(mSet, dataDesc, 1);
+        GPUDescriptorData dataDesc[2]      = {};
+        dataDesc[0].binding                = 0;
+        dataDesc[0].binding_type           = GPU_RESOURCE_TYPE_RW_BUFFER_RAW;
+        dataDesc[0].buffers                = &global::g_global_reader_resource.storage.buffer;
+        uint64_t offsets[1]                = { 0 };
+        uint64_t ranges[1]                 = { sizeof(global::MeshDirectionalLightShadowPerFrameStorageBufferObject) };
+        dataDesc[0].buffers_params.offsets = offsets;
+        dataDesc[0].buffers_params.sizes   = ranges;
+        dataDesc[1].binding                = 1;
+        dataDesc[1].binding_type           = GPU_RESOURCE_TYPE_RW_BUFFER_RAW;
+        dataDesc[1].buffers                = &global::g_global_reader_resource.storage.buffer;
+        uint64_t per_drawcall_offsets[1]   = { 0 };
+        uint64_t per_drawcall_ranges[1]    = { sizeof(global::MeshDirectionalLightShadowPerdrawcallStorageBufferObject) };
+        dataDesc[1].buffers_params.offsets = per_drawcall_offsets;
+        dataDesc[1].buffers_params.sizes   = per_drawcall_ranges;
+        GPUUpdateDescriptorSet(mSet, dataDesc, 2);
 
         GPUSamplerDescriptor sampler_desc = {
             .min_filter   = GPU_FILTER_TYPE_LINEAR,
@@ -306,7 +260,7 @@ public:
         };
         mSampler = GPUCreateSampler(mRefDevice, &sampler_desc);
 
-        dataDesc[0].binding      = 0;
+        /* dataDesc[0].binding      = 0;
         dataDesc[0].binding_type = GPU_RESOURCE_TYPE_TEXTURE;
         dataDesc[0].textures     = &mDepthTextureView;
         dataDesc[0].count        = 1;
@@ -314,10 +268,10 @@ public:
         dataDesc[1].binding_type = GPU_RESOURCE_TYPE_SAMPLER;
         dataDesc[1].samplers     = &mSampler;
         dataDesc[1].count        = 1;
-        GPUUpdateDescriptorSet(mDebugSet, dataDesc, 2);
+        GPUUpdateDescriptorSet(mDebugSet, dataDesc, 2); */
     }
 
-    struct ShadowDrawSceneInfo
+   /*  struct ShadowDrawSceneInfo
     {
         GPUBufferID vertexBuffer;
         GPUBufferID indexBuffer;
@@ -325,9 +279,9 @@ public:
         std::unordered_map<uint32_t, PBRMaterial*>* materials;
         uint32_t strides;
         glm::mat4 modelMatrix;
-    };
+    }; */
 
-    void Draw(const ShadowDrawSceneInfo& sceneInfo, GPUCommandBufferID cmd, const Camera& cam, const glm::vec4& viewPos, const glm::vec3 lightPos, const BoundingBox& entityBoundingBox)
+    /* void Draw(const ShadowDrawSceneInfo& sceneInfo, GPUCommandBufferID cmd, const Camera& cam, const glm::vec4& viewPos, const glm::vec3 lightPos, const BoundingBox& entityBoundingBox)
     {
         //glm::vec3 lightDir = glm::normalize(lightPos);
         CalculateDirectionalLightCamera2(cam, entityBoundingBox, sceneInfo.modelMatrix, lightPos);
@@ -438,7 +392,9 @@ public:
             barrier.texture_barriers       = &tex_barrier1;
         }
         GPUCmdResourceBarrier(cmd, &barrier);
-    }
+    } */
+
+    void Draw(GPUCommandBufferID cmd, const class EntityModel* modelEntity, const Camera* cam, const FakeReal::math::Vector3& lightPos, uint32_t frameIndex);
 
     void DebugShadow(GPURenderPassEncoderID encoder)
     {
@@ -783,111 +739,7 @@ public:
         int i = 0;
     }
 
-    void CalculateDirectionalLightCamera2(const Camera& cam, const BoundingBox& entityBoundingBox, const glm::mat4& entityModel, const glm::vec3& lightDir)
-    {
-        //CreateEuler(glm::radians(0.f), glm::radians(45.f), glm::radians((0.f)));
-        // Calculate split depths based on view camera frustum
-        // Based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
-        float cascadeSplits[sCascadeCount];
-        float lambda    = 0.95f;
-        float n         = cam.getNearClip();
-        float f         = cam.getFarClip();
-        float clipRange = f - n;
-        for (uint32_t i = 0; i < sCascadeCount; i++)
-        {
-            float p       = (i + 1) / (float)sCascadeCount;
-            float log     = n * glm::pow(f / n, p);
-            float uniform = n + clipRange * p;
-            float d       = lambda * log + (1.f - lambda) * uniform; // l * log + un - l * un : lambda * (log - uniform) + uniform;
-
-            cascadeSplits[i] = (d - n) / clipRange;
-        }
-
-        BoundingBox casterAABB;
-        {
-            //just one entity for now;
-            casterAABB.Merge(BoundingBox::BoundingBoxTransform(entityBoundingBox, entityModel));
-        }
-
-        glm::mat4 vp    = cam.matrices.perspective * cam.matrices.view;
-        glm::mat4 invVP = glm::inverse(vp);
-        // Calculate orthographic projection matrix for each cascade
-        size_t constexpr CORNER_COUNT = 8;
-        float lastSplitDist = 0.0;
-        for (uint32_t i = 0; i < sCascadeCount; i++)
-        {
-            float splitDist = cascadeSplits[i];
-            glm::vec3 frustumPointsNDCSpace[8] = {
-                glm::vec3(-1.0f, -1.0f, 0.0f),
-                glm::vec3(1.0f, -1.0f, 0.0f),
-                glm::vec3(1.0f, 1.0f, 0.0f),
-                glm::vec3(-1.0f, 1.0f, 0.0f),
-                glm::vec3(-1.0f, -1.0f, 1.0f),
-                glm::vec3(1.0f, -1.0f, 1.0f),
-                glm::vec3(1.0f, 1.0f, 1.0f),
-                glm::vec3(-1.0f, 1.0f, 1.0f),
-            };
-            for (size_t j = 0; j < CORNER_COUNT; ++j)
-            {
-                glm::vec4 frustumPointWith_w = invVP * glm::vec4(frustumPointsNDCSpace[j], 1.0);
-                frustumPointsNDCSpace[j]     = frustumPointWith_w / frustumPointWith_w.w;
-            }
-
-            BoundingBox receiverAABB;
-            for (uint32_t j = 0; j < 4; j++)
-            {
-                glm::vec3 dist               = frustumPointsNDCSpace[j + 4] - frustumPointsNDCSpace[j];
-                frustumPointsNDCSpace[j + 4] = frustumPointsNDCSpace[j] + (dist * splitDist);
-                frustumPointsNDCSpace[j]     = frustumPointsNDCSpace[j] + (dist * lastSplitDist);
-                receiverAABB.Update(frustumPointsNDCSpace[j]);
-                receiverAABB.Update(frustumPointsNDCSpace[j + 4]);
-            }
-
-            glm::vec3 lightDir1 = glm::normalize(-lightDir);
-            glm::mat4 lightRot = LookDirRH(glm::vec3(0.f), lightDir1);
-
-            BoundingBox newCasterAABB = BoundingBox::BoundingBoxTransform(casterAABB, lightRot);
-            BoundingBox newReceiveAABB = BoundingBox::BoundingBoxTransform(receiverAABB, lightRot);
-
-            BoundingBox minAABB = newReceiveAABB.GetMin(newCasterAABB);
-            glm::vec3 minP(minAABB.min.x, minAABB.min.y, newCasterAABB.min.z);
-            glm::vec3 maxP(minAABB.max.x, minAABB.max.y, newCasterAABB.max.z);
-            minAABB.min = minP;
-            minAABB.max = maxP;
-
-            glm::vec3 center = minAABB.GetCenter();
-
-            glm::vec3 front(0.f, 0.f, -1);
-            glm::vec3 rayOri(center);
-            glm::vec3 rayDir(front * (-1.f)); // front vec3(0.f, 0.f, -1.f);
-
-            float tNear = 0.f, tFar = 0.f;
-            if (minAABB.RelationWithRay(rayOri, glm::normalize(rayDir), tNear, tFar) != 1)
-            {
-                cascades[i].splitDepth     = (cam.getNearClip() + splitDist * clipRange) * -1.0f;
-                cascades[i].viewProjMatrix = glm::mat4(1.f);
-
-                lastSplitDist = cascadeSplits[i];
-                continue;
-            }
-
-            glm::vec3 lightPT = center - front * tNear * 10.f;
-            glm::vec3 newLigthPT = glm::inverse(lightRot) * glm::vec4(lightPT, 1.f);
-
-            glm::mat4 lightViewMT = LookDirRH(newLigthPT, lightDir1);
-
-            minAABB.max = minAABB.max - lightPT;
-            minAABB.min = minAABB.min - lightPT;
-
-            glm::mat4 ligthOrthoMT = glm::ortho(minAABB.min.x, minAABB.max.x, minAABB.min.y, minAABB.max.y, -minAABB.max.z, -minAABB.min.z);
-            
-            // Store split distance and matrix in cascade
-            cascades[i].splitDepth     = (cam.getNearClip() + splitDist * clipRange) * -1.0f;
-            cascades[i].viewProjMatrix = ligthOrthoMT * lightViewMT;
-
-            lastSplitDist = cascadeSplits[i];
-        }
-    }
+    void CalculateDirectionalLightCamera2(const Camera& cam, const BoundingBox& entityBoundingBox, const glm::vec3& lightDir);
 
     glm::mat4 LookDirLH(const glm::vec3& pos, const glm::vec3& dir, const glm::vec3& up = glm::vec3(0.f, 1.f, 0.f)) const
     {

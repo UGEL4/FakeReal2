@@ -138,6 +138,11 @@ namespace global
         RenderMeshInstance meshInstances[MeshPerDrawcallMaxInstanceCount];
     };
 
+    struct MeshDirectionalLightShadowPerFrameStorageBufferObject
+    {
+        FakeReal::math::Matrix4X4 lightSpaceMatrix[4];
+    };
+
     struct StorageBuffer
     {
         GPUBufferID buffer{nullptr};

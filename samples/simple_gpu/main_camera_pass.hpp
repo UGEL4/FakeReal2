@@ -88,7 +88,7 @@ public:
     }; */
 
     GPUDescriptorSetID mDefaultMeshDescriptorSet{nullptr};
-    GPUDescriptorSetID mShadowMapSet;
+    GPUDescriptorSetID mShadowMapSet{nullptr};
     GPUBufferID mUBO{nullptr};
 
 public:

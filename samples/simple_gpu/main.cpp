@@ -967,8 +967,8 @@ int main(int argc, char** argv)
     FakeReal::LogSystem::Initialize();
 
     gCamera.type          = Camera::CameraType::firstperson;
-    gCamera.movementSpeed = 100.0f;
-    gCamera.setPerspective(90.0f, (float)WIDTH / (float)HEIGHT, 0.1f, 100000.0f);
+    gCamera.movementSpeed = 10.0f;
+    gCamera.setPerspective(90.0f, (float)WIDTH / (float)HEIGHT, 0.1f, 1000.0f);
     gCamera.rotationSpeed = 0.25f;
     //gCamera.setRotation({ -3.75f, 180.0f, 0.0f });
     gCamera.setPosition({ 0.0f,0.f,-5.f });
@@ -1152,7 +1152,7 @@ void NormalRenderSimple()
 
     MainCameraPass* main_pass = new MainCameraPass();
     main_pass->Initialize(device, graphicQueue, swapchain, ppSwapchainImage, presentSemaphore, presenFences, pools, cmds, skyBox);
-    //main_pass.UpdateShadowMapSet(pCascadeShadow->mDepthTextureView, pCascadeShadow->mSampler);
+    main_pass->UpdateShadowMapSet(pCascadeShadow->mDepthTextureView, pCascadeShadow->mSampler);
 
     EntityModel *entity_model = new EntityModel("../../../../asset/objects/sponza/Sponza_Modular.json.json", device, graphicQueue);
     entity_model->mRootSignature = main_pass->mRootSignature;

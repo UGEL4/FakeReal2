@@ -6,16 +6,21 @@
 layout (triangles, invocations = 4) in;
 layout (triangle_strip, max_vertices = 3) out;
 
-layout(set = 0, binding = 0) uniform UniformBufferObj
+/* layout(set = 0, binding = 0) uniform UniformBufferObj
 {
     mat4 lightSpaceMatrix[4];
-}ubo;
+}ubo; */
+
+layout(set = 0, binding = 0) readonly buffer _unused_name_per_frame_dynamic
+{
+    mat4 lightSpaceMatrix[4];
+};
 
 void main(void)
 {
     for(int i=0;i<3;i++)
     {
-        gl_Position = ubo.lightSpaceMatrix[gl_InvocationID]*gl_in[i].gl_Position;
+        gl_Position = lightSpaceMatrix[gl_InvocationID]*gl_in[i].gl_Position;
         gl_Layer = gl_InvocationID;
         EmitVertex();
     }

@@ -12,6 +12,7 @@ MainCameraPass::MainCameraPass()
 
 MainCameraPass::~MainCameraPass()
 {
+    if (mShadowMapSet) GPUFreeDescriptorSet(mShadowMapSet); mShadowMapSet = nullptr;
     if (mUBO) GPUFreeBuffer(mUBO); mUBO = nullptr;
     if (mDefaultMeshDescriptorSet) GPUFreeDescriptorSet(mDefaultMeshDescriptorSet); mDefaultMeshDescriptorSet = nullptr;
     //if (mUploadStorageBuffer.buffer) GPUFreeBuffer(mUploadStorageBuffer.buffer); mUploadStorageBuffer.buffer = nullptr;
@@ -156,11 +157,11 @@ void MainCameraPass::DrawForward(const EntityModel* modelEntity, const Camera* c
         .directionalLight.color     = glm::vec3(1.0, 1.0, 1.0),
         .pointLight                 = pointLight
     };
-   /*  for (uint32_t i = 0; i < CascadeShadowPass::sCascadeCount; i++)
+    for (uint32_t i = 0; i < CascadeShadowPass::sCascadeCount; i++)
     {
         ubo.cascadeSplits[i * 4] = shadowPass->cascades[i].splitDepth;
         ubo.lightSpaceMat[i] = shadowPass->cascades[i].viewProjMatrix;
-    } */
+    }
     memcpy(mUBO->cpu_mapped_address, &ubo, sizeof(ubo));
 
     GPUAcquireNextDescriptor acq_desc{};
@@ -180,14 +181,14 @@ void MainCameraPass::DrawForward(const EntityModel* modelEntity, const Camera* c
         FakeReal::math::Vector4 viewPos = glm::vec4(-cam->position.x, -cam->position.y, -cam->position.z, 1.0);
         FakeReal::math::Vector3 directLightPos(-0.5f, 0.5f, 0.f);
         // render shadow
-        CascadeShadowPass::ShadowDrawSceneInfo sceneInfo /* = {
+        /* CascadeShadowPass::ShadowDrawSceneInfo sceneInfo = {
             .vertexBuffer = pModel->mVertexBuffer,
             .indexBuffer  = pModel->mIndexBuffer,
             .mesh         = &(pModel->mMesh),
             .materials    = &(pModel->mMaterials),
             .strides      = sizeof(NewVertex),
             .modelMatrix  = pModel->mModelMatrix
-        } */;
+        }; */
 
         // render scene
         GPUTextureBarrier tex_barrier{
@@ -202,7 +203,7 @@ void MainCameraPass::DrawForward(const EntityModel* modelEntity, const Camera* c
         GPUCmdResourceBarrier(cmd, &draw_barrier);
 
         // pShadowPass->Draw(sceneInfo, cmd, gCamera.matrices.view, gCamera.matrices.perspective, viewPos, directLightPos, pModel->mBoundingBox);
-        // const_cast<CascadeShadowPass*>(shadowPass)->Draw(sceneInfo, cmd, *cam, viewPos, directLightPos, modelEntity->mAABB);
+        const_cast<CascadeShadowPass*>(shadowPass)->Draw(cmd, modelEntity, cam, directLightPos, mCurrFrame);
         GPUColorAttachment screenAttachment{
             .view         = backbuffer_view,
             .load_action  = GPU_LOAD_ACTION_CLEAR,
@@ -330,6 +331,8 @@ void MainCameraPass::DrawMeshLighting(GPURenderPassEncoderID encoder, const Enti
             uint32_t totalInstanceCount = mesh_nodes.size();
             if (totalInstanceCount > 0)
             {
+                GPURenderEncoderBindDescriptorSet(encoder, mShadowMapSet);
+                
                 uint32_t strides = sizeof(global::GlobalMeshRes::Vertex);
                 GPURenderEncoderBindVertexBuffers(encoder, 1, &mesh->vertexBuffer, &strides, nullptr);
                 GPURenderEncoderBindIndexBuffer(encoder, mesh->indexBuffer, 0, sizeof(uint32_t));
@@ -463,7 +466,7 @@ void MainCameraPass::SetupRenderPipeline()
         .root_signature = mRootSignature,
         .set_index      = 2
     };
-    //mShadowMapSet = GPUCreateDescriptorSet(mDevice, &setDesc);
+    mShadowMapSet = GPUCreateDescriptorSet(mDevice, &setDesc);
 
     GPUBufferDescriptor uboDesc = {
         .size             = sizeof(PerframeUniformBuffer),
