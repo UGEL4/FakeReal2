@@ -90,7 +90,7 @@ EntityModel::EntityModel(const std::string_view file, GPUDeviceID device, GPUQue
                     {
                         TransformComponent comp;
                         comp.transform = subMesh.transform;
-                        mAABB.Merge(BoundingBox::BoundingBoxTransform(aabbPair->second, comp.GetMatrix()));
+                        mAABB.Merge(BoundingBox::BoundingBoxTransform(aabbPair->second, mTransformComp.GetMatrix() * comp.GetMatrix()));
                     }
                 }
                 reader.EndObject();

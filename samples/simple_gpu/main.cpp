@@ -971,7 +971,7 @@ int main(int argc, char** argv)
     gCamera.setPerspective(90.0f, (float)WIDTH / (float)HEIGHT, 0.1f, 1000.0f);
     gCamera.rotationSpeed = 0.25f;
     //gCamera.setRotation({ -3.75f, 180.0f, 0.0f });
-    gCamera.setPosition({ 0.0f,0.f,-5.f });
+    gCamera.setPosition({ 0.f,-5.f,0.f });
 
     NormalRenderSimple();
    // RenderGraphSimple();

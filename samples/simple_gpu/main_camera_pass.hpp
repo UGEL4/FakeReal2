@@ -1,38 +1,8 @@
 #pragma once
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "Gpu/GpuApi.h"
 #include "Math/Matrix.h"
 
-/* struct DirectionalLight
-{
-    glm::vec3 direction;
-    float padding_direction;
-    glm::vec3 color;
-    float padding_color;
-};
-
-struct PointLight
-{
-    glm::vec3 position;
-    float padding_position;
-    glm::vec3 color;
-    float padding_color;
-    float constant;
-    float linear;
-    float quadratic;
-    float padding;
-};
-
-struct PerframeUniformBuffer
-{
-    glm::mat4 view;
-    glm::mat4 proj;
-    glm::mat4 lightSpaceMat[4];
-    glm::vec4 viewPos;
-    DirectionalLight directionalLight;
-    PointLight pointLight;
-    float cascadeSplits[16]; //stupid std140， 16 byte align, need 16 * 4 bytes, that means 16 * sizeof(float)
-};
- */
 class MainCameraPass
 {
 public:
@@ -64,28 +34,8 @@ public:
     GPUTextureID mDepthTex{nullptr};
     GPUTextureViewID mDepthTexView{nullptr};
 
-    /* struct StorageBuffer
-    {
-        GPUBufferID buffer{nullptr};
-        uint32_t minAlignment;
-        uint32_t maxRange;
-        std::vector<uint32_t> _global_upload_ringbuffers_begin;
-        std::vector<uint32_t> _global_upload_ringbuffers_end;
-        std::vector<uint32_t> _global_upload_ringbuffers_size;
-    };
-    StorageBuffer mUploadStorageBuffer; */
 
     uint32_t mCurrFrame {0};
-
-    /* static constexpr uint32_t MeshPerDrawcallMaxInstanceCount = 64;
-    struct RenderMeshInstance
-    {
-        FakeReal::math::Matrix4X4 model;
-    };
-    struct MeshPerdrawcallStorageBufferObject
-    {
-        RenderMeshInstance meshInstances[MeshPerDrawcallMaxInstanceCount];
-    }; */
 
     GPUDescriptorSetID mDefaultMeshDescriptorSet{nullptr};
     GPUDescriptorSetID mShadowMapSet{nullptr};

@@ -1,7 +1,7 @@
 #pragma once
-#include <glm/vec3.hpp>
+#include "Math/Vector.h"
 struct Plane
 {
-    glm::vec3 normal;
-    float distance;
+    FakeReal::math::Vector3 normal {0.f};
+    float distance {0.f};
 };
