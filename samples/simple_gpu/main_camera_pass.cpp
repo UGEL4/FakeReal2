@@ -464,3 +464,18 @@ void MainCameraPass::UpdateShadowMapSet(GPUTextureViewID shadowMap, GPUSamplerID
     dataDesc[1].count             = 1;
     GPUUpdateDescriptorSet(mShadowMapSet, dataDesc, 2);
 }
+
+void MainCameraPass::UpdateVisible(const Camera* cam, const EntityModel* modelEntity)
+{
+    mCuller.ClearVisibleSet();
+    mCuller.ClearAllPanel();
+    mCuller.PushCameraPlane(*const_cast<Camera*>(cam));
+    for (auto& comp : modelEntity->mMeshComp.rawMeshes)
+    {
+        auto iter = global::g_cache_mesh_bounding_box.find(comp.meshFile);
+        if (mCuller.IsVisible(iter->second))
+        {
+            mCuller.AddVisibleAABB(&iter->second);
+        }
+    }
+}

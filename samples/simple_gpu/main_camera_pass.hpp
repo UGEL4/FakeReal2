@@ -2,6 +2,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "Gpu/GpuApi.h"
 #include "Math/Matrix.h"
+#include "culler.hpp"
 
 class MainCameraPass
 {
@@ -20,6 +21,7 @@ public:
     void DrawMeshLighting(GPURenderPassEncoderID encoder, const class EntityModel* modelEntity);
     void SetupRenderPipeline();
     void UpdateShadowMapSet(GPUTextureViewID shadowMap, GPUSamplerID sampler);
+    void UpdateVisible(const class Camera* cam, const class EntityModel* modelEntity);
 
     GPUDeviceID mDevice;
     GPUQueueID mGfxQueue;
@@ -43,4 +45,7 @@ public:
 
 public:
     const class SkyBox* mSkyBoxRef;
+
+public:
+    Culler mCuller;
 };

@@ -9,12 +9,7 @@
 
 struct Frustum
 {
-    Plane left;
-    Plane right;
-    Plane bottom;
-    Plane top;
-    Plane near;
-    Plane far;
+    Plane planes[6];//left, right,  bottom, top, near, far
 
     Frustum() = default;
     Frustum(const FakeReal::math::Matrix4X4& projMatrix)
@@ -25,45 +20,51 @@ struct Frustum
     void Initialize(const FakeReal::math::Matrix4X4& projMatrix)
     {
         // https://www8.cs.umu.se/kurser/5DV051/HT12/lab/plane_extraction.pdf  B.1 Plane Extraction for OpenGL
-        left.normal.x = projMatrix[0][0] + projMatrix[3][0];
-        left.normal.y = projMatrix[0][1] + projMatrix[3][1];
-        left.normal.z = projMatrix[0][2] + projMatrix[3][2];
-        left.distance = projMatrix[0][3] + projMatrix[3][3];
+        // left
+        planes[0].normal.x = projMatrix[0][0] + projMatrix[3][0];
+        planes[0].normal.y = projMatrix[0][1] + projMatrix[3][1];
+        planes[0].normal.z = projMatrix[0][2] + projMatrix[3][2];
+        planes[0].distance = projMatrix[0][3] + projMatrix[3][3];
 
-        right.normal.x = projMatrix[3][0] - projMatrix[0][0];
-        right.normal.y = projMatrix[3][1] - projMatrix[0][1];
-        right.normal.z = projMatrix[3][2] - projMatrix[0][2];
-        right.distance = projMatrix[3][3] - projMatrix[0][3];
+        //right
+        planes[1].normal.x = projMatrix[3][0] - projMatrix[0][0];
+        planes[1].normal.y = projMatrix[3][1] - projMatrix[0][1];
+        planes[1].normal.z = projMatrix[3][2] - projMatrix[0][2];
+        planes[1].distance = projMatrix[3][3] - projMatrix[0][3];
 
-        top.normal.x = projMatrix[3][0] - projMatrix[1][0];
-        top.normal.y = projMatrix[3][1] - projMatrix[1][1];
-        top.normal.z = projMatrix[3][2] - projMatrix[1][2];
-        top.distance = projMatrix[3][3] - projMatrix[1][3];
+        //top
+        planes[3].normal.x = projMatrix[3][0] - projMatrix[1][0];
+        planes[3].normal.y = projMatrix[3][1] - projMatrix[1][1];
+        planes[3].normal.z = projMatrix[3][2] - projMatrix[1][2];
+        planes[3].distance = projMatrix[3][3] - projMatrix[1][3];
 
-        bottom.normal.x = projMatrix[1][0] + projMatrix[3][0];
-        bottom.normal.y = projMatrix[1][1] + projMatrix[3][1];
-        bottom.normal.z = projMatrix[1][2] + projMatrix[3][2];
-        bottom.distance = projMatrix[1][3] + projMatrix[3][3];
+        //botttom
+        planes[2].normal.x = projMatrix[1][0] + projMatrix[3][0];
+        planes[2].normal.y = projMatrix[1][1] + projMatrix[3][1];
+        planes[2].normal.z = projMatrix[1][2] + projMatrix[3][2];
+        planes[2].distance = projMatrix[1][3] + projMatrix[3][3];
 
-        near.normal.x = projMatrix[2][0] + projMatrix[3][0];
-        near.normal.y = projMatrix[2][1] + projMatrix[3][1];
-        near.normal.z = projMatrix[2][2] + projMatrix[3][2];
-        near.distance = projMatrix[2][3] + projMatrix[3][3];
+        //near
+        planes[4].normal.x = projMatrix[2][0] + projMatrix[3][0];
+        planes[4].normal.y = projMatrix[2][1] + projMatrix[3][1];
+        planes[4].normal.z = projMatrix[2][2] + projMatrix[3][2];
+        planes[4].distance = projMatrix[2][3] + projMatrix[3][3];
 
-        far.normal.x = projMatrix[3][0] - projMatrix[2][0];
-        far.normal.x = projMatrix[3][1] - projMatrix[2][1];
-        far.normal.x = projMatrix[3][2] - projMatrix[2][2];
-        far.distance = projMatrix[3][3] - projMatrix[2][3];
+        //far
+        planes[5].normal.x = projMatrix[3][0] - projMatrix[2][0];
+        planes[5].normal.x = projMatrix[3][1] - projMatrix[2][1];
+        planes[5].normal.x = projMatrix[3][2] - projMatrix[2][2];
+        planes[5].distance = projMatrix[3][3] - projMatrix[2][3];
 
         // Normalize the plane equations, if requested
         //if (normalize == true)
         {
-            NormalizePlane(left);
-            NormalizePlane(right);
-            NormalizePlane(top);
-            NormalizePlane(bottom);
-            NormalizePlane(near);
-            NormalizePlane(far);
+            NormalizePlane(planes[0]);
+            NormalizePlane(planes[1]);
+            NormalizePlane(planes[2]);
+            NormalizePlane(planes[3]);
+            NormalizePlane(planes[4]);
+            NormalizePlane(planes[5]);
         }
     }
 

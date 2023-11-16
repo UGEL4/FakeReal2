@@ -13,6 +13,7 @@
 //#include <glm/gtc/matrix_transform.hpp>
 
 #include "Math/Matrix.h"
+#include "frustum.hpp"
 
 #if defined(_WIN32)
     #define KEY_ESCAPE VK_ESCAPE
@@ -210,6 +211,15 @@ public:
         }
         updateViewMatrix();
     };
+
+    void GetPlane(Plane planes[6]) const
+    {
+        Frustum frustum(matrices.perspective * matrices.view);
+        for (uint32_t i = 0; i < 6; i++)
+        {
+            planes[i] = frustum.planes[i];
+        }
+    }
 
     // Update camera passing separate axis data (gamepad)
     // Returns true if view or position has been changed

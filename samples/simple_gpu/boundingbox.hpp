@@ -172,4 +172,38 @@ struct BoundingBox
 
         return 1;
     }
+
+    /*
+        \brief  通过寻找包围盒上最接近平面法向量的对角线，实现平面与AABB的相交测试
+        \return 1  若AABB在平面的正半空间上
+        \return -1 若AABB在平面的负半空间上
+        \return 0  若平面与AABB相交
+    */
+    inline int RelationWithPlane(const math::Vector3& n, float d) const
+    {
+        math::Vector3 minP, maxP;
+        for (uint32_t i = 0; i < 3; i++)
+        {
+            if (n[i] >= 0.f)
+            {
+                minP[i] = min[i];
+                maxP[i] = max[i];
+            }
+            else
+            {
+                minP[i] = max[i];
+                maxP[i] = min[i];
+            }
+        }
+
+        if (math::Dot(n, minP) + d > 0.f)
+        {
+            return 1;
+        }
+        else if (math::Dot(n, maxP) + d < 0.f)
+        {
+            return -1;
+        }
+        return 0;
+    }
 };
