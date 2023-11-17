@@ -7,13 +7,13 @@
 class Culler
 {
 public:
-    void GetAllVisibleAABB(std::vector<BoundingBox>& aabbArray);
+    void GetAllVisibleAABB(std::vector<BoundingBox>& aabbArray) const;
     inline void ClearVisibleSet()
     {
         mAABBArray.clear();
     }
 
-    inline void AddVisibleAABB(BoundingBox* aabb)
+    inline void AddVisibleAABB(BoundingBox aabb)
     {
         mAABBArray.push_back(aabb);
     }
@@ -27,7 +27,7 @@ public:
 
     void GetGeometryContent(Camera& cam);
 private:
-    std::vector<BoundingBox*> mAABBArray;
+    std::vector<BoundingBox> mAABBArray;
 
     uint32_t mPlaneNum {0};
     Plane mPlanes[32];

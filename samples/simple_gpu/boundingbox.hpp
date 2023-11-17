@@ -196,6 +196,7 @@ struct BoundingBox
             }
         }
 
+        float dd = n.x * minP.x + n.y * minP.y + n.z * minP.z + d;
         if (math::Dot(n, minP) + d > 0.f)
         {
             return 1;
@@ -206,4 +207,13 @@ struct BoundingBox
         }
         return 0;
     }
+
+    /* int ClassifyPoint(const Plane& plane, const Point& pt)
+    {
+        float d;
+        d = plane.a * pt.x + plane.b * pt.y + plane.c * pt.z + plane.d;
+        if (d < 0) return NEGATIVE;
+        if (d > 0) return POSITIVE;
+        return ON_PLANE;
+    } */
 };

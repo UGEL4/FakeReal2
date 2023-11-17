@@ -112,6 +112,7 @@ void MainCameraPass::Initialize(GPUDeviceID device, GPUQueueID gfxQueue, GPUSwap
 
 void MainCameraPass::DrawForward(const EntityModel* modelEntity, const Camera* cam, const CascadeShadowPass* shadowPass)
 {
+    UpdateVisible(cam, modelEntity);
     //reset
     global::g_global_reader_resource.Reset(mCurrFrame);
 
@@ -150,7 +151,7 @@ void MainCameraPass::DrawForward(const EntityModel* modelEntity, const Camera* c
         GPUCmdResourceBarrier(cmd, &draw_barrier);
 
         // pShadowPass->Draw(sceneInfo, cmd, gCamera.matrices.view, gCamera.matrices.perspective, viewPos, directLightPos, pModel->mBoundingBox);
-        const_cast<CascadeShadowPass*>(shadowPass)->Draw(cmd, modelEntity, cam, directionalLight.direction, mCurrFrame);
+        const_cast<CascadeShadowPass*>(shadowPass)->Draw(cmd, modelEntity, cam, directionalLight.direction, mCurrFrame, mCuller);
 
         // uniform
         {
@@ -470,12 +471,16 @@ void MainCameraPass::UpdateVisible(const Camera* cam, const EntityModel* modelEn
     mCuller.ClearVisibleSet();
     mCuller.ClearAllPanel();
     mCuller.PushCameraPlane(*const_cast<Camera*>(cam));
+    math::Matrix4X4 trans = modelEntity->mTransformComp.GetMatrix();
     for (auto& comp : modelEntity->mMeshComp.rawMeshes)
     {
         auto iter = global::g_cache_mesh_bounding_box.find(comp.meshFile);
-        if (mCuller.IsVisible(iter->second))
+        TransformComponent meshTransComp;
+        meshTransComp.transform = comp.transform;
+        BoundingBox aabb = BoundingBox::BoundingBoxTransform(iter->second, trans * meshTransComp.GetMatrix());
+        if (mCuller.IsVisible(aabb))
         {
-            mCuller.AddVisibleAABB(&iter->second);
+            mCuller.AddVisibleAABB(aabb);
         }
     }
 }

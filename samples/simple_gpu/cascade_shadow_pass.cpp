@@ -1,7 +1,7 @@
 #include "cascade_shadow_pass.hpp"
 #include "model_entity.hpp"
 
-void CascadeShadowPass::Draw(GPUCommandBufferID cmd, const EntityModel* modelEntity, const Camera* cam, const FakeReal::math::Vector3& lightPos, uint32_t frameIndex)
+void CascadeShadowPass::Draw(GPUCommandBufferID cmd, const EntityModel* modelEntity, const Camera* cam, const FakeReal::math::Vector3& lightPos, uint32_t frameIndex,  const Culler& culler)
 {
     // reorganize mesh
     struct MeshNode
@@ -35,7 +35,7 @@ void CascadeShadowPass::Draw(GPUCommandBufferID cmd, const EntityModel* modelEnt
         uint32_t tmp = value + (aligment - 1);
         return tmp - tmp % aligment;
     };
-    CalculateDirectionalLightCamera2(*cam, modelEntity->mAABB, lightPos);
+    CalculateDirectionalLightCamera2(*cam, culler, lightPos);
 
     uint32_t perframe_dynamic_offset                                                    = roundUp(global::g_global_reader_resource.storage._global_upload_ringbuffers_end[frameIndex], global::g_global_reader_resource.storage.minAlignment);
     global::g_global_reader_resource.storage._global_upload_ringbuffers_end[frameIndex] = perframe_dynamic_offset + sizeof(global::MeshDirectionalLightShadowPerFrameStorageBufferObject);
@@ -182,7 +182,7 @@ void CascadeShadowPass::Draw(GPUCommandBufferID cmd, const EntityModel* modelEnt
     GPUCmdResourceBarrier(cmd, &barrier);
 }
 
-void CascadeShadowPass::CalculateDirectionalLightCamera2(const Camera& cam, const BoundingBox& entityBoundingBox, const glm::vec3& lightDir)
+void CascadeShadowPass::CalculateDirectionalLightCamera2(const Camera& cam, const Culler& culler, const glm::vec3& lightDir)
 {
         // CreateEuler(glm::radians(0.f), glm::radians(45.f), glm::radians((0.f)));
         //  Calculate split depths based on view camera frustum
@@ -202,11 +202,17 @@ void CascadeShadowPass::CalculateDirectionalLightCamera2(const Camera& cam, cons
             cascadeSplits[i] = (d - n) / clipRange;
         }
 
-        BoundingBox casterAABB = entityBoundingBox;
+        BoundingBox casterAABB;
         /* {
             // just one entity for now;
             casterAABB.Merge(BoundingBox::BoundingBoxTransform(entityBoundingBox, entityModel));
         } */
+        std::vector<BoundingBox> aabbArray;
+        culler.GetAllVisibleAABB(aabbArray);
+        for (auto& aabb : aabbArray)
+        {
+            casterAABB.Merge(aabb);
+        }
 
         glm::mat4 vp    = cam.matrices.perspective * cam.matrices.view;
         glm::mat4 invVP = glm::inverse(vp);

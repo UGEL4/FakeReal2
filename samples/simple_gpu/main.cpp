@@ -1154,7 +1154,8 @@ void NormalRenderSimple()
     main_pass->Initialize(device, graphicQueue, swapchain, ppSwapchainImage, presentSemaphore, presenFences, pools, cmds, skyBox);
     main_pass->UpdateShadowMapSet(pCascadeShadow->mDepthTextureView, pCascadeShadow->mSampler);
 
-    EntityModel *entity_model = new EntityModel("../../../../asset/objects/sponza/Sponza_Modular.json.json", device, graphicQueue);
+    //EntityModel *entity_model = new EntityModel("../../../../asset/objects/sponza/Sponza_Modular.json.json", device, graphicQueue);
+    EntityModel *entity_model = new EntityModel("../../../../asset/objects/sponza/test_shadow_scene.json", device, graphicQueue);
     entity_model->mRootSignature = main_pass->mRootSignature;
     entity_model->UploadRenderResource();
 

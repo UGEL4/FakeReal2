@@ -8,6 +8,7 @@
 #include "Math/glm/gtx/euler_angles.hpp"
 #include"Math/Transform.h"
 #include "global_resources.hpp"
+#include "culler.hpp"
 
 class CascadeShadowPass
 {
@@ -394,7 +395,7 @@ public:
         GPUCmdResourceBarrier(cmd, &barrier);
     } */
 
-    void Draw(GPUCommandBufferID cmd, const class EntityModel* modelEntity, const Camera* cam, const FakeReal::math::Vector3& lightPos, uint32_t frameIndex);
+    void Draw(GPUCommandBufferID cmd, const class EntityModel* modelEntity, const Camera* cam, const FakeReal::math::Vector3& lightPos, uint32_t frameIndex, const Culler& culler);
 
     void DebugShadow(GPURenderPassEncoderID encoder)
     {
@@ -739,7 +740,7 @@ public:
         int i = 0;
     }
 
-    void CalculateDirectionalLightCamera2(const Camera& cam, const BoundingBox& entityBoundingBox, const glm::vec3& lightDir);
+    void CalculateDirectionalLightCamera2(const Camera& cam, const Culler& culler, const glm::vec3& lightDir);
 
     glm::mat4 LookDirLH(const glm::vec3& pos, const glm::vec3& dir, const glm::vec3& up = glm::vec3(0.f, 1.f, 0.f)) const
     {
