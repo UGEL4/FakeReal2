@@ -14,10 +14,10 @@ struct Frustum
     Frustum() = default;
     Frustum(const FakeReal::math::Matrix4X4& projMatrix)
     {
-        Initialize(projMatrix);
+        Initialize(projMatrix, false);
     }
 
-    void Initialize(const FakeReal::math::Matrix4X4& projMatrix)
+    void Initialize(const FakeReal::math::Matrix4X4& projMatrix, bool bNormalize = false)
     {
         // https://www8.cs.umu.se/kurser/5DV051/HT12/lab/plane_extraction.pdf  B.1 Plane Extraction for OpenGL
         // left
@@ -57,7 +57,7 @@ struct Frustum
         planes[5].distance = projMatrix[3][3] - projMatrix[2][3];
 
         // Normalize the plane equations, if requested
-        //if (normalize == true)
+        if (bNormalize)
         {
             NormalizePlane(planes[0]);
             NormalizePlane(planes[1]);
