@@ -4,6 +4,11 @@
 #include "Math/Matrix.h"
 #include "culler.hpp"
 
+struct DebugCameraUniform
+{
+    FakeReal::math::Matrix4X4 vp;
+};
+
 class MainCameraPass
 {
 public:
@@ -48,4 +53,15 @@ public:
 
 public:
     Culler mCuller;
+
+private:
+    GPURootSignatureID mDebugRS;
+    GPURenderPipelineID mDebugCameraPipeline;
+    GPUDescriptorSetID mDebugCameraSet;
+    GPUBufferID mDebugCameraUBO;
+    GPUBufferID mFrustumVertexBuffer;
+    GPUBufferID mFrustumIndexBuffer;
+
+    void SetupDebugPipeline();
+    void DrawCameraDebug();
 };

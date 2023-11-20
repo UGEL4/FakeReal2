@@ -14,7 +14,7 @@ struct Frustum
     Frustum() = default;
     Frustum(const FakeReal::math::Matrix4X4& projMatrix)
     {
-        Initialize(projMatrix, false);
+        Initialize(projMatrix, true);
     }
 
     void Initialize(const FakeReal::math::Matrix4X4& projMatrix, bool bNormalize = false)

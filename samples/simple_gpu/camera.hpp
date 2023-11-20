@@ -214,7 +214,7 @@ public:
 
     void GetPlane(Plane planes[6]) const
     {
-        Frustum frustum(matrices.perspective * matrices.view);
+        Frustum frustum(matrices.perspective);
         for (uint32_t i = 0; i < 6; i++)
         {
             planes[i] = frustum.planes[i];

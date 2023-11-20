@@ -22,20 +22,29 @@ void Culler::PushCameraPlane(Camera& cam)
 
 bool Culler::IsVisible(const BoundingBox& aabb) const
 {
+    BoundingBox newAABB = BoundingBox::BoundingBoxTransform(aabb, mCamera->matrices.view);
     uint32_t num = 0;
     for (uint32_t i = 0; i < mPlaneNum; i++)
     {
-        int result = aabb.RelationWithPlane(mPlanes[i].normal, mPlanes[i].distance);
+        int result = newAABB.RelationWithPlane(mPlanes[i].normal, mPlanes[i].distance);
         if (result == -1)
         {
             return false;
         }
-        if (aabb.RelationWithPlane(mPlanes[i].normal, mPlanes[i].distance) != -1)
+        if (result == 1)
         {
             num++;
         }
+        /* if (newAABB.RelationWithPlane(mPlanes[i].normal, mPlanes[i].distance) != -1)
+        {
+            num++;
+        } */
     }
-    return num > 0;
+    if (num == mPlaneNum)
+    {
+
+    }
+    return true;
 }
 
 void Culler::GetGeometryContent(Camera& cam)

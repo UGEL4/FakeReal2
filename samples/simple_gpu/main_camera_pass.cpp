@@ -484,3 +484,95 @@ void MainCameraPass::UpdateVisible(const Camera* cam, const EntityModel* modelEn
         }
     }
 }
+
+void MainCameraPass::SetupDebugPipeline()
+{
+    uint32_t* shaderCode;
+    uint32_t size = 0;
+    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/debug_camera.vert", &shaderCode, &size);
+    GPUShaderLibraryDescriptor shaderDesc = {
+        .pName    = u8"",
+        .code     = shaderCode,
+        .codeSize = size,
+        .stage    = GPU_SHADER_STAGE_VERT
+    };
+    GPUShaderLibraryID vsShader = GPUCreateShaderLibrary(mDevice, &shaderDesc);
+    free(shaderCode);
+    shaderCode = nullptr;
+    size = 0;
+    ReadShaderBytes(u8"../../../../samples/simple_gpu/shader/debug_camera.frag", &shaderCode, &size);
+    shaderDesc = {
+        .pName    = u8"",
+        .code     = shaderCode,
+        .codeSize = size,
+        .stage    = GPU_SHADER_STAGE_FRAG
+    };
+    GPUShaderLibraryID psShader = GPUCreateShaderLibrary(mDevice, &shaderDesc);
+    free(shaderCode);
+    shaderCode = nullptr;
+
+    CGPUShaderEntryDescriptor entry_desc[2] = {};
+    entry_desc[0].pLibrary = vsShader;
+    entry_desc[0].entry    = u8"main";
+    entry_desc[0].stage    = GPU_SHADER_STAGE_VERT;
+    entry_desc[1].pLibrary = psShader;
+    entry_desc[1].entry    = u8"main";
+    entry_desc[1].stage    = GPU_SHADER_STAGE_FRAG;
+
+    GPURootSignatureDescriptor rs_desc = {
+        .shaders              = entry_desc,
+        .shader_count         = 2,
+    };
+    mDebugRS = GPUCreateRootSignature(mDevice, &rs_desc);
+
+    // vertex layout
+    GPUVertexLayout vertexLayout {};
+    vertexLayout.attributeCount = 1;
+    vertexLayout.attributes[0]  = { 1, GPU_FORMAT_R32G32B32_SFLOAT, 0, 0, sizeof(float) * 3, GPU_INPUT_RATE_VERTEX };
+    // renderpipeline
+    GPURasterizerStateDescriptor rasterizerState = {
+        .cullMode             = GPU_CULL_MODE_NONE,
+        .fillMode             = GPU_FILL_MODE_SOLID,
+        .frontFace            = GPU_FRONT_FACE_CCW,
+        .depthBias            = 0,
+        .slopeScaledDepthBias = 0.f,
+        .enableMultiSample    = false,
+        .enableScissor        = false,
+        .enableDepthClamp     = false
+    };
+
+    EGPUFormat swapchainFormat = (EGPUFormat)mSwapchain->ppBackBuffers[0]->format;
+    GPURenderPipelineDescriptor pipelineDesc = {
+        .pRootSignature     = mDebugRS,
+        .pVertexShader      = &entry_desc[0],
+        .pFragmentShader    = &entry_desc[1],
+        .pVertexLayout      = &vertexLayout,
+        .pRasterizerState   = &rasterizerState,
+        .primitiveTopology  = GPU_PRIM_TOPO_LINE_LIST,
+        .pColorFormats      = const_cast<EGPUFormat*>(&swapchainFormat),
+        .renderTargetCount  = 1,
+    };
+    mDebugCameraPipeline = GPUCreateRenderPipeline(mDevice, &pipelineDesc);
+    GPUFreeShaderLibrary(vsShader);
+    GPUFreeShaderLibrary(psShader);
+
+    GPUDescriptorSetDescriptor setDesc = {
+        .root_signature = mDebugRS,
+        .set_index      = 0
+    };
+    mDebugCameraSet = GPUCreateDescriptorSet(mDevice, &setDesc);
+
+    GPUBufferDescriptor uboDesc = {
+        .size             = sizeof(DebugCameraUniform),
+        .descriptors      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER,
+        .memory_usage     = GPU_MEM_USAGE_CPU_TO_GPU,
+        .flags            = GPU_BCF_PERSISTENT_MAP_BIT,
+        .prefer_on_device = true
+    };
+    mDebugCameraUBO = GPUCreateBuffer(mDevice, &uboDesc);
+}
+
+void MainCameraPass::DrawCameraDebug()
+{
+
+}
