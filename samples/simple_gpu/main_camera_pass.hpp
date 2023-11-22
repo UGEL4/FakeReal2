@@ -55,13 +55,14 @@ public:
     Culler mCuller;
 
 private:
-    GPURootSignatureID mDebugRS;
-    GPURenderPipelineID mDebugCameraPipeline;
-    GPUDescriptorSetID mDebugCameraSet;
-    GPUBufferID mDebugCameraUBO;
-    GPUBufferID mFrustumVertexBuffer;
-    GPUBufferID mFrustumIndexBuffer;
+    GPURootSignatureID mDebugRS{ nullptr };
+    GPURenderPipelineID mDebugCameraPipeline{ nullptr };
+    GPUDescriptorSetID mDebugCameraSet{ nullptr };
+    GPUBufferID mDebugCameraUBO{ nullptr };
+    GPUBufferID mFrustumVertexBuffer{ nullptr };
+    GPUBufferID mFrustumIndexBuffer{ nullptr };
 
     void SetupDebugPipeline();
-    void DrawCameraDebug();
+    void DrawCameraDebug(const class Camera* cam, GPURenderPassEncoderID encoder);
+    void FreeDebugGpuObject();
 };

@@ -27,4 +27,6 @@ C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V debug_shadow_map.vert -o debu
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V debug_shadow_map.frag -o debug_shadow_map.frag.spv
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V cascade_shadow_map.vert -o cascade_shadow_map.vert.spv
 C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V cascade_shadow_map.geom -o cascade_shadow_map.geom.spv
+C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V debug_camera.vert -o debug_camera.vert.spv
+C:/VulkanSDK/1.3.246.0/Bin/glslangValidator.exe -V debug_camera.frag -o debug_camera.frag.spv
 pause

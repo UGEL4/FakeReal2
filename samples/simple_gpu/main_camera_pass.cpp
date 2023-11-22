@@ -20,6 +20,8 @@ MainCameraPass::~MainCameraPass()
     if (mDepthTex) GPUFreeTexture(mDepthTex); mDepthTex = nullptr;
     if (mPbrPipeline) GPUFreeRenderPipeline(mPbrPipeline); mPbrPipeline = nullptr;
     if (mRootSignature) GPUFreeRootSignature(mRootSignature); mRootSignature = nullptr;
+
+    FreeDebugGpuObject();
 }
 
 void MainCameraPass::Initialize(GPUDeviceID device, GPUQueueID gfxQueue, GPUSwapchainID swapchain,
@@ -107,6 +109,9 @@ void MainCameraPass::Initialize(GPUDeviceID device, GPUQueueID gfxQueue, GPUSwap
     dataDesc[5].buffers           = &mUBO;
     dataDesc[5].count             = 1;
     GPUUpdateDescriptorSet(mDefaultMeshDescriptorSet, dataDesc, sizeof(dataDesc) / sizeof(dataDesc[0]));
+
+    //debug
+    SetupDebugPipeline();
 
 }
 
@@ -213,6 +218,8 @@ void MainCameraPass::DrawForward(const EntityModel* modelEntity, const Camera* c
             //const_cast<SkyBox*>(mSkyBoxRef)->Draw(encoder, cam->matrices.view, cam->matrices.perspective, viewPos);
 
             // pShadowPass->DebugShadow(encoder);
+
+            DrawCameraDebug(cam, encoder);
         }
         GPUCmdEndRenderPass(cmd, encoder);
 
@@ -540,6 +547,11 @@ void MainCameraPass::SetupDebugPipeline()
         .enableScissor        = false,
         .enableDepthClamp     = false
     };
+    GPUDepthStateDesc depthDesc = {
+        .depthTest  = true,
+        .depthWrite = true,
+        .depthFunc  = GPU_CMP_LEQUAL
+    };
 
     EGPUFormat swapchainFormat = (EGPUFormat)mSwapchain->ppBackBuffers[0]->format;
     GPURenderPipelineDescriptor pipelineDesc = {
@@ -547,10 +559,12 @@ void MainCameraPass::SetupDebugPipeline()
         .pVertexShader      = &entry_desc[0],
         .pFragmentShader    = &entry_desc[1],
         .pVertexLayout      = &vertexLayout,
+        .pDepthState        = &depthDesc,
         .pRasterizerState   = &rasterizerState,
         .primitiveTopology  = GPU_PRIM_TOPO_LINE_LIST,
         .pColorFormats      = const_cast<EGPUFormat*>(&swapchainFormat),
         .renderTargetCount  = 1,
+        .depthStencilFormat = GPU_FORMAT_D32_SFLOAT
     };
     mDebugCameraPipeline = GPUCreateRenderPipeline(mDevice, &pipelineDesc);
     GPUFreeShaderLibrary(vsShader);
@@ -570,9 +584,144 @@ void MainCameraPass::SetupDebugPipeline()
         .prefer_on_device = true
     };
     mDebugCameraUBO = GPUCreateBuffer(mDevice, &uboDesc);
+
+    GPUDescriptorData dataDesc[1] = {};
+    dataDesc[0].binding           = 0;
+    dataDesc[0].binding_type      = GPU_RESOURCE_TYPE_UNIFORM_BUFFER;
+    dataDesc[0].buffers           = &mDebugCameraUBO;
+    dataDesc[0].count             = 1;
+    GPUUpdateDescriptorSet(mDebugCameraSet, dataDesc, sizeof(dataDesc) / sizeof(dataDesc[0]));
 }
 
-void MainCameraPass::DrawCameraDebug()
+void MainCameraPass::DrawCameraDebug(const Camera* cam, GPURenderPassEncoderID encoder)
 {
+    if (mFrustumVertexBuffer == nullptr)
+    {
+        glm::vec3 frustumPointsNDCSpace[8] = {
+            glm::vec3(-1.0f, -1.0f, 0.0f),
+            glm::vec3(1.0f, -1.0f, 0.0f),
+            glm::vec3(1.0f, 1.0f, 0.0f),
+            glm::vec3(-1.0f, 1.0f, 0.0f),
+            glm::vec3(-1.0f, -1.0f, 1.0f),
+            glm::vec3(1.0f, -1.0f, 1.0f),
+            glm::vec3(1.0f, 1.0f, 1.0f),
+            glm::vec3(-1.0f, 1.0f, 1.0f),
+        };
+        math::Matrix4X4 invProj = glm::inverse(cam->matrices.perspective);
+        for (size_t j = 0; j < 8; ++j)
+        {
+            glm::vec4 frustumPointWith_w = invProj * glm::vec4(frustumPointsNDCSpace[j], 1.0);
+            frustumPointsNDCSpace[j]     = frustumPointWith_w / frustumPointWith_w.w;
+        }
 
+        uint32_t indices[] = {
+            0,1,1,2,2,3,3,0,4,5,5,6,6,7,7,4,0,4,1,5,2,6,3,7
+        };
+
+        uint32_t vb_size           = sizeof(frustumPointsNDCSpace);
+        GPUBufferDescriptor v_desc = {
+            .size         = vb_size,
+            .descriptors  = GPU_RESOURCE_TYPE_VERTEX_BUFFER,
+            .memory_usage = GPU_MEM_USAGE_GPU_ONLY,
+            .flags        = GPU_BCF_OWN_MEMORY_BIT
+        };
+        mFrustumVertexBuffer = GPUCreateBuffer(mDevice, &v_desc);
+
+        uint32_t ib_size           = sizeof(indices);
+        GPUBufferDescriptor i_desc = {
+            .size         = ib_size,
+            .descriptors  = GPU_RESOURCE_TYPE_INDEX_BUFFER,
+            .memory_usage = GPU_MEM_USAGE_GPU_ONLY,
+            .flags        = GPU_BCF_OWN_MEMORY_BIT
+        };
+        mFrustumIndexBuffer = GPUCreateBuffer(mDevice, &i_desc);
+
+        uint32_t uploadBufferSize         = vb_size + ib_size;
+        GPUBufferDescriptor upload_buffer = {
+            .size         = uploadBufferSize,
+            .descriptors  = GPU_RESOURCE_TYPE_NONE,
+            .memory_usage = GPU_MEM_USAGE_CPU_ONLY,
+            .flags        = GPU_BCF_OWN_MEMORY_BIT | GPU_BCF_PERSISTENT_MAP_BIT,
+        };
+        GPUBufferID uploadBuffer = GPUCreateBuffer(mDevice, &upload_buffer);
+
+        GPUCommandPoolID pool               = GPUCreateCommandPool(mGfxQueue);
+        GPUCommandBufferDescriptor cmd_desc = {
+            .isSecondary = false
+        };
+        GPUCommandBufferID cmd = GPUCreateCommandBuffer(pool, &cmd_desc);
+
+        GPUResetCommandPool(pool);
+        GPUCmdBegin(cmd);
+        {
+            memcpy(uploadBuffer->cpu_mapped_address, frustumPointsNDCSpace, vb_size);
+            GPUBufferToBufferTransfer trans_desc = {
+                .dst        = mFrustumVertexBuffer,
+                .dst_offset = 0,
+                .src        = uploadBuffer,
+                .src_offset = 0,
+                .size       = vb_size
+            };
+            GPUCmdTransferBufferToBuffer(cmd, &trans_desc);
+
+            memcpy((uint8_t*)uploadBuffer->cpu_mapped_address + v_desc.size, indices, ib_size);
+            trans_desc = {
+                .dst        = mFrustumIndexBuffer,
+                .dst_offset = 0,
+                .src        = uploadBuffer,
+                .src_offset = vb_size, // vertexbuffer
+                .size       = ib_size
+            };
+            GPUCmdTransferBufferToBuffer(cmd, &trans_desc);
+
+            GPUBufferBarrier barriers[2]           = {};
+            barriers[0].buffer                     = mFrustumVertexBuffer;
+            barriers[0].src_state                  = GPU_RESOURCE_STATE_COPY_DEST;
+            barriers[0].dst_state                  = GPU_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+            barriers[1].buffer                     = mFrustumIndexBuffer;
+            barriers[1].src_state                  = GPU_RESOURCE_STATE_COPY_DEST;
+            barriers[1].dst_state                  = GPU_RESOURCE_STATE_INDEX_BUFFER;
+            GPUResourceBarrierDescriptor rs_barrer = {
+                .buffer_barriers       = barriers,
+                .buffer_barriers_count = 2
+            };
+            GPUCmdResourceBarrier(cmd, &rs_barrer);
+        }
+        GPUCmdEnd(cmd);
+        GPUQueueSubmitDescriptor cpy_submit = { .cmds = &cmd, .cmds_count = 1 };
+        GPUSubmitQueue(mGfxQueue, &cpy_submit);
+        GPUWaitQueueIdle(mGfxQueue);
+
+        GPUFreeBuffer(uploadBuffer);
+        GPUFreeCommandBuffer(cmd);
+        GPUFreeCommandPool(pool);
+        return;
+    }
+
+    DebugCameraUniform ubo;
+    ubo.vp = cam->matrices.perspective * cam->matrices.view;
+    memcpy(mDebugCameraUBO->cpu_mapped_address, &ubo, sizeof(DebugCameraUniform));
+
+    GPURenderEncoderBindPipeline(encoder, mDebugCameraPipeline);
+    uint32_t strides = sizeof(math::Vector3);
+    GPURenderEncoderBindVertexBuffers(encoder, 1, &mFrustumVertexBuffer, &strides, nullptr);
+    GPURenderEncoderBindIndexBuffer(encoder, mFrustumIndexBuffer, 0, sizeof(uint32_t));
+    GPURenderEncoderBindDescriptorSet(encoder, mDebugCameraSet);
+    GPURenderEncoderDrawIndexedInstanced(encoder, 24, 1, 0, 0, 0);
+}
+
+void MainCameraPass::FreeDebugGpuObject()
+{
+    if (mDebugCameraUBO) GPUFreeBuffer(mDebugCameraUBO);
+    if (mFrustumIndexBuffer) GPUFreeBuffer(mFrustumIndexBuffer);
+    if (mFrustumVertexBuffer) GPUFreeBuffer(mFrustumVertexBuffer);
+    if (mDebugCameraSet) GPUFreeDescriptorSet(mDebugCameraSet);
+    if (mDebugCameraPipeline) GPUFreeRenderPipeline(mDebugCameraPipeline);
+    if (mDebugRS) GPUFreeRootSignature(mDebugRS);
+    mDebugCameraUBO      = nullptr;
+    mFrustumIndexBuffer  = nullptr;
+    mFrustumVertexBuffer = nullptr;
+    mDebugCameraSet      = nullptr;
+    mDebugCameraPipeline = nullptr;
+    mDebugRS             = nullptr;
 }
