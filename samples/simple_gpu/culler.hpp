@@ -19,11 +19,13 @@ public:
     }
 
     void PushCameraPlane(Camera& cam);
+    void PushFPSCameraPlane(FPSCamera& cam);
     void ClearAllPanel()
     {
         mPlaneNum = 0;
     }
     bool IsVisible(const BoundingBox& aabb) const;
+    bool IsVisible1(const BoundingBox& aabb) const;
 
     void GetGeometryContent(Camera& cam);
 private:
@@ -32,4 +34,5 @@ private:
     uint32_t mPlaneNum {0};
     Plane mPlanes[32];
     Camera* mCamera;
+    FPSCamera* mFPSCamera {nullptr};
 };

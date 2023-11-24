@@ -117,7 +117,14 @@ void MainCameraPass::Initialize(GPUDeviceID device, GPUQueueID gfxQueue, GPUSwap
 
 void MainCameraPass::DrawForward(const EntityModel* modelEntity, const Camera* cam, const CascadeShadowPass* shadowPass)
 {
-    UpdateVisible(cam, modelEntity);
+    FPSCamera camera;
+    //camera.type          = Camera::CameraType::firstperson;
+    camera.movementSpeed = 10.0f;
+    camera.setPerspective(90.0f, (float)1080 / (float)1080, 0.1f, 1000.0f);
+    camera.rotationSpeed = 0.25f;
+    camera.setRotation({ 0.f, -90.0f, 0.0f });
+    camera.setPosition({ -25.f, 5.f, 0.f });
+    UpdateVisible(&camera, modelEntity);
     //reset
     global::g_global_reader_resource.Reset(mCurrFrame);
 
@@ -473,11 +480,11 @@ void MainCameraPass::UpdateShadowMapSet(GPUTextureViewID shadowMap, GPUSamplerID
     GPUUpdateDescriptorSet(mShadowMapSet, dataDesc, 2);
 }
 
-void MainCameraPass::UpdateVisible(const Camera* cam, const EntityModel* modelEntity)
+void MainCameraPass::UpdateVisible(const FPSCamera* cam, const EntityModel* modelEntity)
 {
     mCuller.ClearVisibleSet();
     mCuller.ClearAllPanel();
-    mCuller.PushCameraPlane(*const_cast<Camera*>(cam));
+    mCuller.PushFPSCameraPlane(*const_cast<FPSCamera*>(cam));
     math::Matrix4X4 trans = modelEntity->mTransformComp.GetMatrix();
     for (auto& comp : modelEntity->mMeshComp.rawMeshes)
     {
@@ -485,7 +492,7 @@ void MainCameraPass::UpdateVisible(const Camera* cam, const EntityModel* modelEn
         TransformComponent meshTransComp;
         meshTransComp.transform = comp.transform;
         BoundingBox aabb = BoundingBox::BoundingBoxTransform(iter->second, trans * meshTransComp.GetMatrix());
-        if (mCuller.IsVisible(aabb))
+        if (mCuller.IsVisible1(aabb))
         {
             mCuller.AddVisibleAABB(aabb);
         }
@@ -561,7 +568,7 @@ void MainCameraPass::SetupDebugPipeline()
         .pVertexLayout      = &vertexLayout,
         .pDepthState        = &depthDesc,
         .pRasterizerState   = &rasterizerState,
-        .primitiveTopology  = GPU_PRIM_TOPO_LINE_LIST,
+        .primitiveTopology  = GPU_PRIM_TOPO_TRI_LIST,
         .pColorFormats      = const_cast<EGPUFormat*>(&swapchainFormat),
         .renderTargetCount  = 1,
         .depthStencilFormat = GPU_FORMAT_D32_SFLOAT
@@ -597,6 +604,14 @@ void MainCameraPass::DrawCameraDebug(const Camera* cam, GPURenderPassEncoderID e
 {
     if (mFrustumVertexBuffer == nullptr)
     {
+        FPSCamera camera;
+        //camera.type          = Camera::CameraType::firstperson;
+        camera.movementSpeed = 10.0f;
+        camera.setPerspective(90.0f, (float)1080 / (float)1080, 0.1f, 1000.0f);
+        camera.rotationSpeed = 0.25f;
+        camera.setRotation({ 0.f, 90.0f, 0.0f });
+        camera.setPosition({ 25.f, -5.f, 0.f });
+
         glm::vec3 frustumPointsNDCSpace[8] = {
             glm::vec3(-1.0f, -1.0f, 0.0f),
             glm::vec3(1.0f, -1.0f, 0.0f),
@@ -607,15 +622,22 @@ void MainCameraPass::DrawCameraDebug(const Camera* cam, GPURenderPassEncoderID e
             glm::vec3(1.0f, 1.0f, 1.0f),
             glm::vec3(-1.0f, 1.0f, 1.0f),
         };
-        math::Matrix4X4 invProj = glm::inverse(cam->matrices.perspective);
+        math::Matrix4X4 invProj = glm::inverse(camera.matrices.perspective * camera.matrices.view);
         for (size_t j = 0; j < 8; ++j)
         {
             glm::vec4 frustumPointWith_w = invProj * glm::vec4(frustumPointsNDCSpace[j], 1.0);
             frustumPointsNDCSpace[j]     = frustumPointWith_w / frustumPointWith_w.w;
         }
 
-        uint32_t indices[] = {
+        /* uint32_t indices[] = {
             0,1,1,2,2,3,3,0,4,5,5,6,6,7,7,4,0,4,1,5,2,6,3,7
+        }; */
+
+        uint32_t indices[] = {
+            0,1,2,2,3,0,
+            4,7,6,6,5,4,
+            1,5,6,6,2,1,
+            0,3,7,7,4,0
         };
 
         uint32_t vb_size           = sizeof(frustumPointsNDCSpace);

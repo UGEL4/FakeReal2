@@ -14,6 +14,7 @@
 
 #include "Math/Matrix.h"
 #include "frustum.hpp"
+#include "Math/Quaternion.h"
 
 #if defined(_WIN32)
     #define KEY_ESCAPE VK_ESCAPE
@@ -214,7 +215,7 @@ public:
 
     void GetPlane(Plane planes[6]) const
     {
-        Frustum frustum(matrices.perspective);
+        Frustum frustum(matrices.perspective * matrices.view);
         for (uint32_t i = 0; i < 6; i++)
         {
             planes[i] = frustum.planes[i];
@@ -284,4 +285,124 @@ public:
 
         return retVal;
     } */
+};
+
+class FPSCamera
+{
+public:
+    float rotationSpeed = 1.0f;
+    float movementSpeed = 1.0f;
+
+    bool updated = false;
+    bool flipY   = false;
+
+    struct
+    {
+        FakeReal::math::Matrix4X4 perspective;
+        FakeReal::math::Matrix4X4 view;
+    } matrices;
+
+    struct
+    {
+        bool left  = false;
+        bool right = false;
+        bool up    = false;
+        bool down  = false;
+    } keys;
+
+public:
+    void Update(float deltaTime)
+    {
+        using namespace FakeReal;
+        updated = false;
+        if (moving())
+        {
+            math::Vector3 angle(glm::radians(rotation.x), glm::radians(rotation.y), glm::radians(rotation.z));
+            math::Matrix4X4 rot    = glm::toMat4(math::Quaternion(angle));
+            math::Vector3 camFront = glm::normalize(math::Vector3(rot[2][0], rot[2][1], rot[2][2]));
+
+            float moveSpeed = deltaTime * movementSpeed;
+
+            if (keys.up)
+                position += camFront * moveSpeed;
+            if (keys.down)
+                position -= camFront * moveSpeed;
+            if (keys.left)
+                position -= glm::normalize(glm::cross(camFront, math::Vector3(0.0f, 1.0f, 0.0f))) * moveSpeed;
+            if (keys.right)
+                position += glm::normalize(glm::cross(camFront, math::Vector3(0.0f, 1.0f, 0.0f))) * moveSpeed;
+        }
+        updateViewMatrix();
+    }
+
+    void updateViewMatrix()
+    {
+        using namespace FakeReal;
+        math::Vector3 angle(glm::radians(rotation.x), glm::radians(rotation.y), glm::radians(rotation.z));
+        math::Matrix4X4 rotM = glm::toMat4(math::Quaternion(angle));
+        math::Matrix4X4 transM;
+        math::Vector3 translation = position;
+        if (flipY)
+        {
+            translation.y *= -1.0f;
+        }
+        transM = glm::translate(math::Matrix4X4(1.0f), translation);
+        {
+            matrices.view = transM;
+        }
+        /* else
+        {
+            matrices.view = transM * rotM;
+        } */
+
+        viewPos = math::Vector4(position, 0.0f) * math::Vector4(-1.0f, -1.0f, -1.0f, 1.0f);
+
+        updated = true;
+    };
+
+    void setPosition(FakeReal::math::Vector3 position)
+    {
+        this->position = position;
+        updateViewMatrix();
+    }
+
+    void setRotation(FakeReal::math::Vector3 rotation)
+    {
+        this->rotation = rotation;
+        updateViewMatrix();
+    }
+
+    void setPerspective(float fov, float aspect, float znear, float zfar)
+    {
+        this->fov            = fov;
+        this->znear          = znear;
+        this->zfar           = zfar;
+        matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
+        /* if (flipY)
+        {
+            matrices.perspective[1][1] *= -1.0f;
+        } */
+    }
+
+    bool moving()
+    {
+        return keys.left || keys.right || keys.up || keys.down;
+    }
+
+    void GetPlane(Plane planes[6]) const
+    {
+        Frustum frustum(matrices.perspective * matrices.view);
+        for (uint32_t i = 0; i < 6; i++)
+        {
+            planes[i] = frustum.planes[i];
+        }
+    }
+
+public:
+    FakeReal::math::Vector3 rotation =  FakeReal::math::Vector3();
+    FakeReal::math::Vector3 position =  FakeReal::math::Vector3();
+    FakeReal::math::Vector4 viewPos  =  FakeReal::math::Vector4();
+private:
+    float fov;
+    float znear, zfar;
 };
