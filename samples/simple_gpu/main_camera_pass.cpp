@@ -609,8 +609,8 @@ void MainCameraPass::DrawCameraDebug(const Camera* cam, GPURenderPassEncoderID e
         camera.movementSpeed = 10.0f;
         camera.setPerspective(90.0f, (float)1080 / (float)1080, 0.1f, 1000.0f);
         camera.rotationSpeed = 0.25f;
-        camera.setRotation({ 0.f, 90.0f, 0.0f });
-        camera.setPosition({ 25.f, -5.f, 0.f });
+        camera.setRotation({ 0.f, -90.0f, 0.0f });
+        camera.setPosition({ -25.f, 5.f, 0.f });
 
         glm::vec3 frustumPointsNDCSpace[8] = {
             glm::vec3(-1.0f, -1.0f, 0.0f),

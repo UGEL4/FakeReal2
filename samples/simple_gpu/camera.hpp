@@ -348,12 +348,13 @@ public:
         }
         transM = glm::translate(math::Matrix4X4(1.0f), translation);
         {
-            matrices.view = transM;
+            matrices.view = glm::inverse(transM * rotM);
         }
         /* else
         {
             matrices.view = transM * rotM;
         } */
+        matrices.view = glm::lookAt(math::Vector3(-25.f, 5.f, 0.f), math::Vector3(0.f, 5.f, 0.f), math::Vector3(0.f, 1.f, 0.f));
 
         viewPos = math::Vector4(position, 0.0f) * math::Vector4(-1.0f, -1.0f, -1.0f, 1.0f);
 
