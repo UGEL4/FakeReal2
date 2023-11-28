@@ -196,8 +196,19 @@ struct BoundingBox
             }
         }
 
-        float dd = n.x * minP.x + n.y * minP.y + n.z * minP.z + d;
-        if (math::Dot(n, minP) + d > 0.f)
+        float sign_min = math::Dot(n, minP) + d;
+        float sign_max = math::Dot(n, maxP) + d;
+        if (sign_min > 0)
+        {
+            return 1;
+        }
+        else if (sign_max < 0.f)
+        {
+            return -1;
+        }
+        return 0;
+
+        /* if (math::Dot(n, minP) + d > 0.f)
         {
             return 1;
         }
@@ -205,7 +216,7 @@ struct BoundingBox
         {
             return -1;
         }
-        return 0;
+        return 0; */
     }
 
     /* int ClassifyPoint(const Plane& plane, const Point& pt)
