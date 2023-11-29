@@ -61,12 +61,10 @@ bool Culler::IsVisible(const BoundingBox& aabb) const
 
 bool Culler::IsVisible1(const BoundingBox& aabb) const
 {
-    //BoundingBox newAABB = BoundingBox::BoundingBoxTransform(aabb, mFPSCamera->matrices.view);
-    BoundingBox newAABB = aabb;
     uint32_t num = 0;
     for (uint32_t i = 0; i < mPlaneNum; i++)
     {
-        int result = newAABB.RelationWithPlane(mPlanes[i].normal, mPlanes[i].distance);
+        int result = aabb.RelationWithPlane(mPlanes[i].normal, mPlanes[i].distance);
         if (result == -1)
         {
             return false;

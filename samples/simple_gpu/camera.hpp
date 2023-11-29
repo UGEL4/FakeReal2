@@ -8,9 +8,6 @@
 #pragma once
 //#define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-//#include <glm/glm.hpp>
-//#include <glm/gtc/quaternion.hpp>
-//#include <glm/gtc/matrix_transform.hpp>
 
 #include "Math/Matrix.h"
 #include "frustum.hpp"
@@ -48,28 +45,26 @@ private:
     void updateViewMatrix()
     {
         using namespace FakeReal;
-        math::Matrix4X4 rotM(1.0f);
+        /* math::Matrix4X4 rotM(1.0f);
         math::Matrix4X4 transM;
 
         rotM = glm::rotate(rotM, glm::radians(rotation.x * (flipY ? -1.0f : 1.0f)), math::Vector3(1.0f, 0.0f, 0.0f));
         rotM = glm::rotate(rotM, glm::radians(rotation.y), math::Vector3(0.0f, 1.0f, 0.0f));
-        rotM = glm::rotate(rotM, glm::radians(rotation.z), math::Vector3(0.0f, 0.0f, 1.0f));
+        rotM = glm::rotate(rotM, glm::radians(rotation.z), math::Vector3(0.0f, 0.0f, 1.0f)); */
 
-        math::Vector3 translation = position;
-        if (flipY)
-        {
-            translation.y *= -1.0f;
-        }
-        transM = glm::translate(math::Matrix4X4(1.0f), translation);
+        math::Vector3 angle(glm::radians(rotation.x), glm::radians(rotation.y), glm::radians(rotation.z));
+        math::Matrix4X4 rot    = glm::toMat4(math::Quaternion(angle));
+        math::Matrix4X4 transM = glm::translate(math::Matrix4X4(1.0f), position);
+        matrices.view          = glm::inverse(transM * rot);
 
-        if (type == CameraType::firstperson)
+        /* if (type == CameraType::firstperson)
         {
             matrices.view = rotM * transM;
         }
         else
         {
             matrices.view = transM * rotM;
-        }
+        } */
 
         viewPos = math::Vector4(position, 0.0f) * math::Vector4(-1.0f, 1.0f, -1.0f, 1.0f);
 
@@ -192,11 +187,15 @@ public:
         {
             if (moving())
             {
-                math::Vector3 camFront;
+                /* math::Vector3 camFront;
                 camFront.x = -cos(glm::radians(rotation.x)) * sin(glm::radians(rotation.y));
                 camFront.y = sin(glm::radians(rotation.x));
                 camFront.z = cos(glm::radians(rotation.x)) * cos(glm::radians(rotation.y));
-                camFront   = glm::normalize(camFront);
+                camFront   = glm::normalize(camFront); */
+
+                math::Vector3 angle(glm::radians(rotation.x), glm::radians(rotation.y), glm::radians(rotation.z));
+                math::Matrix4X4 rot    = glm::toMat4(math::Quaternion(angle));
+                math::Vector3 camFront = -glm::normalize(math::Vector3(rot[2][0], rot[2][1], rot[2][2]));
 
                 float moveSpeed = deltaTime * movementSpeed;
 
@@ -287,6 +286,7 @@ public:
     } */
 };
 
+
 class FPSCamera
 {
 public:
@@ -354,7 +354,7 @@ public:
         {
             matrices.view = transM * rotM;
         } */
-        matrices.view = glm::lookAt(math::Vector3(-25.f, 5.f, 0.f), math::Vector3(0.f, 5.f, 0.f), math::Vector3(0.f, 1.f, 0.f));
+        //matrices.view = glm::lookAt(math::Vector3(-25.f, 5.f, 0.f), math::Vector3(0.f, 5.f, 0.f), math::Vector3(0.f, 1.f, 0.f));
 
         viewPos = math::Vector4(position, 0.0f) * math::Vector4(-1.0f, -1.0f, -1.0f, 1.0f);
 
@@ -394,7 +394,7 @@ public:
     {
         //Frustum frustum(matrices.perspective * matrices.view);
         Frustum frustum;
-        frustum.Initialize(matrices.perspective * matrices.view);
+        frustum.Initialize(matrices.perspective * matrices.view, true);
         for (uint32_t i = 0; i < 6; i++)
         {
             planes[i] = frustum.planes[i];
