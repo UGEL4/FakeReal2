@@ -34,7 +34,6 @@ void Culler::PushFPSCameraPlane(FPSCamera& cam)
 
 bool Culler::IsVisible(const BoundingBox& aabb) const
 {
-    BoundingBox newAABB = BoundingBox::BoundingBoxTransform(aabb, mCamera->matrices.view);
     uint32_t num = 0;
     for (uint32_t i = 0; i < mPlaneNum; i++)
     {
@@ -47,10 +46,6 @@ bool Culler::IsVisible(const BoundingBox& aabb) const
         {
             num++;
         }
-        /* if (newAABB.RelationWithPlane(mPlanes[i].normal, mPlanes[i].distance) != -1)
-        {
-            num++;
-        } */
     }
     if (num == mPlaneNum)
     {

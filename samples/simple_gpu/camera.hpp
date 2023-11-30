@@ -40,7 +40,7 @@ class Camera
 {
 private:
     float fov;
-    float znear, zfar;
+    float znear, zfar, aspect;
 
     void updateViewMatrix()
     {
@@ -118,11 +118,22 @@ public:
         return zfar;
     }
 
+    float getAspect() const
+    {
+        return aspect;
+    }
+
+    float getFov() const
+    {
+        return this->fov;
+    }
+
     void setPerspective(float fov, float aspect, float znear, float zfar)
     {
         this->fov            = fov;
         this->znear          = znear;
         this->zfar           = zfar;
+        this->aspect         = aspect;
         matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
         if (flipY)
         {
@@ -132,6 +143,7 @@ public:
 
     void updateAspectRatio(float aspect)
     {
+        this->aspect         = aspect;
         matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
         if (flipY)
         {

@@ -8,7 +8,7 @@
 EntityModel::EntityModel(const std::string_view file, GPUDeviceID device, GPUQueueID gfxQueue)
 : mDevice(device), mGfxQueue(gfxQueue)
 {
-    //mTransformComp.transform.scale = math::Vector3(0.02f, 0.02f, 0.02f);
+    mTransformComp.transform.scale = math::Vector3(0.02f, 0.02f, 0.02f);
     mMeshFile = file;
     //std::filesystem::path assetFilePath = GetFullPath(assetUrl);
     std::ifstream is(file.data());

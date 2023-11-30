@@ -117,18 +117,10 @@ void MainCameraPass::Initialize(GPUDeviceID device, GPUQueueID gfxQueue, GPUSwap
 
 void MainCameraPass::DrawForward(const EntityModel* modelEntity, const Camera* cam, const CascadeShadowPass* shadowPass)
 {
-    FPSCamera camera;
-    //camera.type          = Camera::CameraType::firstperson;
-    camera.movementSpeed = 10.0f;
-    camera.setPerspective(90.0f, (float)1080 / (float)1080, 0.1f, 1000.0f);
-    camera.rotationSpeed = 0.25f;
-    camera.setRotation({ 0.f, -90.0f, 0.0f });
-    camera.setPosition({ -25.f, 5.f, 0.f });
-    UpdateVisible(&camera, modelEntity);
+    UpdateVisible(cam, modelEntity);
     //reset
     global::g_global_reader_resource.Reset(mCurrFrame);
 
-    
 
     GPUAcquireNextDescriptor acq_desc{};
     acq_desc.signal_semaphore        = mPresentSemaphore;
@@ -226,7 +218,7 @@ void MainCameraPass::DrawForward(const EntityModel* modelEntity, const Camera* c
 
             // pShadowPass->DebugShadow(encoder);
 
-            DrawCameraDebug(cam, encoder);
+            //DrawCameraDebug(cam, encoder);
         }
         GPUCmdEndRenderPass(cmd, encoder);
 
@@ -480,11 +472,11 @@ void MainCameraPass::UpdateShadowMapSet(GPUTextureViewID shadowMap, GPUSamplerID
     GPUUpdateDescriptorSet(mShadowMapSet, dataDesc, 2);
 }
 
-void MainCameraPass::UpdateVisible(const FPSCamera* cam, const EntityModel* modelEntity)
+void MainCameraPass::UpdateVisible(const Camera* cam, const EntityModel* modelEntity)
 {
     mCuller.ClearVisibleSet();
     mCuller.ClearAllPanel();
-    mCuller.PushFPSCameraPlane(*const_cast<FPSCamera*>(cam));
+    mCuller.PushCameraPlane(*const_cast<Camera*>(cam));
     math::Matrix4X4 trans = modelEntity->mTransformComp.GetMatrix();
     for (auto& comp : modelEntity->mMeshComp.rawMeshes)
     {
@@ -492,7 +484,7 @@ void MainCameraPass::UpdateVisible(const FPSCamera* cam, const EntityModel* mode
         TransformComponent meshTransComp;
         meshTransComp.transform = comp.transform;
         BoundingBox aabb = BoundingBox::BoundingBoxTransform(iter->second, trans * meshTransComp.GetMatrix());
-        if (mCuller.IsVisible1(aabb))
+        if (mCuller.IsVisible(aabb))
         {
             mCuller.AddVisibleAABB(aabb);
         }

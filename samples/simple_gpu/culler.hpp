@@ -33,6 +33,6 @@ private:
 
     uint32_t mPlaneNum {0};
     Plane mPlanes[32];
-    Camera* mCamera;
+    Camera* mCamera {nullptr};
     FPSCamera* mFPSCamera {nullptr};
 };

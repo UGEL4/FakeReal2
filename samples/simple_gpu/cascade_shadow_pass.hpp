@@ -32,6 +32,8 @@ public:
     static constexpr uint32_t sCascadeCount = 4;
     uint32_t mShadowMapSize{ 4096 };
 
+    Culler mCuller;
+
 public:
     CascadeShadowPass(GPUDeviceID device, GPUQueueID gfxQueue)
     : mRefDevice(device), mRefGfxQueue(gfxQueue)
@@ -740,7 +742,7 @@ public:
         int i = 0;
     }
 
-    void CalculateDirectionalLightCamera2(const Camera& cam, const Culler& culler, const glm::vec3& lightDir);
+    void CalculateDirectionalLightCamera2(const Camera& cam, const Culler& culler, const glm::vec3& lightDir, const class EntityModel* modelEntity);
 
     glm::mat4 LookDirLH(const glm::vec3& pos, const glm::vec3& dir, const glm::vec3& up = glm::vec3(0.f, 1.f, 0.f)) const
     {

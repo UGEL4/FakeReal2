@@ -35,7 +35,7 @@ void CascadeShadowPass::Draw(GPUCommandBufferID cmd, const EntityModel* modelEnt
         uint32_t tmp = value + (aligment - 1);
         return tmp - tmp % aligment;
     };
-    CalculateDirectionalLightCamera2(*cam, culler, lightPos);
+    CalculateDirectionalLightCamera2(*cam, culler, lightPos, modelEntity);
 
     uint32_t perframe_dynamic_offset                                                    = roundUp(global::g_global_reader_resource.storage._global_upload_ringbuffers_end[frameIndex], global::g_global_reader_resource.storage.minAlignment);
     global::g_global_reader_resource.storage._global_upload_ringbuffers_end[frameIndex] = perframe_dynamic_offset + sizeof(global::MeshDirectionalLightShadowPerFrameStorageBufferObject);
@@ -182,7 +182,7 @@ void CascadeShadowPass::Draw(GPUCommandBufferID cmd, const EntityModel* modelEnt
     GPUCmdResourceBarrier(cmd, &barrier);
 }
 
-void CascadeShadowPass::CalculateDirectionalLightCamera2(const Camera& cam, const Culler& culler, const glm::vec3& lightDir)
+void CascadeShadowPass::CalculateDirectionalLightCamera2(const Camera& cam, const Culler& culler, const glm::vec3& lightDir, const EntityModel* modelEntity)
 {
         // CreateEuler(glm::radians(0.f), glm::radians(45.f), glm::radians((0.f)));
         //  Calculate split depths based on view camera frustum
@@ -236,6 +236,35 @@ void CascadeShadowPass::CalculateDirectionalLightCamera2(const Camera& cam, cons
             {
                 glm::vec4 frustumPointWith_w = invVP * glm::vec4(frustumPointsNDCSpace[j], 1.0);
                 frustumPointsNDCSpace[j]     = frustumPointWith_w / frustumPointWith_w.w;
+            }
+
+            Camera shadowCamera;
+            shadowCamera.type = Camera::CameraType::firstperson;
+            shadowCamera.setPerspective(cam.getFov(), cam.getAspect(), clipRange * lastSplitDist, clipRange * splitDist);
+            shadowCamera.setRotation(cam.rotation);
+            shadowCamera.setPosition(cam.position);
+            Culler shadowCuller;
+            shadowCuller.ClearVisibleSet();
+            shadowCuller.ClearAllPanel();
+            shadowCuller.PushCameraPlane(shadowCamera);
+            math::Matrix4X4 trans = modelEntity->mTransformComp.GetMatrix();
+            for (auto& comp : modelEntity->mMeshComp.rawMeshes)
+            {
+                auto iter = global::g_cache_mesh_bounding_box.find(comp.meshFile);
+                TransformComponent meshTransComp;
+                meshTransComp.transform = comp.transform;
+                BoundingBox aabb        = BoundingBox::BoundingBoxTransform(iter->second, trans * meshTransComp.GetMatrix());
+                if (shadowCuller.IsVisible(aabb))
+                {
+                    shadowCuller.AddVisibleAABB(aabb);
+                }
+            }
+            BoundingBox casterAABB;
+            std::vector<BoundingBox> aabbArray;
+            shadowCuller.GetAllVisibleAABB(aabbArray);
+            for (auto& aabb : aabbArray)
+            {
+                casterAABB.Merge(aabb);
             }
 
             BoundingBox receiverAABB;

@@ -26,7 +26,7 @@ public:
     void DrawMeshLighting(GPURenderPassEncoderID encoder, const class EntityModel* modelEntity);
     void SetupRenderPipeline();
     void UpdateShadowMapSet(GPUTextureViewID shadowMap, GPUSamplerID sampler);
-    void UpdateVisible(const class FPSCamera* cam, const class EntityModel* modelEntity);
+    void UpdateVisible(const class Camera* cam, const class EntityModel* modelEntity);
 
     GPUDeviceID mDevice;
     GPUQueueID mGfxQueue;
