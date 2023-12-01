@@ -12,6 +12,7 @@
 #include "Math/Matrix.h"
 #include "frustum.hpp"
 #include "Math/Quaternion.h"
+#include <array>
 
 #if defined(_WIN32)
     #define KEY_ESCAPE VK_ESCAPE
@@ -231,6 +232,33 @@ public:
         {
             planes[i] = frustum.planes[i];
         }
+    }
+
+    std::array<FakeReal::math::Vector3, 8> GetFrustumPoints() const
+    {
+        using namespace FakeReal;
+        std::array<math::Vector3, 8> frustumPointsNDCSpace = {
+            math::Vector3(-1.0f, -1.0f, 0.0f),
+            math::Vector3(1.0f, -1.0f, 0.0f),
+            math::Vector3(1.0f, 1.0f, 0.0f),
+            math::Vector3(-1.0f, 1.0f, 0.0f),
+            math::Vector3(-1.0f, -1.0f, 1.0f),
+            math::Vector3(1.0f, -1.0f, 1.0f),
+            math::Vector3(1.0f, 1.0f, 1.0f),
+            math::Vector3(-1.0f, 1.0f, 1.0f),
+        };
+
+        math::Matrix4X4 invVP = glm::inverse(matrices.perspective * matrices.view);
+
+        for (size_t j = 0; j < 8; ++j)
+        {
+            math::Vector4 frustumPointWith_w = invVP * math::Vector4(frustumPointsNDCSpace[j], 1.0);
+            //frustumPointsNDCSpace[j]         = frustumPointWith_w / frustumPointWith_w.w;
+            frustumPointsNDCSpace[j].x = frustumPointWith_w.x / frustumPointWith_w.w;
+            frustumPointsNDCSpace[j].y = frustumPointWith_w.y / frustumPointWith_w.w;
+            frustumPointsNDCSpace[j].z = frustumPointWith_w.z / frustumPointWith_w.w;
+        }
+        return frustumPointsNDCSpace;
     }
 
     // Update camera passing separate axis data (gamepad)

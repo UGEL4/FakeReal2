@@ -202,16 +202,16 @@ void CascadeShadowPass::CalculateDirectionalLightCamera2(const Camera& cam, cons
             cascadeSplits[i] = (d - n) / clipRange;
         }
 
-        BoundingBox casterAABB;
+        BoundingBox casterAABB1;
         /* {
             // just one entity for now;
             casterAABB.Merge(BoundingBox::BoundingBoxTransform(entityBoundingBox, entityModel));
         } */
-        std::vector<BoundingBox> aabbArray;
-        culler.GetAllVisibleAABB(aabbArray);
-        for (auto& aabb : aabbArray)
+        std::vector<BoundingBox> aabbArray1;
+        culler.GetAllVisibleAABB(aabbArray1);
+        for (auto& aabb : aabbArray1)
         {
-            casterAABB.Merge(aabb);
+            casterAABB1.Merge(aabb);
         }
 
         glm::mat4 vp    = cam.matrices.perspective * cam.matrices.view;
@@ -219,10 +219,11 @@ void CascadeShadowPass::CalculateDirectionalLightCamera2(const Camera& cam, cons
         // Calculate orthographic projection matrix for each cascade
         size_t constexpr CORNER_COUNT = 8;
         float lastSplitDist           = 0.0;
+        std::array<math::Vector3, 8> frustumPointsNDCSpace = cam.GetFrustumPoints();
         for (uint32_t i = 0; i < sCascadeCount; i++)
         {
             float splitDist                    = cascadeSplits[i];
-            glm::vec3 frustumPointsNDCSpace[8] = {
+            /* glm::vec3 frustumPointsNDCSpace[8] = {
                 glm::vec3(-1.0f, -1.0f, 0.0f),
                 glm::vec3(1.0f, -1.0f, 0.0f),
                 glm::vec3(1.0f, 1.0f, 0.0f),
@@ -236,11 +237,13 @@ void CascadeShadowPass::CalculateDirectionalLightCamera2(const Camera& cam, cons
             {
                 glm::vec4 frustumPointWith_w = invVP * glm::vec4(frustumPointsNDCSpace[j], 1.0);
                 frustumPointsNDCSpace[j]     = frustumPointWith_w / frustumPointWith_w.w;
-            }
+            } */
+
+            //std::array<math::Vector3, 8> points = cam.GetFrustumPoints();
 
             Camera shadowCamera;
             shadowCamera.type = Camera::CameraType::firstperson;
-            shadowCamera.setPerspective(cam.getFov(), cam.getAspect(), clipRange * lastSplitDist, clipRange * splitDist);
+            shadowCamera.setPerspective(cam.getFov(), cam.getAspect(), i == 0 ? n : clipRange * lastSplitDist, clipRange * splitDist);
             shadowCamera.setRotation(cam.rotation);
             shadowCamera.setPosition(cam.position);
             Culler shadowCuller;
@@ -271,10 +274,15 @@ void CascadeShadowPass::CalculateDirectionalLightCamera2(const Camera& cam, cons
             for (uint32_t j = 0; j < 4; j++)
             {
                 glm::vec3 dist               = frustumPointsNDCSpace[j + 4] - frustumPointsNDCSpace[j];
-                frustumPointsNDCSpace[j + 4] = frustumPointsNDCSpace[j] + (dist * splitDist);
+                /* frustumPointsNDCSpace[j + 4] = frustumPointsNDCSpace[j] + (dist * splitDist);
                 frustumPointsNDCSpace[j]     = frustumPointsNDCSpace[j] + (dist * lastSplitDist);
                 receiverAABB.Update(frustumPointsNDCSpace[j]);
-                receiverAABB.Update(frustumPointsNDCSpace[j + 4]);
+                receiverAABB.Update(frustumPointsNDCSpace[j + 4]); */
+
+                math::Vector3 pointF = frustumPointsNDCSpace[j] + (dist * splitDist);
+                math::Vector3 pointN = frustumPointsNDCSpace[j] + (dist * lastSplitDist);
+                receiverAABB.Update(pointN);
+                receiverAABB.Update(pointF);
             }
 
             glm::vec3 lightDir1 = glm::normalize(-lightDir);
