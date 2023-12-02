@@ -250,7 +250,7 @@ void CascadeShadowPass::CalculateDirectionalLightCamera2(const Camera& cam, cons
             shadowCuller.ClearVisibleSet();
             shadowCuller.ClearAllPanel();
             shadowCuller.PushCameraPlane(shadowCamera);
-            math::Matrix4X4 trans = modelEntity->mTransformComp.GetMatrix();
+            /* math::Matrix4X4 trans = modelEntity->mTransformComp.GetMatrix();
             for (auto& comp : modelEntity->mMeshComp.rawMeshes)
             {
                 auto iter = global::g_cache_mesh_bounding_box.find(comp.meshFile);
@@ -261,10 +261,26 @@ void CascadeShadowPass::CalculateDirectionalLightCamera2(const Camera& cam, cons
                 {
                     shadowCuller.AddVisibleAABB(aabb);
                 }
+            } */
+            std::vector<BoundingBox> oldArray;
+            culler.GetAllVisibleAABB(oldArray);
+            for (auto& aabb : oldArray)
+            {
+                if (shadowCuller.IsVisible(aabb))
+                {
+                    shadowCuller.AddVisibleAABB(aabb);
+                }
             }
             BoundingBox casterAABB;
             std::vector<BoundingBox> aabbArray;
             shadowCuller.GetAllVisibleAABB(aabbArray);
+            if (aabbArray.size() == 0)
+            {
+                cascades[i].splitDepth     = (n + splitDist * clipRange) * -1.0f;
+                cascades[i].viewProjMatrix = math::Matrix4X4(1.f);
+                lastSplitDist              = cascadeSplits[i];
+                continue;
+            }
             for (auto& aabb : aabbArray)
             {
                 casterAABB.Merge(aabb);
